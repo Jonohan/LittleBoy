@@ -1,0 +1,25 @@
+{
+    "name": "Xuwu.FourDimensionalPortals.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:81b50317ef71bc74f939067bb0e72bc2",
+        "GUID:15fc0a57446b3144c949da3e2b9737a9"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "0.0.0",
+            "define": "USING_UNIVERSAL_RENDER_PIPELINE"
+        }
+    ],
+    "noEngineReferences": false
+}
