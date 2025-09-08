@@ -20801,7 +20801,8 @@ GameObject:
   - component: {fileID: 11492324}
   - component: {fileID: 114236714232453226}
   - component: {fileID: 114000013317659634}
-  - component: {fileID: 2034596425186766390}
+  - component: {fileID: 1424295113085012197}
+  - component: {fileID: 3039080801731603689}
   m_Layer: 8
   m_Name: vMeleeController_Inventory
   m_TagString: Player
@@ -22180,7 +22181,7 @@ MonoBehaviour:
   inStabilize: 0
   updateBehaviour: 0
   state: 0
---- !u!114 &2034596425186766390
+--- !u!114 &1424295113085012197
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -22200,6 +22201,33 @@ MonoBehaviour:
   _cameraFollowTarget: {fileID: 0}
   _portalSystemCameraData: {fileID: 0}
   _autoConfigurePortalSettings: 1
+--- !u!114 &3039080801731603689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000013806479290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a7d8c47ca23ce4eb96bf17bb9a3212, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sizeMultiplier: 1
+  adjustAnimationSpeed: 0
+  adjustMovementSpeed: 0
+  adjustJumpHeight: 0
+  adjustCameraDistance: 1
+  cameraDistanceMultiplier: 1
+  forceGroundRecalculation: 1
+  _motor: {fileID: 0}
+  _capsuleCollider: {fileID: 0}
+  _animator: {fileID: 0}
+  _cameraTarget: {fileID: 0}
+  _modelRootA: {fileID: 0}
+  _modelRootB: {fileID: 0}
+  _modelChildNameA: 3D Model
+  _modelChildNameB: Invector Components
 --- !u!1 &1000013886564704
 GameObject:
   m_ObjectHideFlags: 0

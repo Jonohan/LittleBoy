@@ -1,5 +1,6 @@
 using UnityEngine;
 using Invector.vCharacterController;
+using System.Collections.Generic;
 using Invector.vCamera;
 
 namespace Xuwu.Character
@@ -13,13 +14,13 @@ namespace Xuwu.Character
     public class CharacterSizeController : MonoBehaviour
     {
         [Header("体型设置")]
-        [Range(0.3f, 3.0f)]
+        [Range(0.5f, 2.0f)]
         [Tooltip("体型缩放倍数，1.0为原始大小")]
         public float sizeMultiplier = 1.0f;
         
         [Header("动画设置")]
         [Tooltip("是否同时调整动画播放速度")]
-        public bool adjustAnimationSpeed = true;
+        public bool adjustAnimationSpeed = false;
         
         [Tooltip("是否同时调整移动速度")]
         public bool adjustMovementSpeed = true;
@@ -31,8 +32,8 @@ namespace Xuwu.Character
         [Tooltip("是否同时调整相机距离")]
         public bool adjustCameraDistance = true;
         
-        [Tooltip("相机距离调整倍数")]
-        [Range(0.5f, 2.0f)]
+        [Tooltip("（直接目标点跟随用）相机距离倍率，对_target位移生效")]
+        [Range(0.1f, 3.0f)]
         public float cameraDistanceMultiplier = 1.0f;
         
         [Header("地面检测设置")]
@@ -44,6 +45,14 @@ namespace Xuwu.Character
         [SerializeField] private CapsuleCollider _capsuleCollider;
         [SerializeField] private Animator _animator;
         [SerializeField] private Transform _cameraTarget;
+        
+        [Header("视觉模型根（分布缩放）")]
+        [Tooltip("第一个需要缩放的子物体，默认自动查找 '3D Model'")]
+        [SerializeField] private Transform _modelRootA;
+        [Tooltip("第二个需要缩放的子物体，默认自动查找 'Invector Components'")]
+        [SerializeField] private Transform _modelRootB;
+        [SerializeField] private string _modelChildNameA = "3D Model";
+        [SerializeField] private string _modelChildNameB = "Invector Components";
         
         // 原始值存储
         private float _originalCapsuleHeight;
@@ -57,6 +66,26 @@ namespace Xuwu.Character
         private float _originalAnimationSpeed;
         private Vector3 _originalLocalScale;
         private float _originalCameraDistance;
+        private Vector3 _originalModelLocalScaleA;
+        private Vector3 _originalModelLocalScaleB;
+        
+        // Invector vThirdPersonCamera 距离同步
+        private float _originalTPCameraDistance;
+        private float _lastAppliedTPCameraDistance;
+        private bool _cachedTPCamera;
+        
+        [Header("相机状态缩放")]
+        [Tooltip("是否按体型倍数同步缩放所有CameraState的min/max/default（更稳，不与状态机冲突）")]
+        public bool scaleCameraStates = true;
+        [Tooltip("是否同时按体型倍数缩放CameraState的height参数")]
+        public bool scaleCameraStateHeight = true;
+        [Tooltip("（状态系统用）distance倍率，最终= sizeMultiplier * cameraStateDistanceMultiplier")]
+        [Range(0.1f, 3.0f)]
+        public float cameraStateDistanceMultiplier = 1.0f;
+        [Tooltip("（状态系统用）height倍率，最终= sizeMultiplier * cameraStateHeightMultiplier")]
+        [Range(0.1f, 3.0f)]
+        public float cameraStateHeightMultiplier = 1.0f;
+        private readonly Dictionary<Invector.vThirdPersonCameraState, (float def,float min,float max,float height)> _cameraStateBase = new Dictionary<Invector.vThirdPersonCameraState, (float def, float min, float max, float height)>();
         
         // 地面检测参数
         private float _originalGroundMinDistance;
@@ -83,6 +112,8 @@ namespace Xuwu.Character
             SaveOriginalValues();
             ApplySizeChange(sizeMultiplier);
             _isInitialized = true;
+            // 延迟缓存 & 应用第三人称相机的distance（相机通常在Start期间绑定目标）
+            StartCoroutine(CacheAndScaleTPCameraCoroutine());
         }
         
         private void OnValidate()
@@ -112,9 +143,16 @@ namespace Xuwu.Character
                 var cameraController = FindObjectOfType<vThirdPersonCamera>();
                 if (cameraController)
                 {
+                    Debug.Log($"[CharacterSizeController] 找到vThirdPersonCamera组件在 {cameraController.gameObject.name}");
                     _cameraTarget = cameraController.transform;
                 }
             }
+            
+            // 自动查找要缩放的两个子物体
+            if (!_modelRootA)
+                _modelRootA = FindChildByName(transform, _modelChildNameA);
+            if (!_modelRootB)
+                _modelRootB = FindChildByName(transform, _modelChildNameB);
             
             // 验证必需组件
             if (!_motor)
@@ -158,6 +196,8 @@ namespace Xuwu.Character
             
             // 原始缩放
             _originalLocalScale = transform.localScale;
+            _originalModelLocalScaleA = _modelRootA ? _modelRootA.localScale : Vector3.one;
+            _originalModelLocalScaleB = _modelRootB ? _modelRootB.localScale : Vector3.one;
             
             // 地面检测参数
             _originalGroundMinDistance = _motor.groundMinDistance;
@@ -192,7 +232,7 @@ namespace Xuwu.Character
             _currentSizeMultiplier = newSizeMultiplier;
             
             // 1. 调整碰撞体参数
-            AdjustCollider(newSizeMultiplier);
+            //AdjustCollider(newSizeMultiplier);
             
             // 2. 调整地面检测参数（重要！解决悬空和穿模问题）
             AdjustGroundDetection(newSizeMultiplier);
@@ -206,14 +246,16 @@ namespace Xuwu.Character
             // 4. 调整跳跃高度
             if (adjustJumpHeight)
             {
-                AdjustJumpHeight(newSizeMultiplier);
+                //AdjustJumpHeight(newSizeMultiplier);
             }
             
             // 5. 调整动画速度
+            /*
             if (adjustAnimationSpeed && _animator)
             {
                 AdjustAnimationSpeed(newSizeMultiplier);
             }
+            */
             
             // 6. 调整视觉缩放
             AdjustVisualScale(newSizeMultiplier);
@@ -238,7 +280,8 @@ namespace Xuwu.Character
             // 强制更新碰撞体
             _capsuleCollider.height = _motor.capsuleHeight;
             _capsuleCollider.radius = _motor.capsuleThickness / 2f;
-            _capsuleCollider.center = _motor.capsuleOffset;
+            // Invector 的实现：center = capsuleOffset * capsuleHeight
+            _capsuleCollider.center = _motor.capsuleOffset * _motor.capsuleHeight;
         }
         
         /// <summary>
@@ -325,7 +368,22 @@ namespace Xuwu.Character
         /// </summary>
         private void AdjustVisualScale(float multiplier)
         {
-            transform.localScale = _originalLocalScale * multiplier;
+            bool anyApplied = false;
+            if (_modelRootA)
+            {
+                _modelRootA.localScale = _originalModelLocalScaleA * multiplier;
+                anyApplied = true;
+            }
+            if (_modelRootB)
+            {
+                _modelRootB.localScale = _originalModelLocalScaleB * multiplier;
+                anyApplied = true;
+            }
+            if (!anyApplied)
+            {
+                // 回退：若未指定子物体，则缩放整体
+                transform.localScale = _originalLocalScale * multiplier;
+            }
         }
         
         /// <summary>
@@ -339,6 +397,11 @@ namespace Xuwu.Character
                 Vector3 direction = (_cameraTarget.position - transform.position).normalized;
                 _cameraTarget.position = transform.position + direction * newDistance;
             }
+            // 同步Invector相机状态与距离
+            if (scaleCameraStates)
+                ScaleCameraStatesAndRemapDistance(multiplier);
+            else
+                AdjustThirdPersonCameraDistance(multiplier);
         }
         
         #endregion
@@ -447,6 +510,18 @@ namespace Xuwu.Character
             Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.DrawWireCube(Vector3.zero, new Vector3(_motor.capsuleThickness, _motor.capsuleHeight, _motor.capsuleThickness));
             
+            // 标注被缩放的视觉子物体位置
+            if (_modelRootA)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(_modelRootA.position, 0.05f);
+            }
+            if (_modelRootB)
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(_modelRootB.position, 0.05f);
+            }
+            
             // 绘制地面检测点
             Gizmos.color = Color.yellow;
             Gizmos.matrix = Matrix4x4.identity;
@@ -455,5 +530,104 @@ namespace Xuwu.Character
         }
         
         #endregion
+
+        #region 相机集成（Invector vThirdPersonCamera）
+        private System.Collections.IEnumerator CacheAndScaleTPCameraCoroutine()
+        {
+            // 等待一到两帧，确保tpCamera已实例化并完成SetMainTarget
+            yield return null;
+            yield return null;
+            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (tpCam)
+            {
+                if (!_cachedTPCamera)
+                {
+                    _originalTPCameraDistance = tpCam.distance;
+                    _cachedTPCamera = true;
+                }
+                if (scaleCameraStates)
+                    ScaleCameraStatesAndRemapDistance(sizeMultiplier);
+                else
+                {
+                    var targetDistance = _originalTPCameraDistance * sizeMultiplier * cameraDistanceMultiplier;
+                    _lastAppliedTPCameraDistance = tpCam.distance;
+                    tpCam.distance = targetDistance;
+                    if (!Mathf.Approximately(_lastAppliedTPCameraDistance, targetDistance))
+                    {
+                        Debug.Log($"[CharacterSizeController] vThirdPersonCamera.distance 改为 {targetDistance:F2}（原 {_lastAppliedTPCameraDistance:F2}）");
+                    }
+                }
+            }
+        }
+
+        private void AdjustThirdPersonCameraDistance(float multiplier)
+        {
+            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (!tpCam) return;
+            if (!_cachedTPCamera)
+            {
+                _originalTPCameraDistance = tpCam.distance;
+                _cachedTPCamera = true;
+            }
+            var targetDistance = _originalTPCameraDistance * multiplier * cameraDistanceMultiplier;
+            var before = tpCam.distance;
+            if (!Mathf.Approximately(before, targetDistance))
+            {
+                tpCam.distance = targetDistance;
+                Debug.Log($"[CharacterSizeController] vThirdPersonCamera.distance 改为 {targetDistance:F2}（原 {before:F2}）");
+                _lastAppliedTPCameraDistance = targetDistance;
+            }
+        }
+
+        private void ScaleCameraStatesAndRemapDistance(float scale)
+        {
+            var tp = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (!tp || tp.CameraStateList == null || tp.CameraStateList.tpCameraStates == null) return;
+            // 记录当前distance在区间内的相对位置
+            var cur = tp.currentState;
+            float t = 0.5f;
+            if (cur != null && cur.maxDistance > cur.minDistance)
+                t = Mathf.InverseLerp(cur.minDistance, cur.maxDistance, tp.distance);
+
+            // 计算状态缩放倍率（体型 * 自定义倍率）
+            float distScale = scale * cameraStateDistanceMultiplier;
+            float hScale = scale * cameraStateHeightMultiplier;
+
+            foreach (var st in tp.CameraStateList.tpCameraStates)
+            {
+                if (!_cameraStateBase.ContainsKey(st))
+                    _cameraStateBase[st] = (st.defaultDistance, st.minDistance, st.maxDistance, st.height);
+                var b = _cameraStateBase[st];
+                st.defaultDistance = b.def * distScale;
+                st.minDistance = b.min * distScale;
+                st.maxDistance = b.max * distScale;
+                if (scaleCameraStateHeight) st.height = b.height * hScale;
+            }
+
+            // 将当前distance映射回新的边界，保持玩家相对缩放位置
+            cur = tp.currentState;
+            if (cur != null)
+            {
+                var newDist = Mathf.Lerp(cur.minDistance, cur.maxDistance, t);
+                if (!Mathf.Approximately(tp.distance, newDist))
+                {
+                    var before = tp.distance;
+                    tp.distance = newDist;
+                    Debug.Log($"[CharacterSizeController] CameraState缩放后 distance 映射为 {newDist:F2}（原 {before:F2}）");
+                }
+            }
+        }
+        #endregion
+        
+        private Transform FindChildByName(Transform root, string childName)
+        {
+            if (!root || string.IsNullOrEmpty(childName)) return null;
+            var trs = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < trs.Length; i++)
+            {
+                if (trs[i].name == childName) return trs[i];
+            }
+            return null;
+        }
     }
 }
