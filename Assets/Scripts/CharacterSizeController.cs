@@ -14,7 +14,7 @@ namespace Xuwu.Character
     public class CharacterSizeController : MonoBehaviour
     {
         [Header("体型设置")]
-        [Range(0.5f, 2.0f)]
+        [Range(0.5f, 6.0f)]
         [Tooltip("体型缩放倍数，1.0为原始大小")]
         public float sizeMultiplier = 1.0f;
         
@@ -87,6 +87,9 @@ namespace Xuwu.Character
         public float cameraStateHeightMultiplier = 1.0f;
         private readonly Dictionary<Invector.vThirdPersonCameraState, (float def,float min,float max,float height)> _cameraStateBase = new Dictionary<Invector.vThirdPersonCameraState, (float def, float min, float max, float height)>();
         
+        // 初始相机缩放参数（启动时自动应用）
+        private bool _hasAppliedInitialCameraScale = false;
+        
         // 地面检测参数
         private float _originalGroundMinDistance;
         private float _originalGroundMaxDistance;
@@ -114,6 +117,12 @@ namespace Xuwu.Character
             _isInitialized = true;
             // 延迟缓存 & 应用第三人称相机的distance（相机通常在Start期间绑定目标）
             StartCoroutine(CacheAndScaleTPCameraCoroutine());
+        }
+        
+        private void OnDestroy()
+        {
+            // 游戏结束时重置相机状态到原始值
+            ResetCameraStatesToOriginal();
         }
         
         private void OnValidate()
@@ -414,7 +423,48 @@ namespace Xuwu.Character
         [ContextMenu("重置到原始大小")]
         public void ResetToOriginalSize()
         {
+            ResetCameraStatesToOriginal();
             ApplySizeChange(1.0f);
+        }
+        
+        /// <summary>
+        /// 重置相机状态到原始数值
+        /// </summary>
+        [ContextMenu("重置相机状态")]
+        public void ResetCameraStatesToOriginal()
+        {
+            var tp = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (!tp || tp.CameraStateList == null || tp.CameraStateList.tpCameraStates == null) return;
+            
+            int resetCount = 0;
+            foreach (var st in tp.CameraStateList.tpCameraStates)
+            {
+                if (_cameraStateBase.ContainsKey(st))
+                {
+                    var b = _cameraStateBase[st];
+                    st.defaultDistance = b.def;
+                    st.minDistance = b.min;
+                    st.maxDistance = b.max;
+                    st.height = b.height;
+                    resetCount++;
+                }
+                else
+                {
+                    // 如果某个状态从未被缩放过，记录警告
+                    Debug.LogWarning($"[CharacterSizeController] 相机状态 (defaultDistance: {st.defaultDistance:F2}) 没有原始值记录，可能从未被缩放过");
+                }
+            }
+            
+            // 重置相机距离到原始值
+            if (_cachedTPCamera)
+            {
+                tp.distance = _originalTPCameraDistance;
+                _hasAppliedInitialCameraScale = false; // 重置标志，允许下次启动时重新应用
+            }
+            else
+            {
+                Debug.LogWarning("[CharacterSizeController] 无法重置相机距离，原始值未缓存");
+            }
         }
         
         /// <summary>
@@ -544,17 +594,51 @@ namespace Xuwu.Character
                 {
                     _originalTPCameraDistance = tpCam.distance;
                     _cachedTPCamera = true;
-                }
-                if (scaleCameraStates)
-                    ScaleCameraStatesAndRemapDistance(sizeMultiplier);
-                else
-                {
-                    var targetDistance = _originalTPCameraDistance * sizeMultiplier * cameraDistanceMultiplier;
-                    _lastAppliedTPCameraDistance = tpCam.distance;
-                    tpCam.distance = targetDistance;
-                    if (!Mathf.Approximately(_lastAppliedTPCameraDistance, targetDistance))
+                    
+                    // 立即保存所有相机状态的原始值
+                    if (scaleCameraStates && tpCam.CameraStateList != null && tpCam.CameraStateList.tpCameraStates != null)
                     {
-                        Debug.Log($"[CharacterSizeController] vThirdPersonCamera.distance 改为 {targetDistance:F2}（原 {_lastAppliedTPCameraDistance:F2}）");
+                        foreach (var st in tpCam.CameraStateList.tpCameraStates)
+                        {
+                            if (!_cameraStateBase.ContainsKey(st))
+                            {
+                                _cameraStateBase[st] = (st.defaultDistance, st.minDistance, st.maxDistance, st.height);
+                            }
+                        }
+                    }
+                }
+                
+                // 每次启动时自动应用相机缩放（如果sizeMultiplier不是1.0）
+                if (!_hasAppliedInitialCameraScale && !Mathf.Approximately(sizeMultiplier, 1.0f))
+                {
+                    if (scaleCameraStates)
+                        ScaleCameraStatesAndRemapDistance(sizeMultiplier);
+                    else
+                    {
+                        var targetDistance = _originalTPCameraDistance * sizeMultiplier * cameraDistanceMultiplier;
+                        _lastAppliedTPCameraDistance = tpCam.distance;
+                        tpCam.distance = targetDistance;
+                        if (!Mathf.Approximately(_lastAppliedTPCameraDistance, targetDistance))
+                        {
+                            Debug.Log($"[CharacterSizeController] 启动时设置相机距离: {targetDistance:F2}（原 {_lastAppliedTPCameraDistance:F2}）");
+                        }
+                    }
+                    _hasAppliedInitialCameraScale = true;
+                }
+                else if (_hasAppliedInitialCameraScale)
+                {
+                    // 如果已经应用过初始缩放，则应用当前的sizeMultiplier
+                    if (scaleCameraStates)
+                        ScaleCameraStatesAndRemapDistance(sizeMultiplier);
+                    else
+                    {
+                        var targetDistance = _originalTPCameraDistance * sizeMultiplier * cameraDistanceMultiplier;
+                        _lastAppliedTPCameraDistance = tpCam.distance;
+                        tpCam.distance = targetDistance;
+                        if (!Mathf.Approximately(_lastAppliedTPCameraDistance, targetDistance))
+                        {
+                            Debug.Log($"[CharacterSizeController] vThirdPersonCamera.distance 改为 {targetDistance:F2}（原 {_lastAppliedTPCameraDistance:F2}）");
+                        }
                     }
                 }
             }
@@ -574,7 +658,6 @@ namespace Xuwu.Character
             if (!Mathf.Approximately(before, targetDistance))
             {
                 tpCam.distance = targetDistance;
-                Debug.Log($"[CharacterSizeController] vThirdPersonCamera.distance 改为 {targetDistance:F2}（原 {before:F2}）");
                 _lastAppliedTPCameraDistance = targetDistance;
             }
         }
@@ -613,7 +696,6 @@ namespace Xuwu.Character
                 {
                     var before = tp.distance;
                     tp.distance = newDist;
-                    Debug.Log($"[CharacterSizeController] CameraState缩放后 distance 映射为 {newDist:F2}（原 {before:F2}）");
                 }
             }
         }
