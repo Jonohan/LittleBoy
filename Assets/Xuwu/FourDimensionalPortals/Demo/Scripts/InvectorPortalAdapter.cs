@@ -25,6 +25,11 @@ namespace Xuwu.FourDimensionalPortals.Demo
         private Transform _originalCameraTarget;
         private bool _isInPortal = false;
         
+        // 平滑旋转相关
+        private bool _isSmoothingRotation = false;
+        private Quaternion _targetRotation;
+        private float _smoothRotationSpeed = 0.1f;
+        
         private void Awake()
         {
             // 获取invector控制器
@@ -34,8 +39,9 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 自动配置传送门旅行者参数
             if (_autoConfigurePortalSettings)
             {
-                TransferPivotOffset = new Vector3(0f, 0.9f, 0f); // 适合invector角色的检测点
+                TransferPivotOffset = new Vector3(0f, 0.1f, 0f); // 适合invector角色的检测点
                 CloneLayer = 8; // 传送门克隆层
+                //Debug.Log($"[InvectorPortalAdapter] 自动配置完成 - TransferPivotOffset: {TransferPivotOffset}");
             }
             
             // 自动收集渲染器
@@ -47,6 +53,36 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 保存原始相机目标
             if (_cameraFollowTarget)
                 _originalCameraTarget = _cameraFollowTarget;
+        }
+        
+        private void OnTriggerEnter(Collider other)
+        {
+            // 检查是否与传送门碰撞
+            var portal = other.GetComponent<Portal>();
+            if (portal)
+            {
+                //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 进入传送门 {portal.name} (Layer: {other.gameObject.layer})");
+            }
+        }
+        
+        private void OnTriggerExit(Collider other)
+        {
+            // 检查是否离开传送门
+            var portal = other.GetComponent<Portal>();
+            if (portal)
+            {
+                //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 离开传送门 {portal.name} (Layer: {other.gameObject.layer})");
+            }
+        }
+        
+        private void OnCollisionEnter(Collision collision)
+        {
+            // 检查是否与传送门发生物理碰撞
+            var portal = collision.gameObject.GetComponent<Portal>();
+            if (portal)
+            {
+                //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 与传送门 {portal.name} 发生物理碰撞 (Layer: {collision.gameObject.layer})");
+            }
         }
         
         /// <summary>
@@ -73,10 +109,14 @@ namespace Xuwu.FourDimensionalPortals.Demo
         
         protected override void PassThrough(Portal fromPortal, Portal toPortal, Matrix4x4 transferMatrix)
         {
+            Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 开始穿越传送门: {fromPortal.name} -> {toPortal.name}");
+            
             base.PassThrough(fromPortal, toPortal, transferMatrix);
             
             // 处理invector特有的传送门穿越逻辑
             HandleInvectorPortalTransition(fromPortal, toPortal, transferMatrix);
+            
+            Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 完成传送门穿越");
         }
         
         /// <summary>
@@ -92,25 +132,65 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 处理相机系统
             HandleCameraTransition(fromPortal, toPortal, transferMatrix);
             
+            // 处理角色方向变化
+            HandleCharacterOrientation(fromPortal, toPortal);
+            
             // 处理动画状态
             HandleAnimationTransition();
         }
         
         /// <summary>
-        /// 处理重力方向变化
+        /// 处理重力方向变化（完全按照原版RigidbodyCharacterController的思路）
         /// </summary>
         private void HandleGravityChange(Portal fromPortal, Portal toPortal)
         {
-            // 检查传送门是否改变了重力方向
-            var fromUp = fromPortal.transform.up;
-            var toUp = toPortal.transform.up;
-            
-            if (Vector3.Dot(fromUp, toUp) < 0.9f) // 如果重力方向变化较大
+            // 检查是否是垂直传送门
+            if (Mathf.Abs(Vector3.Dot(fromPortal.transform.forward, Vector3.up)) > .1f
+                || Mathf.Abs(Vector3.Dot(toPortal.transform.forward, Vector3.up)) > .1f)
             {
-                // 给角色一个向上的力，防止掉落
-                var upwardForce = toUp * 5f;
-                Rigidbody.AddForce(upwardForce, ForceMode.VelocityChange);
+                // 获取本地速度
+                var velocityLocal = toPortal.transform.InverseTransformDirection(Rigidbody.velocity);
+                
+                // 计算弹出高度
+                float popUpHeight = transform.lossyScale.y;
+                
+                // 获取重力加速度（原版使用_currGravitationalAcceleration）
+                float gravitationalAcceleration = GetGravitationalAcceleration();
+                
+                // 计算所需的垂直速度变化
+                float extVelocityChangeLocalZ = Mathf.Sqrt(-(2f * gravitationalAcceleration * popUpHeight));
+                
+                // 计算需要添加的力
+                var extVelocityChange = toPortal.transform.forward * Mathf.Clamp(extVelocityChangeLocalZ
+                    - velocityLocal.z, 0f, extVelocityChangeLocalZ);
+                
+                // 调整位置避免碰撞
+                transform.position += toPortal.transform.forward * (GetCapsuleRadius() * transform.lossyScale.y);
+                
+                // 应用垂直力（原版第315行）
+                Rigidbody.AddForce(extVelocityChange, ForceMode.VelocityChange);
             }
+        }
+        
+        /// <summary>
+        /// 获取重力加速度（完全按照原版RigidbodyCharacterController的计算方式）
+        /// </summary>
+        private float GetGravitationalAcceleration()
+        {
+            const float gravitationalAcceleration = -9.81f *0.2f;
+            
+            return gravitationalAcceleration * transform.lossyScale.y;
+        }
+        
+        /// <summary>
+        /// 获取胶囊碰撞器半径
+        /// </summary>
+        private float GetCapsuleRadius()
+        {
+            var capsuleCollider = GetComponent<CapsuleCollider>();
+            if (capsuleCollider)
+                return capsuleCollider.radius;
+            return 0.5f; // 默认半径
         }
         
         /// <summary>
@@ -134,6 +214,21 @@ namespace Xuwu.FourDimensionalPortals.Demo
         }
         
         /// <summary>
+        /// 处理角色方向变化（启动平滑旋转到水平状态）
+        /// </summary>
+        private void HandleCharacterOrientation(Portal fromPortal, Portal toPortal)
+        {
+            // 获取当前旋转的Y轴角度（水平方向）
+            float currentYRotation = transform.eulerAngles.y;
+            
+            // 创建目标旋转：只保留Y轴旋转，X和Z轴设为0
+            _targetRotation = Quaternion.Euler(0f, currentYRotation, 0f);
+            
+            // 启动平滑旋转
+            _isSmoothingRotation = true;
+        }
+        
+        /// <summary>
         /// 处理动画过渡
         /// </summary>
         private void HandleAnimationTransition()
@@ -149,18 +244,61 @@ namespace Xuwu.FourDimensionalPortals.Demo
         }
         
         /// <summary>
-        /// 更新传送门状态
+        /// 更新传送门状态和平滑旋转
         /// </summary>
         private void Update()
         {
+            // 打印当前角色判定点坐标
+            var transferPivot = transform.TransformPoint(TransferPivotOffset);
+            //Debug.Log($"[InvectorPortalAdapter] 角色 {gameObject.name} 判定点坐标: {transferPivot} (偏移: {TransferPivotOffset})");
+            
             // 检查是否在传送门中
             bool wasInPortal = _isInPortal;
             _isInPortal = PenetratingPortal != null;
             
-            // 如果进入或离开传送门，更新相机系统
+            // 如果进入或离开传送门，更新相机系统并打印日志
             if (wasInPortal != _isInPortal && _portalSystemCameraData)
             {
                 _portalSystemCameraData.PenetratingPortal = PenetratingPortal;
+                
+                if (_isInPortal)
+                {
+                    //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 进入传送门检测区域: {PenetratingPortal.name}");
+                }
+                else
+                {
+                    //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 离开传送门检测区域");
+                }
+            }
+            
+            // 处理平滑旋转
+            if (_isSmoothingRotation)
+            {
+                // 获取当前旋转的Y轴角度（保持Y轴不变）
+                float currentYRotation = transform.eulerAngles.y;
+                
+                // 获取目标旋转的X和Z轴角度
+                Vector3 targetEuler = _targetRotation.eulerAngles;
+                
+                // 创建只影响X和Z轴的平滑旋转
+                var smoothRotation = Quaternion.Euler(
+                    Mathf.LerpAngle(transform.eulerAngles.x, targetEuler.x, _smoothRotationSpeed),
+                    currentYRotation, // 保持Y轴不变
+                    Mathf.LerpAngle(transform.eulerAngles.z, targetEuler.z, _smoothRotationSpeed)
+                );
+                
+                transform.rotation = smoothRotation;
+                
+                // 检查X和Z轴是否已经接近目标
+                float xDiff = Mathf.Abs(Mathf.DeltaAngle(transform.eulerAngles.x, targetEuler.x));
+                float zDiff = Mathf.Abs(Mathf.DeltaAngle(transform.eulerAngles.z, targetEuler.z));
+                
+                if (xDiff < 0.1f && zDiff < 0.1f)
+                {
+                    // 旋转完成，停止平滑旋转
+                    transform.rotation = _targetRotation;
+                    _isSmoothingRotation = false;
+                }
             }
         }
         
@@ -181,7 +319,7 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 自动配置传送门参数
             if (_autoConfigurePortalSettings)
             {
-                TransferPivotOffset = new Vector3(0f, 0.9f, 0f);
+                TransferPivotOffset = new Vector3(0f, 0.1f, 0f);
                 CloneLayer = 8;
             }
             
