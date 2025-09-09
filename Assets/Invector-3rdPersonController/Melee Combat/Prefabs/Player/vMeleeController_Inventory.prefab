@@ -22228,6 +22228,10 @@ MonoBehaviour:
   _modelRootB: {fileID: 0}
   _modelChildNameA: 3D Model
   _modelChildNameB: Invector Components
+  scaleCameraStates: 1
+  scaleCameraStateHeight: 1
+  cameraStateDistanceMultiplier: 1
+  cameraStateHeightMultiplier: 1
 --- !u!1 &1000013886564704
 GameObject:
   m_ObjectHideFlags: 0
@@ -24363,7 +24367,6 @@ GameObject:
   - component: {fileID: 4271414421502364720}
   - component: {fileID: 6580388183122590036}
   - component: {fileID: 5082873186877232250}
-  - component: {fileID: 8386547439633490648}
   m_Layer: 0
   m_Name: vThirdPersonCamera
   m_TagString: Untagged
@@ -24490,25 +24493,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   removeOnStart: 1
---- !u!114 &8386547439633490648
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 754467614229108497}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a549265d6234e640ad4592a345995a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _portalSystemCameraData: {fileID: 0}
-  _portalAdapter: {fileID: 0}
-  _manualPlayerTarget: {fileID: 0}
-  _enablePortalEffects: 1
-  _portalCullingMask:
-    serializedVersion: 2
-    m_Bits: 2147999543
 --- !u!1 &1729927886112551345
 GameObject:
   m_ObjectHideFlags: 0
