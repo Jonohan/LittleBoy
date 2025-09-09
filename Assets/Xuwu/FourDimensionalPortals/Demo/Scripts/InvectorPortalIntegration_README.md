@@ -10,11 +10,8 @@
 2. 添加 `InvectorPortalAdapter` 组件
 3. 组件会自动配置所需设置
 
-### 2. 为相机添加传送门适配器
-1. 选择您的invector相机对象
-2. 添加 `InvectorCameraPortalAdapter` 组件
-3. 组件会自动配置传送门相机效果
-4. **可选**：如果自动检测失败，手动指定 `Manual Player Target`
+### 2. 相机设置
+相机无需额外适配器。请确保主相机上存在 `PortalSystemAdditionalCameraData` 组件（系统会自动添加或由角色适配器更新）。
 
 ### 3. 配置设置
 - **Auto Configure Portal Settings**: 自动配置传送门参数（推荐开启）
@@ -68,7 +65,6 @@ A: 检查：
 
 **Q: 相机效果不正常**
 A: 检查：
-- 相机是否有InvectorCameraPortalAdapter组件
 - PortalSystemAdditionalCameraData是否正确配置
 - 相机剔除遮罩设置
 

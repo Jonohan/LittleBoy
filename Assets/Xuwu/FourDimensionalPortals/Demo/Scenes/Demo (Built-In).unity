@@ -652,7 +652,7 @@ Camera:
   m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_BackGroundColor: {r: 0.278431, g: 0.278431, b: 0.278431, a: 1}
   m_projectionMatrixMode: 0
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -673,9 +673,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 12.363956
-  far clip plane: 1000
-  field of view: 60
+  near clip plane: 1.6337352
+  far clip plane: 27682.88
+  field of view: 60.000004
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -690,7 +690,7 @@ Camera:
   m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
+  m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!1 &117969159
@@ -2666,13 +2666,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1213541492}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.49812743, y: -0.50186557, z: -0.49812743, w: 0.50186557}
+  m_LocalRotation: {x: -0.49812904, y: 0.501864, z: 0.49812904, w: 0.501864}
   m_LocalPosition: {x: -4.62, y: 0.2, z: 5.25}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: -89.572, y: -90, z: 0}
+  m_LocalEulerAnglesHint: {x: -89.572, y: 90, z: 0}
 --- !u!1 &1215402024
 GameObject:
   m_ObjectHideFlags: 0

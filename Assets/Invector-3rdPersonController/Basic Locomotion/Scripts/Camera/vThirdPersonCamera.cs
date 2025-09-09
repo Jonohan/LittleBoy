@@ -1,6 +1,7 @@
 ﻿using Invector.vCharacterController;
 using System.Collections;
 using UnityEngine;
+using Xuwu.FourDimensionalPortals;
 
 namespace Invector.vCamera
 {
@@ -134,6 +135,11 @@ namespace Invector.vCamera
 
         protected Vector3 lastLookAtPosition, lastLookAtForward;
         public bool isFreezed;
+        // Portal View Support
+        protected bool portalViewActive;
+        protected Camera portalVirtualCamera;
+        protected Portal activeFromPortal;
+        protected Portal activeToPortal;
         protected Transform targetLookAt
         {
             get
@@ -826,45 +832,58 @@ namespace Invector.vCamera
 
             ClipPlanePoints planePoints = targetCamera.NearClipPlanePoints(current_cPos + (camDir * (distance)), clipPlaneMargin);
             ClipPlanePoints oldPoints = targetCamera.NearClipPlanePoints(desired_cPos + (camDir * currentZoom), clipPlaneMargin);
-            //Check if Height is not blocked 
-            if (Physics.SphereCast(targetPos, checkHeightRadius, currentTarget.transform.up, out hitInfo, currentState.cullingHeight + 0.2f, cullingLayer))
+
+            if (!portalViewActive)
             {
-                var t = hitInfo.distance - 0.2f;
-                t -= currentState.height;
-                t /= (currentState.cullingHeight - currentState.height);
-                cullingHeight = Mathf.Lerp(currentState.height, currentState.cullingHeight, Mathf.Clamp(t, 0.0f, 1.0f));
-            }
-            else
-            {
-                cullingHeight = useSmooth ? Mathf.Lerp(cullingHeight, currentState.cullingHeight, smoothBetweenState * Time.fixedDeltaTime) : currentState.cullingHeight;
-            }
-            //Check if desired target position is not blocked            
-            if (CullingRayCast(desired_cPos, oldPoints, out hitInfo, currentZoom + 0.2f, cullingLayer, Color.blue))
-            {
-                var dist = hitInfo.distance;
-                if (dist < currentState.defaultDistance)
+                //Check if Height is not blocked 
+                if (Physics.SphereCast(targetPos, checkHeightRadius, currentTarget.transform.up, out hitInfo, currentState.cullingHeight + 0.2f, cullingLayer))
                 {
-                    var t = dist;
-                    t -= currentState.cullingMinDist;
-                    t /= (currentZoom - currentState.cullingMinDist);
-                    currentHeight = Mathf.Lerp(cullingHeight, currentState.height, Mathf.Clamp(t, 0.0f, 1.0f));
-                    current_cPos = targetPos + currentTarget.transform.up * currentHeight;
+                    var t = hitInfo.distance - 0.2f;
+                    t -= currentState.height;
+                    t /= (currentState.cullingHeight - currentState.height);
+                    cullingHeight = Mathf.Lerp(currentState.height, currentState.cullingHeight, Mathf.Clamp(t, 0.0f, 1.0f));
+                }
+                else
+                {
+                    cullingHeight = useSmooth ? Mathf.Lerp(cullingHeight, currentState.cullingHeight, smoothBetweenState * Time.fixedDeltaTime) : currentState.cullingHeight;
+                }
+                //Check if desired target position is not blocked            
+                if (CullingRayCast(desired_cPos, oldPoints, out hitInfo, currentZoom + 0.2f, cullingLayer, Color.blue))
+                {
+                    var dist = hitInfo.distance;
+                    if (dist < currentState.defaultDistance)
+                    {
+                        var t = dist;
+                        t -= currentState.cullingMinDist;
+                        t /= (currentZoom - currentState.cullingMinDist);
+                        currentHeight = Mathf.Lerp(cullingHeight, currentState.height, Mathf.Clamp(t, 0.0f, 1.0f));
+                        current_cPos = targetPos + currentTarget.transform.up * currentHeight;
+                    }
+                }
+                else
+                {
+                    currentHeight = useSmooth ? Mathf.Lerp(currentHeight, currentState.height, smoothBetweenState * Time.fixedDeltaTime) : currentState.height;
+                }
+
+                if (cullingDistance < distance)
+                {
+                    distance = cullingDistance;
+                }
+
+                //Check if target position with culling height applied is not blocked
+                if (CullingRayCast(current_cPos, planePoints, out hitInfo, distance, cullingLayer, Color.cyan))
+                {
+                    distance = Mathf.Clamp(cullingDistance, 0.0f, currentZoom);
                 }
             }
             else
             {
+                // 处于传送门相交状态：忽略对墙体的碰撞推回，直接使用目标高度与缩放
+                cullingHeight = useSmooth ? Mathf.Lerp(cullingHeight, currentState.cullingHeight, smoothBetweenState * Time.fixedDeltaTime) : currentState.cullingHeight;
                 currentHeight = useSmooth ? Mathf.Lerp(currentHeight, currentState.height, smoothBetweenState * Time.fixedDeltaTime) : currentState.height;
-            }
-
-            if (cullingDistance < distance)
-            {
-                distance = cullingDistance;
-            }
-
-            //Check if target position with culling height applied is not blocked
-            if (CullingRayCast(current_cPos, planePoints, out hitInfo, distance, cullingLayer, Color.cyan))
-            {
-                distance = Mathf.Clamp(cullingDistance, 0.0f, currentZoom);
+                current_cPos = targetPos + currentTarget.transform.up * currentHeight;
+                cullingDistance = currentZoom;
+                // 不修改 distance（保持基于缩放/默认的值），不再进行任何 CullingRayCast
             }
 
             var lookPoint = current_cPos + targetLookAt.forward * targetCamera.farClipPlane;
@@ -919,6 +938,148 @@ namespace Invector.vCamera
             var _rot = Quaternion.Euler(_euler + currentState.rotationOffSet);
             selfRigidbody.MoveRotation(Quaternion.Lerp(startRotation, _rot, transformWeight));
             movementSpeed = Vector2.zero;
+
+            // 检测：从玩家到相机的向量是否与传送门相交，且玩家位于传送门正方向
+            CheckPlayerToCameraPortalIntersection();
+        }
+
+        /// <summary>
+        /// 从玩家位置沿指向相机的方向发射射线，检测是否与传送门相交，且玩家在传送门正方向。
+        /// </summary>
+        protected virtual void CheckPlayerToCameraPortalIntersection()
+        {
+            if (currentTarget == null)
+            {
+                return;
+            }
+
+            Vector3 playerPos = currentTarget.position;
+            Vector3 cameraPos = selfRigidbody.position;
+            Vector3 toCamera = cameraPos - playerPos;
+            float distanceToCamera = toCamera.magnitude;
+            if (distanceToCamera <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            Vector3 dir = toCamera / distanceToCamera;
+
+            var hits = Physics.RaycastAll(playerPos, dir, distanceToCamera, ~0, QueryTriggerInteraction.Collide);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var hit = hits[i];
+                var portal = hit.collider != null ? hit.collider.GetComponent<Portal>() : null;
+                if (portal == null)
+                {
+                    continue;
+                }
+
+                Vector3 toPlayerFromPortal = playerPos - portal.transform.position;
+                if (Vector3.Dot(portal.transform.forward, toPlayerFromPortal) > 0f)
+                {
+                    ActivatePortalView(portal);
+                    return;
+                }
+            }
+
+            DeactivatePortalView();
+        }
+
+        /// <summary>
+        /// 启用并更新传送门虚拟相机：以对侧传送门为基准，映射当前相机的位置与旋转。
+        /// </summary>
+        /// <param name="fromPortal"></param>
+        protected virtual void ActivatePortalView(Portal fromPortal)
+        {
+            if (fromPortal == null || !fromPortal.IsWorkable() || fromPortal.LinkedPortal == null)
+            {
+                DeactivatePortalView();
+                return;
+            }
+
+            activeFromPortal = fromPortal;
+            activeToPortal = fromPortal.LinkedPortal;
+
+            EnsurePortalVirtualCamera();
+            if (!portalVirtualCamera)
+            {
+                return;
+            }
+
+            // 将当前相机的期望画面映射到另一侧
+            Vector3 mappedPos = fromPortal.TransferPoint(selfRigidbody.position);
+            Quaternion mappedRot = fromPortal.TransferRotation(selfRigidbody.rotation);
+
+            portalVirtualCamera.transform.SetPositionAndRotation(mappedPos, mappedRot);
+            portalVirtualCamera.fieldOfView = targetCamera.fieldOfView;
+
+            // 替换画面：禁用主相机，启用虚拟相机
+            if (!portalViewActive)
+            {
+                portalVirtualCamera.enabled = true;
+                if (targetCamera)
+                {
+                    targetCamera.enabled = false;
+                }
+                portalViewActive = true;
+            }
+        }
+
+        /// <summary>
+        /// 关闭传送门虚拟相机，还原主相机。
+        /// </summary>
+        protected virtual void DeactivatePortalView()
+        {
+            if (!portalViewActive)
+            {
+                return;
+            }
+
+            if (portalVirtualCamera)
+            {
+                portalVirtualCamera.enabled = false;
+            }
+            if (targetCamera)
+            {
+                targetCamera.enabled = true;
+            }
+            activeFromPortal = null;
+            activeToPortal = null;
+            portalViewActive = false;
+        }
+
+        /// <summary>
+        /// 懒加载并配置虚拟相机，复制主相机的渲染设置。
+        /// </summary>
+        protected virtual void EnsurePortalVirtualCamera()
+        {
+            if (portalVirtualCamera && portalVirtualCamera)
+            {
+                return;
+            }
+
+            var go = GameObject.Find("__PortalVirtualCamera__");
+            if (!go)
+            {
+                go = new GameObject("__PortalVirtualCamera__");
+                go.hideFlags = HideFlags.HideAndDontSave;
+                portalVirtualCamera = go.AddComponent<Camera>();
+            }
+            else
+            {
+                portalVirtualCamera = go.GetComponent<Camera>();
+                if (!portalVirtualCamera)
+                {
+                    portalVirtualCamera = go.AddComponent<Camera>();
+                }
+            }
+
+            if (targetCamera)
+            {
+                portalVirtualCamera.CopyFrom(targetCamera);
+                portalVirtualCamera.enabled = false;
+            }
         }
 
         protected virtual void CameraFixed()
