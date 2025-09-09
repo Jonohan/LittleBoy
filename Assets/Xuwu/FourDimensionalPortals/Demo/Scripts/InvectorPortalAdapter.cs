@@ -25,6 +25,9 @@ namespace Xuwu.FourDimensionalPortals.Demo
         private Transform _originalCameraTarget;
         private bool _isInPortal = false;
         
+        // 跳跃触发时间记录，用于限制触发频率
+        private float _lastJumpTriggerTime = 0f;
+        
         // 平滑旋转相关
         private bool _isSmoothingRotation = false;
         private Quaternion _targetRotation;
@@ -62,6 +65,9 @@ namespace Xuwu.FourDimensionalPortals.Demo
             if (portal)
             {
                 //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 进入传送门 {portal.name} (Layer: {other.gameObject.layer})");
+                
+                // 检查是否为地面传送门，如果是则触发真正的跳跃输入
+                HandleGroundPortalJump(portal);
             }
         }
         
@@ -241,6 +247,68 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 重置移动状态，防止传送后继续之前的移动
             _invectorController.input = Vector3.zero;
             _invectorController.moveDirection = Vector3.zero;
+        }
+        
+        /// <summary>
+        /// 处理地面传送门跳跃 - 触发玩家一次真正的跳跃输入
+        /// </summary>
+        private void HandleGroundPortalJump(Portal portal)
+        {
+            if (!portal) return;
+            
+            // 获取传送门的前向向量（法向量）
+            Vector3 portalForward = portal.transform.forward;
+            
+            // 检查传送门是否几乎垂直向上（Y分量接近1）
+            float upwardThreshold = 0.8f;
+            if (portalForward.y > upwardThreshold)
+            {
+                Debug.Log($"[InvectorPortalAdapter] 检测到地面传送门，触发真正的跳跃输入。传送门前向: {portalForward}");
+                
+                // 触发真正的跳跃输入
+                TriggerRealJump();
+            }
+        }
+        
+        /// <summary>
+        /// 触发真正的跳跃输入 - 模拟玩家按下跳跃键，每2秒最多触发一次，跳跃高度为真实高度的30%
+        /// </summary>
+        private void TriggerRealJump()
+        {
+            // 检查时间限制：每2秒最多触发一次
+            float currentTime = Time.time;
+            if (currentTime - _lastJumpTriggerTime < 2.0f)
+            {
+                return;
+            }
+            
+            // 检查是否在地面且可以跳跃
+            if (_invectorController.isGrounded && !_invectorController.isJumping && !_invectorController.isRolling)
+            {
+                // 保存原始跳跃高度
+                float originalJumpHeight = (_invectorController as vThirdPersonMotor).jumpHeight;
+                
+                // 设置跳跃高度为真实高度的30%
+                (_invectorController as vThirdPersonMotor).jumpHeight = originalJumpHeight * 0.3f;
+                
+                // 直接调用Invector控制器的Jump方法，模拟玩家按下跳跃键
+                _invectorController.Jump(false); // false表示不消耗体力
+                
+                // 延迟恢复原始跳跃高度
+                StartCoroutine(RestoreJumpHeightAfterDelay(originalJumpHeight, 0.5f));
+                
+                // 记录触发时间
+                _lastJumpTriggerTime = currentTime;
+            }
+        }
+        
+        /// <summary>
+        /// 延迟恢复跳跃高度
+        /// </summary>
+        private System.Collections.IEnumerator RestoreJumpHeightAfterDelay(float originalJumpHeight, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            (_invectorController as vThirdPersonMotor).jumpHeight = originalJumpHeight;
         }
         
         /// <summary>
