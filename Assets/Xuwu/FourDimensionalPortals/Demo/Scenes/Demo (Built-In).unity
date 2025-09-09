@@ -673,8 +673,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 1.3460884
-  far clip plane: 215161.61
+  near clip plane: 1.1854451
+  far clip plane: 16323.593
   field of view: 60.000004
   orthographic: 0
   orthographic size: 5
@@ -2162,13 +2162,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1149081950}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.61, y: 1.9, z: 1.62}
+  m_LocalRotation: {x: 0.5, y: -0.5, z: 0.5, w: 0.5}
+  m_LocalPosition: {x: -4.46, y: 7.15, z: 5.22}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: -90, z: 0}
 --- !u!1 &1169615254
 GameObject:
   m_ObjectHideFlags: 0
@@ -2667,7 +2667,7 @@ Transform:
   m_GameObject: {fileID: 1213541492}
   serializedVersion: 2
   m_LocalRotation: {x: -0.49812743, y: -0.50186557, z: -0.49812743, w: 0.50186557}
-  m_LocalPosition: {x: -4.62, y: 0.05, z: 5.25}
+  m_LocalPosition: {x: -4.62, y: 0.2, z: 5.25}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -4831,6 +4831,17 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1986733621}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1987507072 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1424295113085012197, guid: 5fc63571cb5f9ca499a44aa35cf94be4, type: 3}
+  m_PrefabInstance: {fileID: 2050171262}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5e59646c20473045af89295b05bb1e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1999560447
 GameObject:
   m_ObjectHideFlags: 0
@@ -5067,7 +5078,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 114000011259951214, guid: 5fc63571cb5f9ca499a44aa35cf94be4, type: 3}
       propertyPath: selectedToolbar
-      value: 6
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 136000013888912334, guid: 5fc63571cb5f9ca499a44aa35cf94be4, type: 3}
       propertyPath: m_IsTrigger
@@ -5104,6 +5115,14 @@ PrefabInstance:
     - target: {fileID: 8386547439633490648, guid: 5fc63571cb5f9ca499a44aa35cf94be4, type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8386547439633490648, guid: 5fc63571cb5f9ca499a44aa35cf94be4, type: 3}
+      propertyPath: _playerPortalAdapter
+      value: 
+      objectReference: {fileID: 1987507072}
+    - target: {fileID: 8386547439633490648, guid: 5fc63571cb5f9ca499a44aa35cf94be4, type: 3}
+      propertyPath: _viewCullingMask.m_Bits
+      value: 2147999543
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
