@@ -82,6 +82,12 @@ namespace Xuwu.Character
         [SerializeField] private Animator _animator;
         [SerializeField] private Transform _cameraTarget;
         
+        [Header("冷却设置")]
+        [Tooltip("每次体型变化的冷却时间（秒）")]
+        [Range(0f, 10f)]
+        public float sizeChangeCooldown = 1.0f;
+        private float _lastSizeChangeTime = -999f;
+        
         [Header("视觉模型根（分布缩放）")]
         [Tooltip("第一个需要缩放的子物体，默认自动查找 '3D Model'")]
         [SerializeField] private Transform _modelRootA;
@@ -532,12 +538,43 @@ namespace Xuwu.Character
         }
         
         /// <summary>
+        /// 获取当前限制器突破等级（1-5）
+        /// </summary>
+        public int GetCurrentLimitBreakerLevel()
+        {
+            return limitBreakerLevel;
+        }
+        
+        /// <summary>
+        /// 是否处于体型变化冷却中
+        /// </summary>
+        public bool IsOnSizeChangeCooldown()
+        {
+            if (!Application.isPlaying) return false;
+            return Time.time < _lastSizeChangeTime + sizeChangeCooldown;
+        }
+        
+        /// <summary>
+        /// 冷却剩余时间（秒），未冷却返回0
+        /// </summary>
+        public float GetSizeChangeCooldownRemaining()
+        {
+            if (!IsOnSizeChangeCooldown()) return 0f;
+            return Mathf.Max(0f, (_lastSizeChangeTime + sizeChangeCooldown) - Time.time);
+        }
+        
+        /// <summary>
         /// 切换到指定体型等级
         /// </summary>
         /// <param name="level">目标体型等级</param>
         /// <param name="limitBreakerLevel">限制器突破等级（仅4级时有效）</param>
         public void SetSizeLevel(CharacterSizeLevel level, int limitBreakerLevel = 1)
         {
+            if (IsOnSizeChangeCooldown())
+            {
+                Debug.LogWarning($"[CharacterSizeController] 体型变化处于冷却中，剩余 {GetSizeChangeCooldownRemaining():F2}s");
+                return;
+            }
             currentSizeLevel = level;
             this.limitBreakerLevel = Mathf.Clamp(limitBreakerLevel, 1, 5);
             
@@ -549,6 +586,8 @@ namespace Xuwu.Character
             
             // 更新等级效果
             UpdateLevelEffects();
+            if (Application.isPlaying)
+                _lastSizeChangeTime = Time.time;
             
             Debug.Log($"[CharacterSizeController] 切换到体型等级: {level} (倍数: {targetSize:F1})");
         }
@@ -682,6 +721,11 @@ namespace Xuwu.Character
             if (currentSizeLevel != CharacterSizeLevel.LimitBreaker)
             {
                 Debug.LogWarning("[CharacterSizeController] 只有4级限制器突破才能升级！");
+                return false;
+            }
+            if (IsOnSizeChangeCooldown())
+            {
+                Debug.LogWarning($"[CharacterSizeController] 限制器突破升级处于冷却中，剩余 {GetSizeChangeCooldownRemaining():F2}s");
                 return false;
             }
             

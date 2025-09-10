@@ -1,7 +1,10 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Invector.vCharacterController;
 using Xuwu.FourDimensionalPortals;
+using Xuwu.Character;
+using Invector.vCharacterController.AI;
 
 namespace Xuwu.FourDimensionalPortals.Demo
 {
@@ -22,8 +25,15 @@ namespace Xuwu.FourDimensionalPortals.Demo
         [Header("Portal Settings")]
         [SerializeField] private bool _autoConfigurePortalSettings = true;
         
+        [Header("体型变化系统")]
+        [SerializeField] private CharacterSizeController _sizeController;
+        
         private Transform _originalCameraTarget;
         private bool _isInPortal = false;
+        
+        // 传送门穿越记录
+        private PortalColor _enteredPortalColor = PortalColor.Blue; // 默认蓝色
+        private bool _hasEnteredPortal = false;
         
         // 跳跃触发时间记录，用于限制触发频率
         private float _lastJumpTriggerTime = 0f;
@@ -38,6 +48,10 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 获取invector控制器
             if (!_invectorController)
                 _invectorController = GetComponent<vThirdPersonController>();
+                
+            // 获取体型控制器
+            if (!_sizeController)
+                _sizeController = GetComponent<CharacterSizeController>();
                 
             // 自动配置传送门旅行者参数
             if (_autoConfigurePortalSettings)
@@ -64,6 +78,8 @@ namespace Xuwu.FourDimensionalPortals.Demo
             var portal = other.GetComponent<Portal>();
             if (portal)
             {
+                // 记录进入的传送门颜色
+                RecordPortalEntry(portal);
                 
                 // 检查是否为地面传送门，如果是则触发真正的跳跃输入
                 HandleGroundPortalJump(portal);
@@ -97,6 +113,9 @@ namespace Xuwu.FourDimensionalPortals.Demo
         {
           
             base.PassThrough(fromPortal, toPortal, transferMatrix);
+            
+            // 处理体型变化
+            HandleSizeChange(fromPortal, toPortal);
             
             // 处理invector特有的传送门穿越逻辑
             HandleInvectorPortalTransition(fromPortal, toPortal, transferMatrix);
@@ -229,6 +248,166 @@ namespace Xuwu.FourDimensionalPortals.Demo
         }
         
         /// <summary>
+        /// 记录传送门进入
+        /// </summary>
+        private void RecordPortalEntry(Portal portal)
+        {
+            // 从传送门名称或PortalManager获取颜色信息
+            _enteredPortalColor = GetPortalColor(portal);
+            _hasEnteredPortal = true;
+            
+            Debug.Log($"[InvectorPortalAdapter] 记录进入传送门颜色: {_enteredPortalColor}");
+        }
+        
+        /// <summary>
+        /// 获取传送门颜色
+        /// </summary>
+        private PortalColor GetPortalColor(Portal portal)
+        {
+            // 方法1: 通过PortalManager查找传送门颜色
+            var portalManager = FindObjectOfType<PortalManager>();
+            if (portalManager != null)
+            {
+                // 查找传送门在PortalManager中的颜色信息
+                var portalData = portalManager.GetActivePortalsByColor(PortalColor.Blue)
+                    .FirstOrDefault(p => p.portalObject == portal.gameObject);
+                if (portalData != null)
+                {
+                    return portalData.color;
+                }
+                
+                portalData = portalManager.GetActivePortalsByColor(PortalColor.Orange)
+                    .FirstOrDefault(p => p.portalObject == portal.gameObject);
+                if (portalData != null)
+                {
+                    return portalData.color;
+                }
+                
+                portalData = portalManager.GetActivePortalsByColor(PortalColor.GiantOrange)
+                    .FirstOrDefault(p => p.portalObject == portal.gameObject);
+                if (portalData != null)
+                {
+                    return portalData.color;
+                }
+            }
+            
+            // 方法2: 通过传送门名称判断（备用方案）
+            string portalName = portal.name.ToLower();
+            if (portalName.Contains("blue"))
+                return PortalColor.Blue;
+            else if (portalName.Contains("orange"))
+                return PortalColor.Orange;
+            else if (portalName.Contains("giant"))
+                return PortalColor.GiantOrange;
+            
+            // 默认返回蓝色
+            return PortalColor.Blue;
+        }
+        
+        /// <summary>
+        /// 处理体型变化
+        /// </summary>
+        private void HandleSizeChange(Portal fromPortal, Portal toPortal)
+        {
+            if (!_sizeController || !_hasEnteredPortal)
+            {
+                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到或未记录传送门进入");
+                return;
+            }
+            
+            // 获取当前体型等级
+            CharacterSizeLevel currentLevel = _sizeController.GetCurrentSizeLevel();
+            int currentLimitBreakerLevel = _sizeController.GetCurrentLimitBreakerLevel();
+            
+            // 根据进入的传送门颜色决定体型变化
+            switch (_enteredPortalColor)
+            {
+                case PortalColor.Blue:
+                    // 蓝色传送门 - 体型-1（缩小）
+                    ApplySizeChange(currentLevel, -1);
+                    Debug.Log($"[InvectorPortalAdapter] 蓝色传送门 - 体型缩小: {currentLevel} → {_sizeController.GetCurrentSizeLevel()}");
+                    break;
+                    
+                case PortalColor.Orange:
+                    // 橙色传送门 - 体型+1（放大）
+                    ApplySizeChange(currentLevel, 1);
+                    Debug.Log($"[InvectorPortalAdapter] 橙色传送门 - 体型放大: {currentLevel} → {_sizeController.GetCurrentSizeLevel()}");
+                    break;
+                    
+                case PortalColor.GiantOrange:
+                    // 巨型橙色传送门 - 限制器突破专用
+                    if (currentLevel == CharacterSizeLevel.LimitBreaker)
+                    {
+                        // 如果已经是限制器突破状态，则升级
+                        bool upgraded = _sizeController.UpgradeLimitBreaker();
+                        if (upgraded)
+                        {
+                            Debug.Log($"[InvectorPortalAdapter] 巨型橙色传送门 - 限制器突破升级: {currentLimitBreakerLevel} → {_sizeController.GetCurrentLimitBreakerLevel()}");
+                        }
+                        else
+                        {
+                            Debug.Log("[InvectorPortalAdapter] 巨型橙色传送门 - 限制器突破已达到最高等级");
+                        }
+                    }
+                    else
+                    {
+                        // 如果不是限制器突破状态，则切换到限制器突破
+                        _sizeController.SetSizeLevel(CharacterSizeLevel.LimitBreaker, 1);
+                        Debug.Log("[InvectorPortalAdapter] 巨型橙色传送门 - 切换到限制器突破状态");
+                    }
+                    break;
+            }
+            
+            // 重置记录状态
+            _hasEnteredPortal = false;
+        }
+        
+        /// <summary>
+        /// 应用体型变化（相对变化）
+        /// </summary>
+        private void ApplySizeChange(CharacterSizeLevel currentLevel, int change)
+        {
+            CharacterSizeLevel newLevel = currentLevel;
+            
+            switch (currentLevel)
+            {
+                case CharacterSizeLevel.Mini:
+                    if (change > 0) // 放大
+                        newLevel = CharacterSizeLevel.Standard;
+                    // 如果change < 0，已经是迷你，不能再缩小
+                    break;
+                    
+                case CharacterSizeLevel.Standard:
+                    if (change > 0) // 放大
+                        newLevel = CharacterSizeLevel.Giant;
+                    else if (change < 0) // 缩小
+                        newLevel = CharacterSizeLevel.Mini;
+                    break;
+                    
+                case CharacterSizeLevel.Giant:
+                    if (change < 0) // 缩小
+                        newLevel = CharacterSizeLevel.Standard;
+                    // 如果change > 0，巨大不能直接变成限制器突破，必须用巨型传送门
+                    break;
+                    
+                case CharacterSizeLevel.LimitBreaker:
+                    // 限制器突破状态只能通过巨型传送门升级，不能通过普通传送门变化
+                    Debug.Log("[InvectorPortalAdapter] 限制器突破状态只能通过巨型传送门升级");
+                    return;
+            }
+            
+            // 应用新的体型等级
+            if (newLevel != currentLevel)
+            {
+                _sizeController.SetSizeLevel(newLevel);
+            }
+            else
+            {
+                Debug.Log($"[InvectorPortalAdapter] 体型变化无效: {currentLevel} 无法向 {change} 方向变化");
+            }
+        }
+        
+        /// <summary>
         /// 处理地面传送门跳跃 - 触发玩家一次真正的跳跃输入
         /// </summary>
         private void HandleGroundPortalJump(Portal portal)
@@ -350,6 +529,10 @@ namespace Xuwu.FourDimensionalPortals.Demo
             if (!_invectorController)
                 _invectorController = GetComponent<vThirdPersonController>();
                 
+            // 确保有体型控制器
+            if (!_sizeController)
+                _sizeController = GetComponent<CharacterSizeController>();
+                
             // 自动收集渲染器
             CollectRenderers();
             
@@ -367,6 +550,94 @@ namespace Xuwu.FourDimensionalPortals.Demo
                                "Camera portal effects may not work properly.");
             }
         }
+        
+        #region 测试方法
+        
+        [ContextMenu("测试 - 模拟蓝色传送门穿越（缩小）")]
+        public void TestBluePortalTransition()
+        {
+            if (!_sizeController)
+            {
+                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到");
+                return;
+            }
+            
+            CharacterSizeLevel beforeLevel = _sizeController.GetCurrentSizeLevel();
+            _enteredPortalColor = PortalColor.Blue;
+            _hasEnteredPortal = true;
+            HandleSizeChange(null, null);
+            CharacterSizeLevel afterLevel = _sizeController.GetCurrentSizeLevel();
+            
+            Debug.Log($"[InvectorPortalAdapter] 蓝色传送门测试: {beforeLevel} → {afterLevel}");
+        }
+        
+        [ContextMenu("测试 - 模拟橙色传送门穿越（放大）")]
+        public void TestOrangePortalTransition()
+        {
+            if (!_sizeController)
+            {
+                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到");
+                return;
+            }
+            
+            CharacterSizeLevel beforeLevel = _sizeController.GetCurrentSizeLevel();
+            _enteredPortalColor = PortalColor.Orange;
+            _hasEnteredPortal = true;
+            HandleSizeChange(null, null);
+            CharacterSizeLevel afterLevel = _sizeController.GetCurrentSizeLevel();
+            
+            Debug.Log($"[InvectorPortalAdapter] 橙色传送门测试: {beforeLevel} → {afterLevel}");
+        }
+        
+        [ContextMenu("测试 - 模拟巨型橙色传送门穿越（限制器突破）")]
+        public void TestGiantOrangePortalTransition()
+        {
+            if (!_sizeController)
+            {
+                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到");
+                return;
+            }
+            
+            CharacterSizeLevel beforeLevel = _sizeController.GetCurrentSizeLevel();
+            int beforeLimitBreakerLevel = _sizeController.GetCurrentLimitBreakerLevel();
+            _enteredPortalColor = PortalColor.GiantOrange;
+            _hasEnteredPortal = true;
+            HandleSizeChange(null, null);
+            CharacterSizeLevel afterLevel = _sizeController.GetCurrentSizeLevel();
+            int afterLimitBreakerLevel = _sizeController.GetCurrentLimitBreakerLevel();
+            
+            Debug.Log($"[InvectorPortalAdapter] 巨型橙色传送门测试: {beforeLevel}({beforeLimitBreakerLevel}) → {afterLevel}({afterLimitBreakerLevel})");
+        }
+        
+        [ContextMenu("测试 - 显示当前传送门状态")]
+        public void TestShowPortalStatus()
+        {
+            Debug.Log($"[InvectorPortalAdapter] 当前传送门状态:\n" +
+                     $"已进入传送门: {_hasEnteredPortal}\n" +
+                     $"进入的传送门颜色: {_enteredPortalColor}\n" +
+                     $"体型控制器: {(_sizeController ? "已找到" : "未找到")}");
+        }
+        
+        [ContextMenu("测试 - 展示所有体型变化规则")]
+        public void TestShowAllSizeChangeRules()
+        {
+            Debug.Log("[InvectorPortalAdapter] 体型变化规则:\n" +
+                     "蓝色传送门（缩小）:\n" +
+                     "  Mini → 无变化（已是最小）\n" +
+                     "  Standard → Mini\n" +
+                     "  Giant → Standard\n" +
+                     "  LimitBreaker → 无变化（只能通过巨型传送门升级）\n\n" +
+                     "橙色传送门（放大）:\n" +
+                     "  Mini → Standard\n" +
+                     "  Standard → Giant\n" +
+                     "  Giant → 无变化（不能直接变成LimitBreaker）\n" +
+                     "  LimitBreaker → 无变化（只能通过巨型传送门升级）\n\n" +
+                     "巨型橙色传送门（限制器突破）:\n" +
+                     "  Mini/Standard/Giant → LimitBreaker(1级)\n" +
+                     "  LimitBreaker → 升级到下一级（最多5级）");
+        }
+        
+        #endregion
         
         /// <summary>
         /// 手动触发传送门穿越（用于测试或特殊需求）
