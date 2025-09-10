@@ -242,14 +242,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9044600bf06761346860b8114ffe63ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slotType: 2
+  slotType: 1
   slotPlane: {fileID: 550429794}
   vfxSpawnPoint: {fileID: 810463348}
   generatingVfxPrefab: {fileID: 2411298451726823637, guid: 5af04bf709f6dd7449ea7826ab4f4066, type: 3}
   telegraphingVfxPrefab: {fileID: 3665152045161641556, guid: 8cf66e3652cf45c4ca2b45bba405c271, type: 3}
   vfxMoveSpeed: 1.5
   playerTrackingStrength: 0.5
-  vfxZOffset: 0.5
+  vfxZOffset: 0
   scenePortal: {fileID: 1186175421}
   portalMoveSpeed: 5
   portalMoveCurve:
@@ -278,7 +278,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   playerTarget: {fileID: 676714697}
   trackingRange: 25
-  _currentState: 0
+  _isInUse: 0
 --- !u!1001 &174696901
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -573,8 +573,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 8.8117285
-  far clip plane: 41662.355
+  near clip plane: 17.494123
+  far clip plane: 61684.82
   field of view: 60.000004
   orthographic: 0
   orthographic size: 5
@@ -2118,7 +2118,7 @@ MonoBehaviour:
   telegraphingVfxPrefab: {fileID: 3665152045161641556, guid: 8cf66e3652cf45c4ca2b45bba405c271, type: 3}
   vfxMoveSpeed: 1.5
   playerTrackingStrength: 0.5
-  vfxZOffset: 0.5
+  vfxZOffset: 0
   scenePortal: {fileID: 1186175421}
   portalMoveSpeed: 5
   portalMoveCurve:
@@ -2147,7 +2147,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   playerTarget: {fileID: 676714697}
   trackingRange: 25
-  _currentState: 0
+  _isInUse: 0
 --- !u!1 &1671554443
 GameObject:
   m_ObjectHideFlags: 0

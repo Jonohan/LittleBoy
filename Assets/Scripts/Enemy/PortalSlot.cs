@@ -50,7 +50,7 @@ namespace Invector.vCharacterController.AI
         public float playerTrackingStrength = 0.2f;
         
         [Tooltip("VFX位置偏移（沿Quad Z方向调整）")]
-        public float vfxZOffset = 0.5f;
+        public float vfxZOffset = 0f;
         
         [Header("传送门配置")]
         [Tooltip("场景中的传送门对象（从PortalManager获取）")]
@@ -147,7 +147,6 @@ namespace Invector.vCharacterController.AI
                 vfxSpawnPoint = transform;
             }
             
-            Debug.Log($"[PortalSlot] 插槽初始化完成: {slotType}");
         }
         
         #endregion
@@ -230,8 +229,6 @@ namespace Invector.vCharacterController.AI
             
             // 开始移动传送门到VFX的最终位置
             StartPortalMovement(telegraphDuration);
-            
-            Debug.Log($"[PortalSlot] 开始前摇阶段: {slotType}");
         }
         
         /// <summary>
@@ -250,7 +247,6 @@ namespace Invector.vCharacterController.AI
                 scenePortal.SetActive(true);
             }
             
-            Debug.Log($"[PortalSlot] 传送门激活: {slotType}");
         }
         
         /// <summary>
@@ -269,7 +265,6 @@ namespace Invector.vCharacterController.AI
             // 移动传送门回原位
             StartPortalReturn();
             
-            Debug.Log($"[PortalSlot] 关闭传送门: {slotType}");
         }
         
         /// <summary>
@@ -292,8 +287,7 @@ namespace Invector.vCharacterController.AI
                 scenePortal.transform.rotation = _originalPortalRotation;
                 scenePortal.SetActive(false);
             }
-            
-            Debug.Log($"[PortalSlot] 插槽重置: {slotType}");
+
         }
         
         /// <summary>
@@ -415,9 +409,6 @@ namespace Invector.vCharacterController.AI
             // 使用Quaternion.FromToRotation从世界Y轴旋转到Quad的Z轴正方向
             Quaternion baseRotation = Quaternion.FromToRotation(Vector3.up, planeZForward);
             
-            // 调试打印
-            Vector3 vfxYDirection = baseRotation * Vector3.up;
-            Debug.Log($"[PortalSlot] Quad正方向: {planeZForward}, VFX Y方向: {vfxYDirection}");
             
             return baseRotation;
         }
@@ -584,10 +575,11 @@ namespace Invector.vCharacterController.AI
         /// <param name="duration">移动持续时间</param>
         private IEnumerator MovePortalCoroutine(float duration)
         {
-            Vector3 startPos = _originalPortalPosition;
+            // 使用传送门的当前位置作为起始位置，而不是_originalPortalPosition
+            Vector3 startPos = scenePortal.transform.position;
             // 传送门移动到VFX的最终位置
             Vector3 endPos = _vfxFinalPosition;
-            Quaternion startRot = _originalPortalRotation;
+            Quaternion startRot = scenePortal.transform.rotation;
             Quaternion endRot = vfxSpawnPoint.rotation;
             
             // 传送门瞬移旋转和位置到最终位置

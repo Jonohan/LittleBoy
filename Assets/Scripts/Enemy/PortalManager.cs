@@ -37,7 +37,7 @@ namespace Invector.vCharacterController.AI
         public PortalColor color;
         public Transform slot;
         public PortalSlot portalSlot; // 插槽引用
-        public float spawnTime;
+        public float spawnTime; // 废弃字段 - 不再使用时间戳逻辑
         public bool isActive;
         
         public PortalData(GameObject obj, PortalType t, PortalColor c, Transform s)
@@ -46,7 +46,7 @@ namespace Invector.vCharacterController.AI
             type = t;
             color = c;
             slot = s;
-            spawnTime = Time.time;
+            spawnTime = 0f; // 时间戳不再使用
             isActive = true;
         }
     }
@@ -126,6 +126,9 @@ namespace Invector.vCharacterController.AI
         
         [ShowInInspector, ReadOnly]
         private int _nextPortalToGenerate = 1;
+        
+        [ShowInInspector, ReadOnly]
+        private int _lastGeneratedPortal = 0; // 记录最后生成的传送门编号
         
         // 事件
         public System.Action<PortalData> OnPortalSpawned;
@@ -269,9 +272,8 @@ namespace Invector.vCharacterController.AI
             
             // 生成阶段不设置传送门对象，不更改颜色，只处理VFX
             
-            // 更新传送门时间戳（传送门被移动到新位置）
-            portalData.spawnTime = Time.time;
-            portalData.isActive = true; // 确保传送门激活
+            // 确保传送门激活
+            portalData.isActive = true;
             
             _totalPortalsSpawned++;
             
@@ -288,24 +290,22 @@ namespace Invector.vCharacterController.AI
         
         
         /// <summary>
-        /// 开始传送门前摇（自动选择已完成生成阶段的传送门）
+        /// 开始传送门前摇（使用生成阶段确定的传送门）
         /// </summary>
         /// <param name="telegraphDuration">前摇持续时间</param>
         /// <returns>选择的传送门编号，如果没有可用传送门返回0</returns>
         public int StartPortalTelegraphing(float telegraphDuration)
         {
-            // 自动选择已完成生成阶段的传送门
-            int portalNumber = GetPortalReadyForTelegraphing();
-            if (portalNumber > 0)
+            // 直接使用生成阶段确定的传送门编号，与插槽状态无关
+            if (_lastGeneratedPortal <= 0)
             {
-                StartPortalTelegraphing(portalNumber, telegraphDuration);
-                return portalNumber;
-            }
-            else
-            {
-                Debug.LogWarning("[PortalManager] 没有已完成生成阶段的传送门可进行前摇");
+                Debug.LogWarning("[PortalManager] 没有生成阶段确定的传送门可进行前摇");
                 return 0;
             }
+            
+            StartPortalTelegraphing(_lastGeneratedPortal, telegraphDuration);
+            Debug.Log($"[PortalManager] 使用生成阶段确定的{_lastGeneratedPortal}号传送门进行前摇");
+            return _lastGeneratedPortal;
         }
         
         /// <summary>
@@ -347,11 +347,8 @@ namespace Invector.vCharacterController.AI
             UpdatePortalColor(portalData, portalData.color);
             
             // 开始前摇阶段（第二阶段：Telegraphing）
-            Debug.Log($"[PortalManager] 准备开始前摇阶段: 传送门{portalNumber}，插槽使用状态: {portalData.portalSlot._isInUse}");
+            Debug.Log($"[PortalManager] 开始前摇阶段: 传送门{portalNumber}({portalData.portalObject.name}) -> 插槽({portalData.portalSlot.name})");
             portalData.portalSlot.StartTelegraphing(telegraphDuration, vfxConfig.telegraphingVfxPrefab, portalData.portalObject);
-            
-            // 更新传送门时间戳（传送门被移动，变为较新的）
-            UpdatePortalTimestamp(portalNumber);
             
             // 确保传送门状态为激活
             portalData.isActive = true;
@@ -655,136 +652,76 @@ namespace Invector.vCharacterController.AI
         [Button("测试前摇阶段")]
         public void TestTelegraphing()
         {
-            Debug.Log("[PortalManager] 开始测试前摇阶段...");
-            
-            // 使用新的自动选择方法
-            int selectedPortal = StartPortalTelegraphing(2f);
-            if (selectedPortal > 0)
+            // 检查是否有传送门已分配插槽，如果没有则自动生成一个
+            bool hasPortalWithSlot = (_portal1Data?.portalSlot != null) || (_portal2Data?.portalSlot != null);
+            if (!hasPortalWithSlot)
             {
-                Debug.Log($"[PortalManager] 自动选择并开始前摇: {selectedPortal}号传送门");
+                if (!testSlot)
+                {
+                    Debug.LogWarning("[PortalManager] 请先选择测试插槽！无法自动生成传送门。");
+                    return;
+                }
                 
-                // 显示传送门队列信息
-                ShowPortalQueueInfo();
+                // 获取轮换的传送门编号（只调用一次）
+                int portalNumber = GetAvailablePortalNumber();
+                PortalType slotType = GetPortalTypeFromSlot(testSlot);
+                
+                Debug.Log($"[PortalManager] 自动生成: 使用{portalNumber}号传送门到{slotType}插槽({testSlot.name})");
+                
+                // 直接调用StartPortalGeneration避免重复轮换
+                var generatedPortal = StartPortalGeneration(slotType, PortalColor.Blue, portalNumber, testSlot);
+                if (generatedPortal == null)
+                {
+                    Debug.LogError("[PortalManager] 自动生成传送门失败");
+                    return;
+                }
+            }
+            
+            // 直接使用生成阶段确定的传送门编号进行前摇（与插槽状态无关）
+            if (_lastGeneratedPortal > 0)
+            {
+                StartPortalTelegraphing(_lastGeneratedPortal, 2f);
+                Debug.Log($"[PortalManager] 使用生成阶段确定的{_lastGeneratedPortal}号传送门进行前摇");
             }
             else
             {
-                Debug.LogWarning("[PortalManager] 没有可用传送门进行前摇");
-                Debug.LogWarning($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 使用状态={_portal1Data?.portalSlot?._isInUse}");
-                Debug.LogWarning($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 使用状态={_portal2Data?.portalSlot?._isInUse}");
+                Debug.LogWarning("[PortalManager] 没有生成阶段确定的传送门可进行前摇");
             }
         }
         
         /// <summary>
-        /// 显示传送门队列信息
+        /// 显示传送门轮换信息（替代旧的队列信息）
         /// </summary>
-        private void ShowPortalQueueInfo()
+        private void ShowPortalRotationInfo()
         {
-            Debug.Log("=== 传送门队列信息 ===");
+            Debug.Log("=== 传送门轮换信息 ===");
             
-            // 显示下一个要用的传送门
-            int nextPortalNumber = GetOldestPortalNumber();
-            if (nextPortalNumber > 0)
-            {
-                PortalData nextPortal = GetPortalData(nextPortalNumber);
-                string nextPortalName = nextPortal?.portalObject?.name ?? "null";
-                Debug.Log($"下一个要用的传送门: {nextPortalNumber}号 ({nextPortalName})");
-            }
-            else
-            {
-                Debug.Log("下一个要用的传送门: 无可用传送门");
-            }
+            Debug.Log($"下次轮换到: {_nextPortalToGenerate}号传送门");
             
-            // 显示队列中所有传送门
-            Debug.Log("队列中所有传送门:");
-            
-            if (_portal1Data != null && _portal1Data.portalSlot != null)
+            // 显示传送门状态
+            if (_portal1Data != null)
             {
                 string portal1Name = _portal1Data.portalObject?.name ?? "null";
-                string portal1Slot = _portal1Data.portalSlot?.name ?? "null";
-                Debug.Log($"  1号传送门: {portal1Name} (插槽: {portal1Slot}, 时间戳: {_portal1Data.spawnTime:F2})");
-            }
-            else
-            {
-                Debug.Log("  1号传送门: 未分配插槽");
+                string portal1Status = _portal1Data.portalSlot != null ? $"位于插槽({_portal1Data.portalSlot.name})" : "未分配位置";
+                Debug.Log($"  1号传送门: {portal1Name} - {portal1Status}");
             }
             
             if (_portal2Data != null)
             {
                 string portal2Name = _portal2Data.portalObject?.name ?? "null";
-                if (_portal2Data.portalSlot != null)
-                {
-                    string portal2Slot = _portal2Data.portalSlot.name;
-                    Debug.Log($"  2号传送门: {portal2Name} (插槽: {portal2Slot}, 时间戳: {_portal2Data.spawnTime:F2})");
-                }
-                else
-                {
-                    Debug.Log($"  2号传送门: {portal2Name} (插槽: null, 时间戳: {_portal2Data.spawnTime:F2}) - 未分配插槽");
-                }
-            }
-            else
-            {
-                Debug.Log("  2号传送门: 数据为空");
+                string portal2Status = _portal2Data.portalSlot != null ? $"位于插槽({_portal2Data.portalSlot.name})" : "未分配位置";
+                Debug.Log($"  2号传送门: {portal2Name} - {portal2Status}");
             }
             
             Debug.Log("==================");
         }
         
-        /// <summary>
-        /// 获取最老的传送门编号
-        /// </summary>
-        /// <returns>最老的传送门编号，如果没有可用传送门返回0</returns>
-        private int GetOldestPortalNumber()
-        {
-            float oldestTime = float.MaxValue;
-            int oldestNumber = 0;
-            
-            Debug.Log($"[PortalManager] 开始获取最老传送门...");
-            
-            // 检查1号传送门
-            if (_portal1Data != null && _portal1Data.portalSlot != null && _portal1Data.spawnTime > 0)
-            {
-                Debug.Log($"[PortalManager] 1号传送门有效: 时间={_portal1Data.spawnTime:F2}, 插槽={_portal1Data.portalSlot.name}");
-                if (_portal1Data.spawnTime < oldestTime)
-                {
-                    oldestTime = _portal1Data.spawnTime;
-                    oldestNumber = 1;
-                }
-            }
-            else
-            {
-                Debug.Log($"[PortalManager] 1号传送门无效: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 时间={_portal1Data?.spawnTime:F2}");
-            }
-            
-            // 检查2号传送门
-            if (_portal2Data != null && _portal2Data.portalSlot != null && _portal2Data.spawnTime > 0)
-            {
-                Debug.Log($"[PortalManager] 2号传送门有效: 时间={_portal2Data.spawnTime:F2}, 插槽={_portal2Data.portalSlot.name}");
-                if (_portal2Data.spawnTime < oldestTime)
-                {
-                    oldestTime = _portal2Data.spawnTime;
-                    oldestNumber = 2;
-                }
-            }
-            else
-            {
-                Debug.Log($"[PortalManager] 2号传送门无效: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 时间={_portal2Data?.spawnTime:F2}");
-            }
-            
-            Debug.Log($"[PortalManager] 最终选择最老传送门: {oldestNumber}号 (时间: {oldestTime:F2})");
-            
-            return oldestNumber;
-        }
         
         /// <summary>
         /// 获取可用的传送门编号（轮换逻辑：1号→2号→1号，与插槽状态无关）
         /// </summary>
         public int GetAvailablePortalNumber()
         {
-            Debug.Log($"[PortalManager] 获取可用传送门编号（轮换逻辑）...");
-            Debug.Log($"[PortalManager] 当前轮换到: {_nextPortalToGenerate}号");
-            Debug.Log($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 时间={_portal1Data?.spawnTime:F2}");
-            Debug.Log($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 时间={_portal2Data?.spawnTime:F2}");
-            
             if (_portal1Data == null || _portal2Data == null)
             {
                 Debug.LogWarning("[PortalManager] 传送门数据未初始化，使用默认1号传送门");
@@ -794,57 +731,22 @@ namespace Invector.vCharacterController.AI
             // 使用轮换字段决定下一个传送门编号（与插槽状态无关）
             int selectedPortal = _nextPortalToGenerate;
             
+            // 记录这次选择的传送门编号，供前摇阶段使用
+            _lastGeneratedPortal = selectedPortal;
+            
             // 更新下一个传送门编号（1和2之间切换）
             _nextPortalToGenerate = (_nextPortalToGenerate == 1) ? 2 : 1;
             
-            Debug.Log($"[PortalManager] 选择{selectedPortal}号传送门，下次将使用{_nextPortalToGenerate}号（轮换逻辑）");
+            Debug.Log($"[PortalManager] 轮换选择: {selectedPortal}号传送门，下次将使用{_nextPortalToGenerate}号");
             return selectedPortal;
         }
         
-        /// <summary>
-        /// 获取已完成生成阶段、准备进行前摇的传送门编号
-        /// （现在简化为获取最老的传送门）
-        /// </summary>
-        public int GetPortalReadyForTelegraphing()
-        {
-            Debug.Log($"[PortalManager] 查找准备进行前摇的传送门...");
-            
-            if (_portal1Data == null || _portal2Data == null)
-            {
-                Debug.LogWarning("[PortalManager] 传送门数据未初始化");
-                return 0;
-            }
-            
-            // 由于插槽现在可以重复使用，我们简单地返回最老的传送门
-            int oldestPortal = GetOldestPortalNumber();
-            if (oldestPortal > 0)
-            {
-                Debug.Log($"[PortalManager] 选择{oldestPortal}号传送门进行前摇");
-                return oldestPortal;
-            }
-            
-            Debug.LogWarning("[PortalManager] 没有找到可用传送门进行前摇");
-            return 0;
-        }
         
-        /// <summary>
-        /// 更新传送门时间戳（当传送门被移动时调用）
-        /// </summary>
-        /// <param name="portalNumber">传送门编号</param>
-        private void UpdatePortalTimestamp(int portalNumber)
-        {
-            PortalData portalData = GetPortalData(portalNumber);
-            if (portalData != null)
-            {
-                portalData.spawnTime = Time.time;
-                Debug.Log($"[PortalManager] 更新{portalNumber}号传送门时间戳: {portalData.spawnTime}");
-            }
-        }
         
-        [Button("显示传送门队列信息")]
-        public void ShowPortalQueueInfoButton()
+        [Button("显示传送门轮换信息")]
+        public void ShowPortalRotationInfoButton()
         {
-            ShowPortalQueueInfo();
+            ShowPortalRotationInfo();
         }
         
         [Button("显示轮换状态")]
@@ -1224,7 +1126,6 @@ namespace Invector.vCharacterController.AI
             if (selectedSlotIndex >= 0 && selectedSlotIndex < _availableSlots.Length)
             {
                 testSlot = _availableSlots[selectedSlotIndex];
-                Debug.Log($"[PortalManager] 已选择插槽: {_availableSlotNames[selectedSlotIndex]}");
             }
             else
             {
