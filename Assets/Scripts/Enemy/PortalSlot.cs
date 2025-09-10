@@ -523,35 +523,23 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
-        /// 获取Quad的实际大小（不受父节点缩放影响）
+        /// 获取Quad的本地大小（用于VFX移动范围计算，与Gizmos显示同步）
         /// </summary>
         /// <param name="quadTransform">Quad的Transform</param>
-        /// <returns>Quad的大小</returns>
+        /// <returns>Quad的本地大小</returns>
         private Vector3 GetQuadSize(Transform quadTransform)
         {
-            // 检查是否有MeshRenderer来获取实际大小
-            var renderer = quadTransform.GetComponent<MeshRenderer>();
-            if (renderer)
+            // 获取Mesh的本地边界（与Gizmos显示使用相同的逻辑）
+            var meshFilter = quadTransform.GetComponent<MeshFilter>();
+            if (meshFilter && meshFilter.mesh)
             {
-                // 使用MeshRenderer的bounds来获取实际大小
-                // 注意：bounds.size是世界坐标大小，需要转换为本地坐标
-                Vector3 worldSize = renderer.bounds.size;
-                
-                // 将世界坐标大小转换为本地坐标大小
-                // 使用lossyScale来去除父节点缩放的影响
-                Vector3 localSize = new Vector3(
-                    worldSize.x / quadTransform.lossyScale.x,
-                    worldSize.y / quadTransform.lossyScale.y,
-                    worldSize.z / quadTransform.lossyScale.z
-                );
-                
-                return localSize;
+                // 使用Mesh的本地边界，这样不受任何变换影响
+                Vector3 meshSize = meshFilter.mesh.bounds.size;
+                return meshSize; // 返回原始Mesh大小，不应用localScale
             }
             
-            // 如果没有MeshRenderer，使用Transform的localScale
-            // Unity的默认Quad是1x1，所以实际大小 = localScale
-            Vector3 scale = quadTransform.localScale;
-            return scale;
+            // 如果没有MeshFilter，使用默认Quad大小
+            return Vector3.one; // Unity的默认Quad是1x1
         }
         
         #endregion
@@ -679,14 +667,23 @@ namespace Invector.vCharacterController.AI
                 Gizmos.DrawWireSphere(slotPlane.position, trackingRange);
             }
             
-            // 绘制青色范围
-            
+            // 绘制插槽平面范围（青色）
             if (slotPlane)
             {
                 Gizmos.color = Color.cyan;
+                Gizmos.matrix = Matrix4x4.identity; // 不使用localToWorldMatrix，避免双重变换
+                
+                // 获取Quad的本地大小（不包含缩放）
+                var meshFilter = slotPlane.GetComponent<MeshFilter>();
+                Vector3 localSize = Vector3.one; // 默认Quad大小
+                if (meshFilter && meshFilter.mesh)
+                {
+                    localSize = meshFilter.mesh.bounds.size;
+                }
+                
+                // 绘制本地大小的立方体，让Gizmos自动应用变换
                 Gizmos.matrix = slotPlane.localToWorldMatrix;
-                Vector3 quadSize = GetQuadSize(slotPlane);
-                Gizmos.DrawWireCube(Vector3.zero, new Vector3(quadSize.x, quadSize.y, 0.1f));
+                Gizmos.DrawWireCube(Vector3.zero, new Vector3(localSize.x, localSize.y, 0.1f));
                 Gizmos.matrix = Matrix4x4.identity; // 重置矩阵，避免影响后续绘制
             }
             

@@ -910,12 +910,41 @@ namespace Xuwu.Character
                 yield break;
             }
             
+            // 应用游戏开始时的固定相机设置（无论SizeController如何切换）
+            ApplyInitialCameraSettings();
+            
             // 应用初始缩放（如果需要）
             if (!_hasAppliedInitialCameraScale && !Mathf.Approximately(sizeMultiplier, 1.0f))
             {
                 AdjustInvectorCameraSystem(sizeMultiplier);
                 _hasAppliedInitialCameraScale = true;
             }
+        }
+        
+        /// <summary>
+        /// 应用游戏开始时的固定相机设置（无论SizeController如何切换）
+        /// </summary>
+        private void ApplyInitialCameraSettings()
+        {
+            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (!tpCam) return;
+            
+            // 设置固定的相机距离和高度
+            tpCam.distance = 2.8f;
+            
+            // 设置所有相机状态的固定距离和高度
+            if (tpCam.CameraStateList != null && tpCam.CameraStateList.tpCameraStates != null)
+            {
+                foreach (var state in tpCam.CameraStateList.tpCameraStates)
+                {
+                    state.defaultDistance = 2.8f;
+                    state.minDistance = 2.8f;
+                    state.maxDistance = 2.8f;
+                    state.height = 2.3f;
+                }
+            }
+            
+            Debug.Log($"[CharacterSizeController] 应用初始相机设置 - 距离: 2.8, 高度: 2.3 (所有相机状态)");
         }
         
         /// <summary>
