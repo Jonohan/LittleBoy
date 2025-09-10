@@ -280,6 +280,27 @@ namespace Invector.vCharacterController.AI
         
         
         /// <summary>
+        /// 开始传送门前摇（自动选择已完成生成阶段的传送门）
+        /// </summary>
+        /// <param name="telegraphDuration">前摇持续时间</param>
+        /// <returns>选择的传送门编号，如果没有可用传送门返回0</returns>
+        public int StartPortalTelegraphing(float telegraphDuration)
+        {
+            // 自动选择已完成生成阶段的传送门
+            int portalNumber = GetPortalReadyForTelegraphing();
+            if (portalNumber > 0)
+            {
+                StartPortalTelegraphing(portalNumber, telegraphDuration);
+                return portalNumber;
+            }
+            else
+            {
+                Debug.LogWarning("[PortalManager] 没有已完成生成阶段的传送门可进行前摇");
+                return 0;
+            }
+        }
+        
+        /// <summary>
         /// 开始传送门前摇（第二阶段：Telegraphing）
         /// </summary>
         /// <param name="portalNumber">传送门编号(1或2)</param>
@@ -328,7 +349,21 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
-        /// 生成传送门（兼容性方法）
+        /// 生成传送门（使用轮换逻辑自动选择传送门编号）
+        /// </summary>
+        /// <param name="type">传送门类型</param>
+        /// <param name="color">传送门颜色</param>
+        /// <param name="preferredSlot">首选插槽</param>
+        /// <returns>生成的传送门数据</returns>
+        public PortalData GeneratePortal(PortalType type, PortalColor color, PortalSlot preferredSlot = null)
+        {
+            // 使用轮换逻辑自动选择传送门编号
+            int portalNumber = GetAvailablePortalNumber();
+            return StartPortalGeneration(type, color, portalNumber, preferredSlot);
+        }
+        
+        /// <summary>
+        /// 生成传送门（兼容性方法，指定传送门编号）
         /// </summary>
         /// <param name="type">传送门类型</param>
         /// <param name="color">传送门颜色</param>
@@ -338,6 +373,32 @@ namespace Invector.vCharacterController.AI
         public PortalData GeneratePortal(PortalType type, PortalColor color, int portalNumber, PortalSlot preferredSlot = null)
         {
             return StartPortalGeneration(type, color, portalNumber, preferredSlot);
+        }
+        
+        /// <summary>
+        /// 创建传送门的完整流程（生成 -> 前摇 -> 激活）
+        /// </summary>
+        /// <param name="type">传送门类型</param>
+        /// <param name="color">传送门颜色</param>
+        /// <param name="telegraphDuration">前摇持续时间</param>
+        /// <param name="preferredSlot">首选插槽</param>
+        /// <returns>生成的传送门数据</returns>
+        public PortalData CreatePortalComplete(PortalType type, PortalColor color, float telegraphDuration = 2f, PortalSlot preferredSlot = null)
+        {
+            // 第一步：生成传送门
+            var portalData = GeneratePortal(type, color, preferredSlot);
+            if (portalData == null)
+            {
+                Debug.LogError("[PortalManager] 传送门生成失败，无法继续完整流程");
+                return null;
+            }
+            
+            Debug.Log($"[PortalManager] 开始传送门完整创建流程: {type} {color}");
+            
+            // 注意：前摇阶段需要等生成阶段完成后手动调用
+            // 这里只返回传送门数据，前摇需要在适当时机调用StartPortalTelegraphing
+            
+            return portalData;
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -530,6 +591,24 @@ namespace Invector.vCharacterController.AI
                 return "双传送门（连接状态）";
         }
         
+        /// <summary>
+        /// 获取传送门轮换状态信息
+        /// </summary>
+        /// <returns>轮换状态描述</returns>
+        public string GetRotationStatus()
+        {
+            if (_portal1Data == null || _portal2Data == null)
+            {
+                return "传送门数据未初始化";
+            }
+            
+            int nextPortal = GetAvailablePortalNumber();
+            string portal1Status = _portal1Data.portalSlot != null ? $"已分配({_portal1Data.portalSlot.name})" : "空闲";
+            string portal2Status = _portal2Data.portalSlot != null ? $"已分配({_portal2Data.portalSlot.name})" : "空闲";
+            
+            return $"下次使用: {nextPortal}号 | 1号: {portal1Status} | 2号: {portal2Status}";
+        }
+        
         #endregion
         
         #region 调试方法
@@ -543,8 +622,7 @@ namespace Invector.vCharacterController.AI
                 return;
             }
             PortalType slotType = GetPortalTypeFromSlot(testSlot);
-            int portalNumber = GetAvailablePortalNumber();
-            StartPortalGeneration(slotType, PortalColor.Blue, portalNumber, testSlot);
+            GeneratePortal(slotType, PortalColor.Blue, testSlot);
         }
         
         [Button("测试生成阶段 - 橙色")]
@@ -556,8 +634,7 @@ namespace Invector.vCharacterController.AI
                 return;
             }
             PortalType slotType = GetPortalTypeFromSlot(testSlot);
-            int portalNumber = GetAvailablePortalNumber();
-            StartPortalGeneration(slotType, PortalColor.Orange, portalNumber, testSlot);
+            GeneratePortal(slotType, PortalColor.Orange, testSlot);
         }
         
         [Button("测试生成阶段 - 巨型橙色")]
@@ -569,8 +646,7 @@ namespace Invector.vCharacterController.AI
                 return;
             }
             PortalType slotType = GetPortalTypeFromSlot(testSlot);
-            int portalNumber = GetAvailablePortalNumber();
-            StartPortalGeneration(slotType, PortalColor.GiantOrange, portalNumber, testSlot);
+            GeneratePortal(slotType, PortalColor.GiantOrange, testSlot);
         }
         
         [Button("测试前摇阶段")]
@@ -578,12 +654,11 @@ namespace Invector.vCharacterController.AI
         {
             Debug.Log("[PortalManager] 开始测试前摇阶段...");
             
-            // 查找已经完成生成阶段的传送门进行前摇
-            int portalNumber = GetPortalReadyForTelegraphing();
-            if (portalNumber > 0)
+            // 使用新的自动选择方法
+            int selectedPortal = StartPortalTelegraphing(2f);
+            if (selectedPortal > 0)
             {
-                Debug.Log($"[PortalManager] 选择已完成生成阶段的传送门进行前摇: {portalNumber}号");
-                StartPortalTelegraphing(portalNumber, 2f);
+                Debug.Log($"[PortalManager] 自动选择并开始前摇: {selectedPortal}号传送门");
                 
                 // 显示传送门队列信息
                 ShowPortalQueueInfo();
@@ -700,7 +775,7 @@ namespace Invector.vCharacterController.AI
         /// <summary>
         /// 获取可用的传送门编号（轮换逻辑：1号后必定是2号，2号后必定是1号）
         /// </summary>
-        private int GetAvailablePortalNumber()
+        public int GetAvailablePortalNumber()
         {
             Debug.Log($"[PortalManager] 获取可用传送门编号（轮换逻辑）...");
             Debug.Log($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 时间={_portal1Data?.spawnTime:F2}");
@@ -728,7 +803,7 @@ namespace Invector.vCharacterController.AI
         /// <summary>
         /// 获取已完成生成阶段、准备进行前摇的传送门编号
         /// </summary>
-        private int GetPortalReadyForTelegraphing()
+        public int GetPortalReadyForTelegraphing()
         {
             Debug.Log($"[PortalManager] 查找已完成生成阶段的传送门...");
             
@@ -774,6 +849,13 @@ namespace Invector.vCharacterController.AI
         public void ShowPortalQueueInfoButton()
         {
             ShowPortalQueueInfo();
+        }
+        
+        [Button("显示轮换状态")]
+        public void ShowRotationStatusButton()
+        {
+            Debug.Log($"[PortalManager] 传送门轮换状态: {GetRotationStatus()}");
+            Debug.Log($"[PortalManager] 传送门连接状态: {GetConnectionStatus()}");
         }
         
         // 传送门不需要关闭，它们一直存在

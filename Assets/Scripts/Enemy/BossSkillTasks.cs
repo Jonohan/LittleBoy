@@ -112,8 +112,8 @@ namespace Invector.vCharacterController.AI
                 return TaskStatus.Failure;
             }
             
-            // 开始生成传送门
-            _currentPortal = _portalManager.StartPortalGeneration(portalType, portalColor, 1);
+            // 开始生成传送门（使用轮换逻辑自动选择传送门编号）
+            _currentPortal = _portalManager.GeneratePortal(portalType, portalColor);
             if (_currentPortal == null)
             {
                 Debug.LogError($"[{skillName}] 传送门生成失败");
@@ -136,10 +136,14 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected virtual TaskStatus HandleTelegraph()
         {
-            // 开始传送门前摇阶段
+            // 开始传送门前摇阶段（自动选择已完成生成阶段的传送门）
             if (_currentPortal?.portalSlot != null)
             {
-                _portalManager.StartPortalTelegraphing(1, telegraphTime);
+                int selectedPortal = _portalManager.StartPortalTelegraphing(telegraphTime);
+                if (selectedPortal == 0)
+                {
+                    Debug.LogWarning($"[{skillName}] 没有可用传送门进行前摇，跳过前摇阶段");
+                }
             }
             
             // 播放前摇动画和特效
