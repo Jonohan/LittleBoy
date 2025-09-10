@@ -124,6 +124,9 @@ namespace Invector.vCharacterController.AI
         [ShowInInspector, ReadOnly]
         private PortalData _portal2Data;
         
+        [ShowInInspector, ReadOnly]
+        private int _nextPortalToGenerate = 1;
+        
         // 事件
         public System.Action<PortalData> OnPortalSpawned;
         public System.Action<PortalData> OnPortalClosed;
@@ -139,7 +142,7 @@ namespace Invector.vCharacterController.AI
         
         private void Update()
         {
-            // 传送门不需要状态更新，它们一直存在
+            // 传送门永远存在，不需要状态更新或清理
         }
         
         #endregion
@@ -165,10 +168,12 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void InitializePortals()
         {
-            // 初始化1号传送门
+            // 初始化1号传送门（传送门永远存在，初始状态为激活但未分配位置）
             if (portal1)
             {
                 _portal1Data = new PortalData(portal1, PortalType.Ceiling, PortalColor.Blue, null);
+                _portal1Data.isActive = true; // 传送门永远激活
+                _portal1Data.spawnTime = 0f; // 初始无生成时间
                 _activePortals.Add(_portal1Data);
                 Debug.Log($"[PortalManager] 1号传送门初始化完成: {portal1.name}");
             }
@@ -177,10 +182,12 @@ namespace Invector.vCharacterController.AI
                 Debug.LogError("[PortalManager] portal1对象为空，无法初始化1号传送门！");
             }
             
-            // 初始化2号传送门
+            // 初始化2号传送门（传送门永远存在，初始状态为激活但未分配位置）
             if (portal2)
             {
                 _portal2Data = new PortalData(portal2, PortalType.Ceiling, PortalColor.Blue, null);
+                _portal2Data.isActive = true; // 传送门永远激活
+                _portal2Data.spawnTime = 0f; // 初始无生成时间
                 _activePortals.Add(_portal2Data);
                 Debug.Log($"[PortalManager] 2号传送门初始化完成: {portal2.name}");
             }
@@ -262,8 +269,9 @@ namespace Invector.vCharacterController.AI
             
             // 生成阶段不设置传送门对象，不更改颜色，只处理VFX
             
-            // 更新传送门时间戳
+            // 更新传送门时间戳（传送门被移动到新位置）
             portalData.spawnTime = Time.time;
+            portalData.isActive = true; // 确保传送门激活
             
             _totalPortalsSpawned++;
             
@@ -339,11 +347,14 @@ namespace Invector.vCharacterController.AI
             UpdatePortalColor(portalData, portalData.color);
             
             // 开始前摇阶段（第二阶段：Telegraphing）
-            Debug.Log($"[PortalManager] 准备开始前摇阶段: 传送门{portalNumber}，插槽状态: {portalData.portalSlot._currentState}");
+            Debug.Log($"[PortalManager] 准备开始前摇阶段: 传送门{portalNumber}，插槽使用状态: {portalData.portalSlot._isInUse}");
             portalData.portalSlot.StartTelegraphing(telegraphDuration, vfxConfig.telegraphingVfxPrefab, portalData.portalObject);
             
             // 更新传送门时间戳（传送门被移动，变为较新的）
             UpdatePortalTimestamp(portalNumber);
+            
+            // 确保传送门状态为激活
+            portalData.isActive = true;
             
             Debug.Log($"[PortalManager] 开始传送门前摇: {portalData.type} 编号{portalNumber}");
         }
@@ -401,9 +412,7 @@ namespace Invector.vCharacterController.AI
             return portalData;
         }
         
-        // 传送门不需要关闭，它们一直存在
-        
-        
+        // 传送门永远存在，不需要关闭机制
         
         #endregion
         
@@ -472,7 +481,7 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
-        /// 检查插槽是否可用
+        /// 检查插槽是否可用（插槽现在可以重复使用）
         /// </summary>
         /// <param name="slot">插槽</param>
         /// <returns>是否可用</returns>
@@ -480,12 +489,7 @@ namespace Invector.vCharacterController.AI
         {
             if (!slot) return false;
             
-            // 检查插槽状态
-            if (slot._currentState != PortalSlotState.Idle)
-            {
-                return false;
-            }
-            
+            // 插槽现在可以重复使用，不限制传送门数量
             return true;
         }
         
@@ -602,11 +606,10 @@ namespace Invector.vCharacterController.AI
                 return "传送门数据未初始化";
             }
             
-            int nextPortal = GetAvailablePortalNumber();
-            string portal1Status = _portal1Data.portalSlot != null ? $"已分配({_portal1Data.portalSlot.name})" : "空闲";
-            string portal2Status = _portal2Data.portalSlot != null ? $"已分配({_portal2Data.portalSlot.name})" : "空闲";
+            string portal1Status = _portal1Data.portalSlot != null ? $"位于插槽({_portal1Data.portalSlot.name})" : "未分配位置";
+            string portal2Status = _portal2Data.portalSlot != null ? $"位于插槽({_portal2Data.portalSlot.name})" : "未分配位置";
             
-            return $"下次使用: {nextPortal}号 | 1号: {portal1Status} | 2号: {portal2Status}";
+            return $"下次轮换到: {_nextPortalToGenerate}号 | 1号: {portal1Status} | 2号: {portal2Status}";
         }
         
         #endregion
@@ -665,9 +668,9 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[PortalManager] 没有已完成生成阶段的传送门进行前摇");
-                Debug.LogWarning($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 插槽状态={_portal1Data?.portalSlot?._currentState}");
-                Debug.LogWarning($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 插槽状态={_portal2Data?.portalSlot?._currentState}");
+                Debug.LogWarning("[PortalManager] 没有可用传送门进行前摇");
+                Debug.LogWarning($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 使用状态={_portal1Data?.portalSlot?._isInUse}");
+                Debug.LogWarning($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 使用状态={_portal2Data?.portalSlot?._isInUse}");
             }
         }
         
@@ -773,11 +776,12 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
-        /// 获取可用的传送门编号（轮换逻辑：1号后必定是2号，2号后必定是1号）
+        /// 获取可用的传送门编号（轮换逻辑：1号→2号→1号，与插槽状态无关）
         /// </summary>
         public int GetAvailablePortalNumber()
         {
             Debug.Log($"[PortalManager] 获取可用传送门编号（轮换逻辑）...");
+            Debug.Log($"[PortalManager] 当前轮换到: {_nextPortalToGenerate}号");
             Debug.Log($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 时间={_portal1Data?.spawnTime:F2}");
             Debug.Log($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 时间={_portal2Data?.spawnTime:F2}");
             
@@ -787,25 +791,23 @@ namespace Invector.vCharacterController.AI
                 return 1; // 默认使用1号
             }
             
-            // 轮换逻辑：如果1号传送门没有插槽，使用1号；否则使用2号
-            if (_portal1Data.portalSlot == null)
-            {
-                Debug.Log("[PortalManager] 选择1号传送门（未分配插槽）");
-                return 1;
-            }
-            else
-            {
-                Debug.Log("[PortalManager] 选择2号传送门（1号已有插槽，轮换到2号）");
-                return 2;
-            }
+            // 使用轮换字段决定下一个传送门编号（与插槽状态无关）
+            int selectedPortal = _nextPortalToGenerate;
+            
+            // 更新下一个传送门编号（1和2之间切换）
+            _nextPortalToGenerate = (_nextPortalToGenerate == 1) ? 2 : 1;
+            
+            Debug.Log($"[PortalManager] 选择{selectedPortal}号传送门，下次将使用{_nextPortalToGenerate}号（轮换逻辑）");
+            return selectedPortal;
         }
         
         /// <summary>
         /// 获取已完成生成阶段、准备进行前摇的传送门编号
+        /// （现在简化为获取最老的传送门）
         /// </summary>
         public int GetPortalReadyForTelegraphing()
         {
-            Debug.Log($"[PortalManager] 查找已完成生成阶段的传送门...");
+            Debug.Log($"[PortalManager] 查找准备进行前摇的传送门...");
             
             if (_portal1Data == null || _portal2Data == null)
             {
@@ -813,21 +815,15 @@ namespace Invector.vCharacterController.AI
                 return 0;
             }
             
-            // 检查1号传送门是否已完成生成阶段
-            if (_portal1Data.portalSlot != null && _portal1Data.portalSlot._currentState == PortalSlotState.Generating)
+            // 由于插槽现在可以重复使用，我们简单地返回最老的传送门
+            int oldestPortal = GetOldestPortalNumber();
+            if (oldestPortal > 0)
             {
-                Debug.Log("[PortalManager] 选择1号传送门（已完成生成阶段）");
-                return 1;
+                Debug.Log($"[PortalManager] 选择{oldestPortal}号传送门进行前摇");
+                return oldestPortal;
             }
             
-            // 检查2号传送门是否已完成生成阶段
-            if (_portal2Data.portalSlot != null && _portal2Data.portalSlot._currentState == PortalSlotState.Generating)
-            {
-                Debug.Log("[PortalManager] 选择2号传送门（已完成生成阶段）");
-                return 2;
-            }
-            
-            Debug.LogWarning("[PortalManager] 没有找到已完成生成阶段的传送门");
+            Debug.LogWarning("[PortalManager] 没有找到可用传送门进行前摇");
             return 0;
         }
         
@@ -856,6 +852,51 @@ namespace Invector.vCharacterController.AI
         {
             Debug.Log($"[PortalManager] 传送门轮换状态: {GetRotationStatus()}");
             Debug.Log($"[PortalManager] 传送门连接状态: {GetConnectionStatus()}");
+        }
+        
+        [Button("显示所有插槽状态")]
+        public void ShowAllSlotsStatus()
+        {
+            Debug.Log("=== 所有插槽状态 ===");
+            
+            ShowSlotTypeStatus("天花板", ceilingSlots);
+            ShowSlotTypeStatus("左墙", wallLeftSlots);
+            ShowSlotTypeStatus("右墙", wallRightSlots);
+            ShowSlotTypeStatus("地面", groundSlots);
+            
+            Debug.Log("==================");
+        }
+        
+        /// <summary>
+        /// 显示指定类型插槽的状态
+        /// </summary>
+        /// <param name="typeName">类型名称</param>
+        /// <param name="slots">插槽数组</param>
+        private void ShowSlotTypeStatus(string typeName, PortalSlot[] slots)
+        {
+            if (slots == null || slots.Length == 0)
+            {
+                Debug.Log($"{typeName}插槽: 无");
+                return;
+            }
+            
+            int inUseCount = 0;
+            foreach (var slot in slots)
+            {
+                if (slot && slot.IsInUse())
+                    inUseCount++;
+            }
+            
+            Debug.Log($"{typeName}插槽: {slots.Length}个 (使用中: {inUseCount}个)");
+            
+            foreach (var slot in slots)
+            {
+                if (slot)
+                {
+                    string status = slot.IsInUse() ? "使用中" : "空闲";
+                    Debug.Log($"  - {slot.name}: {status}");
+                }
+            }
         }
         
         // 传送门不需要关闭，它们一直存在

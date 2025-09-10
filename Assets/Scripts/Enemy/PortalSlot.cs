@@ -4,17 +4,7 @@ using Sirenix.OdinInspector;
 
 namespace Invector.vCharacterController.AI
 {
-    /// <summary>
-    /// 传送门插槽状态
-    /// </summary>
-    public enum PortalSlotState
-    {
-        Idle,           // 空闲
-        Generating,     // 生成中 (VFX播放)
-        Telegraphing,   // 前摇阶段 (传送门移动过来)
-        Active,         // 激活状态 (传送门就位)
-        Closing         // 关闭中
-    }
+    // 移除状态机 - 插槽现在可以自由重复使用
     
     /// <summary>
     /// 传送门插槽类型
@@ -29,6 +19,7 @@ namespace Invector.vCharacterController.AI
     
     /// <summary>
     /// 传送门插槽 - 管理传送门的生成、VFX播放和传送门移动
+    /// 插槽可以重复使用，不限制传送门数量
     /// </summary>
     public class PortalSlot : MonoBehaviour
     {
@@ -81,7 +72,7 @@ namespace Invector.vCharacterController.AI
         
         [Header("调试")]
         [ShowInInspector, ReadOnly]
-        public PortalSlotState _currentState = PortalSlotState.Idle;
+        public bool _isInUse = false;
         
         [ShowInInspector, ReadOnly]
         private GameObject _currentVfx;
@@ -111,7 +102,11 @@ namespace Invector.vCharacterController.AI
         
         private void Update()
         {
-            UpdateSlotState();
+            // 如果有玩家追踪且正在追踪，更新VFX位置
+            if (_isTrackingPlayer && playerTarget && _currentVfx)
+            {
+                TrackPlayer();
+            }
         }
         
         #endregion
@@ -157,91 +152,24 @@ namespace Invector.vCharacterController.AI
         
         #endregion
         
-        #region 状态管理
-        
-        /// <summary>
-        /// 更新插槽状态
-        /// </summary>
-        private void UpdateSlotState()
-        {
-            switch (_currentState)
-            {
-                case PortalSlotState.Generating:
-                    UpdateGeneratingState();
-                    break;
-                case PortalSlotState.Telegraphing:
-                    UpdateTelegraphingState();
-                    break;
-                case PortalSlotState.Active:
-                    UpdateActiveState();
-                    break;
-                case PortalSlotState.Closing:
-                    UpdateClosingState();
-                    break;
-            }
-        }
-        
-        /// <summary>
-        /// 更新生成状态
-        /// </summary>
-        private void UpdateGeneratingState()
-        {
-            // VFX持续播放，追踪玩家
-            if (_isTrackingPlayer && playerTarget)
-            {
-                TrackPlayer();
-            }
-        }
-        
-        /// <summary>
-        /// 更新前摇状态
-        /// </summary>
-        private void UpdateTelegraphingState()
-        {
-            // 传送门正在移动过来
-            // 状态由协程管理
-        }
-        
-        /// <summary>
-        /// 更新激活状态
-        /// </summary>
-        private void UpdateActiveState()
-        {
-            // 传送门已就位，可以正常使用
-        }
-        
-        /// <summary>
-        /// 更新关闭状态
-        /// </summary>
-        private void UpdateClosingState()
-        {
-            // 传送门正在关闭
-        }
-        
-        #endregion
+        // 移除状态管理 - 插槽现在可以自由重复使用
         
         #region 公共方法
         
         /// <summary>
-        /// 开始生成传送门
+        /// 开始生成传送门（插槽可重复使用）
         /// </summary>
         /// <param name="portalColor">传送门颜色</param>
         /// <param name="generatingVfxPrefab">生成VFX预制体</param>
         public void StartGenerating(PortalColor portalColor, GameObject generatingVfxPrefab)
         {
-            if (_currentState != PortalSlotState.Idle)
-            {
-                Debug.LogWarning($"[PortalSlot] 插槽正在使用中，无法开始生成");
-                return;
-            }
-            
             if (generatingVfxPrefab == null)
             {
                 Debug.LogError($"[PortalSlot] 生成VFX预制体为空！无法开始生成传送门");
                 return;
             }
             
-            _currentState = PortalSlotState.Generating;
+            _isInUse = true;
             
             // 设置VFX预制体
             this.generatingVfxPrefab = generatingVfxPrefab;
@@ -263,12 +191,6 @@ namespace Invector.vCharacterController.AI
         /// <param name="portalObject">传送门对象</param>
         public void StartTelegraphing(float telegraphDuration, GameObject telegraphingVfxPrefab, GameObject portalObject)
         {
-            if (_currentState != PortalSlotState.Generating)
-            {
-                Debug.LogWarning($"[PortalSlot] 插槽状态错误，无法开始前摇。当前状态: {_currentState}，需要状态: {PortalSlotState.Generating}");
-                return;
-            }
-            
             if (telegraphingVfxPrefab == null)
             {
                 Debug.LogError($"[PortalSlot] 前摇VFX预制体为空！无法开始前摇");
@@ -281,7 +203,7 @@ namespace Invector.vCharacterController.AI
                 return;
             }
             
-            _currentState = PortalSlotState.Telegraphing;
+            _isInUse = true;
             
             // 设置VFX预制体和传送门对象
             this.telegraphingVfxPrefab = telegraphingVfxPrefab;
@@ -317,13 +239,7 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         public void ActivatePortal()
         {
-            if (_currentState != PortalSlotState.Telegraphing)
-            {
-                Debug.LogWarning($"[PortalSlot] 插槽状态错误，无法激活传送门");
-                return;
-            }
-            
-            _currentState = PortalSlotState.Active;
+            _isInUse = true;
             
             // 停止前摇VFX
             StopTelegraphingVfx();
@@ -342,12 +258,7 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         public void ClosePortal()
         {
-            if (_currentState == PortalSlotState.Idle)
-            {
-                return;
-            }
-            
-            _currentState = PortalSlotState.Closing;
+            _isInUse = false;
             
             // 停止所有VFX
             StopAllVfx();
@@ -366,7 +277,7 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         public void ResetSlot()
         {
-            _currentState = PortalSlotState.Idle;
+            _isInUse = false;
             
             // 停止所有VFX
             StopAllVfx();
@@ -383,6 +294,15 @@ namespace Invector.vCharacterController.AI
             }
             
             Debug.Log($"[PortalSlot] 插槽重置: {slotType}");
+        }
+        
+        /// <summary>
+        /// 检查插槽是否正在使用中
+        /// </summary>
+        /// <returns>是否正在使用</returns>
+        public bool IsInUse()
+        {
+            return _isInUse;
         }
         
         #endregion
@@ -722,7 +642,7 @@ namespace Invector.vCharacterController.AI
             scenePortal.SetActive(false);
             
             // 重置到空闲状态
-            _currentState = PortalSlotState.Idle;
+            _isInUse = false;
         }
         
         #endregion
