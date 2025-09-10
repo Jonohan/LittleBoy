@@ -1020,8 +1020,8 @@ Camera:
   m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.278431, g: 0.278431, b: 0.278431, a: 1}
-  m_projectionMatrixMode: 0
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
   m_Iso: 200
@@ -1041,9 +1041,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 20.12887
-  far clip plane: 80600.04
-  field of view: 60.000004
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -1054,11 +1054,11 @@ Camera:
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
-  m_HDR: 0
+  m_HDR: 1
   m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 0
+  m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!43 &625582501
@@ -3318,6 +3318,55 @@ Transform:
   - {fileID: 1186175422}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2095128399 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+  m_PrefabInstance: {fileID: 5598279245230779517}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2095128414
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2095128399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startWhenEnabled: 1
+  asynchronousLoad: 0
+  pauseWhenDisabled: 0
+  restartWhenComplete: 0
+  logTaskChanges: 0
+  group: 0
+  resetValuesOnRestart: 0
+  externalBehavior: {fileID: 11400000, guid: 91c99aa77da2cdf428cfc2a658d6b0e3, type: 2}
+  mBehaviorSource:
+    behaviorName: BossMainBehaviorTree
+    behaviorDescription: 
+    mTaskData:
+      types: []
+      parentIndex: 
+      startIndex: 
+      variableStartIndex: 
+      JSONSerialization: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(174.37233,-3.49856567)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(-0.3085537,116.6691)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Invector.vCharacterController.AI.IsBossDead","NodeData":{"Offset":"(-226.210068,112.975555)"},"ID":2,"Name":"Is
+        Boss Dead","Instant":true,"SharedFloathpPct":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":0}},{"Type":"Invector.vCharacterController.AI.IsBossDisabled","NodeData":{"Offset":"(-100.799957,109.477859)"},"ID":3,"Name":"Is
+        Boss Disabled","Instant":true,"SharedBooldisabledOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossFearful","NodeData":{"Offset":"(38.6024475,110.543335)"},"ID":4,"Name":"Is
+        Boss Fearful","Instant":true,"SharedBoolfearOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossAngry","NodeData":{"Offset":"(179.556946,105.218674)"},"ID":5,"Name":"Is
+        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(536.04895,109.299286)"},"ID":6,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(-113.416138,130.899872)"},"ID":7,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}},{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(76.23625,131.481934)"},"ID":8,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Helllllo"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}}]}]}}'
+      fieldSerializationData:
+        typeName: []
+        fieldNameHash: 
+        startIndex: 
+        dataPosition: 
+        unityObjects: []
+        byteData: 
+        byteDataArray: 
+      Version: 1.7.12
+  gizmoViewMode: 2
+  showBehaviorDesignerGizmo: 1
 --- !u!1 &2107277085
 GameObject:
   m_ObjectHideFlags: 0
@@ -3839,117 +3888,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1186175421}
     - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: portal1Material
-      value: 
-      objectReference: {fileID: 2100000, guid: eca68bc375be1a64681395f44b161b40, type: 2}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: portal2Material
-      value: 
-      objectReference: {fileID: 2100000, guid: b99759d4d11f5744b87253140144f4b5, type: 2}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: groundSlots.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: ceilingSlots.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.vfxColor.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.vfxColor.g
-      value: 0.8576665
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.vfxColor.r
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: wallLeftSlots.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: groundSlots.Array.data[0]
       value: 
       objectReference: {fileID: 1229173509}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: wallRightSlots.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.frameColor.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.frameColor.g
-      value: 0.985899
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.frameColor.r
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: ceilingSlots.Array.data[0]
       value: 
       objectReference: {fileID: 1063890978}
     - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.vfxColor.b
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.vfxColor.g
-      value: 0.7238613
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.vfxColor.r
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: wallLeftSlots.Array.data[0]
       value: 
       objectReference: {fileID: 93865878}
     - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.frameColor.b
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.frameColor.g
-      value: 0.81211084
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.frameColor.r
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: wallRightSlots.Array.data[0]
       value: 
       objectReference: {fileID: 1654706625}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.generatingVfxPrefab
-      value: 
-      objectReference: {fileID: 2411298451726823637, guid: 78bee193cb02532468d53aceede28946, type: 3}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bluePortalVfx.telegraphingVfxPrefab
-      value: 
-      objectReference: {fileID: 3665152045161641556, guid: 1869fbb74e4aef74985fac67e640f42f, type: 3}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.generatingVfxPrefab
-      value: 
-      objectReference: {fileID: 2411298451726823637, guid: 5af04bf709f6dd7449ea7826ab4f4066, type: 3}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: orangePortalVfx.telegraphingVfxPrefab
-      value: 
-      objectReference: {fileID: 3665152045161641556, guid: 8cf66e3652cf45c4ca2b45bba405c271, type: 3}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: giantOrangePortalVfx.generatingVfxPrefab
-      value: 
-      objectReference: {fileID: 2411298451726823637, guid: bfb6628db30fb5d49994861d90659582, type: 3}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: giantOrangePortalVfx.telegraphingVfxPrefab
-      value: 
-      objectReference: {fileID: 3665152045161641556, guid: 9412d1979ee319343ab492bba833f415, type: 3}
     - target: {fileID: 6482422768991068590, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.5102825
@@ -3994,10 +3947,21 @@ PrefabInstance:
       propertyPath: OnDead.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 2074480771}
+    - target: {fileID: 8608237882947892111, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: mBehaviorSource.mTaskData.JSONSerialization
+      value: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(505.515167,-65.4985046)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(2.8972168,126.377243)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Invector.vCharacterController.AI.IsBossDead","NodeData":{"Offset":"(-261.439545,105.324585)"},"ID":2,"Name":"Is
+        Boss Dead","Instant":true,"SharedFloathpPct":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":0}},{"Type":"Invector.vCharacterController.AI.IsBossDisabled","NodeData":{"Offset":"(-104.997131,105.324585)"},"ID":3,"Name":"Is
+        Boss Disabled","Instant":true,"SharedBooldisabledOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossFearful","NodeData":{"Offset":"(35.00287,105.324585)"},"ID":4,"Name":"Is
+        Boss Fearful","Instant":true,"SharedBoolfearOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossAngry","NodeData":{"Offset":"(175.002869,105.324585)"},"ID":5,"Name":"Is
+        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(535.0029,105.324585)"},"ID":6,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(-114.9971,125.324585)"},"ID":7,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}},{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(75.0029,125.324585)"},"ID":8,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Helllllo"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":true},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}}]}]}}'
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2095128414}
   m_SourcePrefab: {fileID: 100100000, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
 --- !u!1001 &6160107781306634656
 PrefabInstance:

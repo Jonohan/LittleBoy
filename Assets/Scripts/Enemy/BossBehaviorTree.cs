@@ -57,6 +57,12 @@ namespace Invector.vCharacterController.AI
             InitializeBehaviorTree();
         }
         
+        private void Update()
+        {
+            // 持续同步BossBlackboard的值到行为树变量
+            SyncBlackboardToBehaviorTree();
+        }
+        
         #endregion
         
         #region 初始化
@@ -92,7 +98,7 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void InitializeBehaviorTree()
         {
-            // 设置行为树变量
+            // 设置行为树变量 - 传递SharedVariable对象
             SetVariable("hpPct", bossBlackboard.hpPct);
             SetVariable("phase", bossBlackboard.phase);
             SetVariable("numPortals", bossBlackboard.numPortals);
@@ -110,7 +116,31 @@ namespace Invector.vCharacterController.AI
             SetVariable("cooldown_wallThrow", bossBlackboard.cooldown_wallThrow);
             SetVariable("cooldown_roar", bossBlackboard.cooldown_roar);
             
-            Debug.Log("[BossBehaviorTree] 行为树初始化完成");
+        }
+        
+        /// <summary>
+        /// 同步BossBlackboard的值到行为树变量
+        /// </summary>
+        private void SyncBlackboardToBehaviorTree()
+        {
+            if (!bossBlackboard) return;
+            
+            // 直接使用SetVariable方法，让Behavior Designer自动处理变量绑定
+            SetVariable("hpPct", bossBlackboard.hpPct);
+            SetVariable("phase", bossBlackboard.phase);
+            SetVariable("numPortals", bossBlackboard.numPortals);
+            SetVariable("lastPortalType", bossBlackboard.lastPortalType);
+            SetVariable("angerOn", bossBlackboard.angerOn);
+            SetVariable("fearOn", bossBlackboard.fearOn);
+            SetVariable("disabledOn", bossBlackboard.disabledOn);
+            
+            // 同步冷却变量
+            SetVariable("cooldown_bombard", bossBlackboard.cooldown_bombard);
+            SetVariable("cooldown_flood", bossBlackboard.cooldown_flood);
+            SetVariable("cooldown_tentacle", bossBlackboard.cooldown_tentacle);
+            SetVariable("cooldown_vortex", bossBlackboard.cooldown_vortex);
+            SetVariable("cooldown_wallThrow", bossBlackboard.cooldown_wallThrow);
+            SetVariable("cooldown_roar", bossBlackboard.cooldown_roar);
         }
         
         #endregion
@@ -221,9 +251,18 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("血量百分比变量")]
         public SharedFloat hpPct;
         
+        private BossBlackboard _bossBlackboard;
+        
+        public override void OnStart()
+        {
+            _bossBlackboard = GetComponent<BossBlackboard>();
+        }
+        
         public override TaskStatus OnUpdate()
         {
-            if (hpPct.Value <= 0f)
+            // 优先使用BossBlackboard的值，如果没有则使用SharedVariable
+            float currentHp = _bossBlackboard ? _bossBlackboard.hpPct.Value : hpPct.Value;
+            if (currentHp <= 0f)
             {
                 return TaskStatus.Success;
             }
@@ -241,9 +280,19 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("失能状态变量")]
         public SharedBool disabledOn;
         
+        private BossBlackboard _bossBlackboard;
+        
+        public override void OnStart()
+        {
+            _bossBlackboard = GetComponent<BossBlackboard>();
+        }
+        
         public override TaskStatus OnUpdate()
         {
-            if (disabledOn.Value)
+            // 优先使用BossBlackboard的值，如果没有则使用SharedVariable
+            bool currentDisabled = _bossBlackboard ? _bossBlackboard.disabledOn.Value : disabledOn.Value;
+            
+            if (currentDisabled)
             {
                 return TaskStatus.Success;
             }
@@ -281,9 +330,19 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("愤怒状态变量")]
         public SharedBool angerOn;
         
+        private BossBlackboard _bossBlackboard;
+        
+        public override void OnStart()
+        {
+            _bossBlackboard = GetComponent<BossBlackboard>();
+        }
+        
         public override TaskStatus OnUpdate()
         {
-            if (angerOn.Value)
+            // 优先使用BossBlackboard的值，如果没有则使用SharedVariable
+            bool currentAnger = _bossBlackboard ? _bossBlackboard.angerOn.Value : angerOn.Value;
+            
+            if (currentAnger)
             {
                 return TaskStatus.Success;
             }
@@ -435,6 +494,30 @@ namespace Invector.vCharacterController.AI
             {
                 _subtreeBehavior.DisableBehavior();
             }
+        }
+    }
+    
+    /// <summary>
+    /// 停止行为树执行
+    /// </summary>
+    [TaskDescription("停止行为树执行")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class StopBehaviorTree : Action
+    {
+        public override TaskStatus OnUpdate()
+        {
+            var behaviorTree = GetComponent<BehaviorTree>();
+            if (behaviorTree)
+            {
+                behaviorTree.DisableBehavior();
+                Debug.Log("[StopBehaviorTree] 行为树已停止");
+            }
+            else
+            {
+                Debug.LogWarning("[StopBehaviorTree] 未找到BehaviorTree组件");
+            }
+            
+            return TaskStatus.Success;
         }
     }
     

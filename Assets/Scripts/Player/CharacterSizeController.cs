@@ -484,7 +484,7 @@ namespace Xuwu.Character
             var tp = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
             if (!tp) 
             {
-                Debug.LogWarning("[CharacterSizeController] 找不到vThirdPersonCamera实例");
+                //Debug.LogWarning("[CharacterSizeController] 找不到vThirdPersonCamera实例");
                 return;
             }
             

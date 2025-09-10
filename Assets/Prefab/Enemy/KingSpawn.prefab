@@ -1340,7 +1340,11 @@ MonoBehaviour:
       parentIndex: 
       startIndex: 
       variableStartIndex: 
-      JSONSerialization: 
+      JSONSerialization: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(505.515167,-65.4985046)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(19.9997864,131.111221)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(-370,110)"},"ID":2,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Why"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossDead","NodeData":{"Offset":"(-230,110)"},"ID":3,"Name":"Is
+        Boss Dead","Instant":true,"SharedFloathpPct":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":0}},{"Type":"Invector.vCharacterController.AI.IsBossDisabled","NodeData":{"Offset":"(-100,110)"},"ID":4,"Name":"Is
+        Boss Disabled","Instant":true,"SharedBooldisabledOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossFearful","NodeData":{"Offset":"(40,110)"},"ID":5,"Name":"Is
+        Boss Fearful","Instant":true,"SharedBoolfearOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossAngry","NodeData":{"Offset":"(180,110)"},"ID":6,"Name":"Is
+        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(540,110)"},"ID":7,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(-110,130)"},"ID":8,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Helllllo"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(80,130)"},"ID":9,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}}]}]}}'
       fieldSerializationData:
         typeName: []
         fieldNameHash: 
@@ -1349,7 +1353,7 @@ MonoBehaviour:
         unityObjects: []
         byteData: 
         byteDataArray: 
-      Version: 
+      Version: 1.7.12
   gizmoViewMode: 2
   showBehaviorDesignerGizmo: 1
   bossBlackboard: {fileID: 0}
@@ -1371,16 +1375,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27d5b4cd44ec1014788ff7ded5ae031b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  portalPrefab: {fileID: 0}
-  giantPortalPrefab: {fileID: 0}
   maxPortals: 2
   portalDuration: 10
-  ceilingSlots: []
-  wallLeftSlots: []
-  wallRightSlots: []
-  groundSlots: []
+  portal1: {fileID: 0}
+  portal2: {fileID: 0}
+  portal1Material: {fileID: 2100000, guid: eca68bc375be1a64681395f44b161b40, type: 2}
+  portal2Material: {fileID: 2100000, guid: b99759d4d11f5744b87253140144f4b5, type: 2}
+  bluePortalVfx:
+    generatingVfxPrefab: {fileID: 2411298451726823637, guid: 78bee193cb02532468d53aceede28946, type: 3}
+    telegraphingVfxPrefab: {fileID: 3665152045161641556, guid: 1869fbb74e4aef74985fac67e640f42f, type: 3}
+    frameColor: {r: 0, g: 0.985899, b: 1, a: 1}
+  orangePortalVfx:
+    generatingVfxPrefab: {fileID: 2411298451726823637, guid: 5af04bf709f6dd7449ea7826ab4f4066, type: 3}
+    telegraphingVfxPrefab: {fileID: 3665152045161641556, guid: 8cf66e3652cf45c4ca2b45bba405c271, type: 3}
+    frameColor: {r: 1, g: 0.81211084, b: 0, a: 1}
+  giantOrangePortalVfx:
+    generatingVfxPrefab: {fileID: 2411298451726823637, guid: bfb6628db30fb5d49994861d90659582, type: 3}
+    telegraphingVfxPrefab: {fileID: 3665152045161641556, guid: 9412d1979ee319343ab492bba833f415, type: 3}
+    frameColor: {r: 1, g: 1, b: 1, a: 1}
+  ceilingSlots:
+  - {fileID: 0}
+  wallLeftSlots:
+  - {fileID: 0}
+  wallRightSlots:
+  - {fileID: 0}
+  groundSlots:
+  - {fileID: 0}
   spawnEffect: {fileID: 0}
   closeEffect: {fileID: 0}
+  testSlot: {fileID: 0}
+  selectedSlotIndex: 0
 --- !u!114 &2931909310673818217
 MonoBehaviour:
   m_ObjectHideFlags: 0

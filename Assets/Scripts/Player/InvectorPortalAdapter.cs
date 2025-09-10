@@ -528,8 +528,8 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 验证传送门相机数据
             if (!_portalSystemCameraData)
             {
-                Debug.LogWarning($"[InvectorPortalAdapter] PortalSystemAdditionalCameraData not assigned on {gameObject.name}. " +
-                               "Camera portal effects may not work properly.");
+                //Debug.LogWarning($"[InvectorPortalAdapter] PortalSystemAdditionalCameraData not assigned on {gameObject.name}. " +
+                               //"Camera portal effects may not work properly.");
             }
         }
         

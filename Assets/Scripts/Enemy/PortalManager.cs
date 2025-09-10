@@ -178,7 +178,6 @@ namespace Invector.vCharacterController.AI
                 _portal1Data.isActive = true; // 传送门永远激活
                 _portal1Data.spawnTime = 0f; // 初始无生成时间
                 _activePortals.Add(_portal1Data);
-                Debug.Log($"[PortalManager] 1号传送门初始化完成: {portal1.name}");
             }
             else
             {
@@ -192,14 +191,11 @@ namespace Invector.vCharacterController.AI
                 _portal2Data.isActive = true; // 传送门永远激活
                 _portal2Data.spawnTime = 0f; // 初始无生成时间
                 _activePortals.Add(_portal2Data);
-                Debug.Log($"[PortalManager] 2号传送门初始化完成: {portal2.name}");
             }
             else
             {
                 Debug.LogError("[PortalManager] portal2对象为空，无法初始化2号传送门！");
             }
-            
-            Debug.Log($"[PortalManager] 传送门对象初始化完成 - _portal1Data: {_portal1Data != null}, _portal2Data: {_portal2Data != null}");
         }
         
         /// <summary>
@@ -214,14 +210,6 @@ namespace Invector.vCharacterController.AI
             if (wallRightSlots != null) totalSlots += wallRightSlots.Length;
             if (groundSlots != null) totalSlots += groundSlots.Length;
             
-            if (totalSlots == 0)
-            {
-                Debug.LogWarning("[PortalManager] 没有配置任何传送门插槽");
-            }
-            else
-            {
-                Debug.Log($"[PortalManager] 配置了 {totalSlots} 个传送门插槽");
-            }
         }
         
         #endregion
@@ -304,7 +292,6 @@ namespace Invector.vCharacterController.AI
             }
             
             StartPortalTelegraphing(_lastGeneratedPortal, telegraphDuration);
-            Debug.Log($"[PortalManager] 使用生成阶段确定的{_lastGeneratedPortal}号传送门进行前摇");
             return _lastGeneratedPortal;
         }
         
@@ -352,8 +339,7 @@ namespace Invector.vCharacterController.AI
             
             // 确保传送门状态为激活
             portalData.isActive = true;
-            
-            Debug.Log($"[PortalManager] 开始传送门前摇: {portalData.type} 编号{portalNumber}");
+
         }
         
         /// <summary>
@@ -401,7 +387,6 @@ namespace Invector.vCharacterController.AI
                 return null;
             }
             
-            Debug.Log($"[PortalManager] 开始传送门完整创建流程: {type} {color}");
             
             // 注意：前摇阶段需要等生成阶段完成后手动调用
             // 这里只返回传送门数据，前摇需要在适当时机调用StartPortalTelegraphing
@@ -666,8 +651,7 @@ namespace Invector.vCharacterController.AI
                 int portalNumber = GetAvailablePortalNumber();
                 PortalType slotType = GetPortalTypeFromSlot(testSlot);
                 
-                Debug.Log($"[PortalManager] 自动生成: 使用{portalNumber}号传送门到{slotType}插槽({testSlot.name})");
-                
+               
                 // 直接调用StartPortalGeneration避免重复轮换
                 var generatedPortal = StartPortalGeneration(slotType, PortalColor.Blue, portalNumber, testSlot);
                 if (generatedPortal == null)
@@ -681,7 +665,7 @@ namespace Invector.vCharacterController.AI
             if (_lastGeneratedPortal > 0)
             {
                 StartPortalTelegraphing(_lastGeneratedPortal, 2f);
-                Debug.Log($"[PortalManager] 使用生成阶段确定的{_lastGeneratedPortal}号传送门进行前摇");
+               
             }
             else
             {
