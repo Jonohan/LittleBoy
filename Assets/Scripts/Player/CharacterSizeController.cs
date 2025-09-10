@@ -32,10 +32,6 @@ namespace Xuwu.Character
         [Tooltip("是否同时调整相机距离")]
         public bool adjustCameraDistance = true;
         
-        [Tooltip("（直接目标点跟随用）相机距离倍率，对_target位移生效")]
-        [Range(0.1f, 3.0f)]
-        public float cameraDistanceMultiplier = 1.0f;
-        
         [Header("地面检测设置")]
         [Tooltip("是否强制重新计算地面检测")]
         public bool forceGroundRecalculation = true;
@@ -79,12 +75,12 @@ namespace Xuwu.Character
         public bool scaleCameraStates = true;
         [Tooltip("是否同时按体型倍数缩放CameraState的height参数")]
         public bool scaleCameraStateHeight = true;
-        [Tooltip("（状态系统用）distance倍率，最终= sizeMultiplier * cameraStateDistanceMultiplier")]
+        [Tooltip("相机距离缩放倍率（统一用于所有相机调整）")]
         [Range(0.1f, 3.0f)]
-        public float cameraStateDistanceMultiplier = 1.0f;
-        [Tooltip("（状态系统用）height倍率，最终= sizeMultiplier * cameraStateHeightMultiplier")]
+        public float cameraDistanceMultiplier = 1.0f;
+        [Tooltip("相机高度缩放倍率（用于CameraState的height参数）")]
         [Range(0.1f, 3.0f)]
-        public float cameraStateHeightMultiplier = 1.0f;
+        public float cameraHeightMultiplier = 1.0f;
         private readonly Dictionary<Invector.vThirdPersonCameraState, (float def,float min,float max,float height)> _cameraStateBase = new Dictionary<Invector.vThirdPersonCameraState, (float def, float min, float max, float height)>();
         
         // 初始相机缩放参数（启动时自动应用）
@@ -396,21 +392,20 @@ namespace Xuwu.Character
         }
         
         /// <summary>
-        /// 调整相机距离
+        /// 调整相机距离和高度（通过multiplier而不是直接修改真实值）
         /// </summary>
         private void AdjustCameraDistance(float multiplier)
         {
+            // 调整相机跟随目标位置（如果存在）
             if (_cameraTarget)
             {
                 float newDistance = _originalCameraDistance * multiplier * cameraDistanceMultiplier;
                 Vector3 direction = (_cameraTarget.position - transform.position).normalized;
                 _cameraTarget.position = transform.position + direction * newDistance;
             }
-            // 同步Invector相机状态与距离
-            if (scaleCameraStates)
-                ScaleCameraStatesAndRemapDistance(multiplier);
-            else
-                AdjustThirdPersonCameraDistance(multiplier);
+            
+            // 调整Invector相机系统（统一使用multiplier方式）
+            AdjustInvectorCameraSystem(multiplier);
         }
         
         #endregion
@@ -428,30 +423,34 @@ namespace Xuwu.Character
         }
         
         /// <summary>
-        /// 重置相机状态到原始数值
+        /// 重置相机状态到原始数值（优化版本）
         /// </summary>
         [ContextMenu("重置相机状态")]
         public void ResetCameraStatesToOriginal()
         {
             var tp = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
-            if (!tp || tp.CameraStateList == null || tp.CameraStateList.tpCameraStates == null) return;
+            if (!tp) 
+            {
+                Debug.LogWarning("[CharacterSizeController] 找不到vThirdPersonCamera实例");
+                return;
+            }
             
             int resetCount = 0;
-            foreach (var st in tp.CameraStateList.tpCameraStates)
+            
+            // 重置相机状态（如果有缓存的原始值）
+            if (tp.CameraStateList != null && tp.CameraStateList.tpCameraStates != null)
             {
-                if (_cameraStateBase.ContainsKey(st))
+                foreach (var state in tp.CameraStateList.tpCameraStates)
                 {
-                    var b = _cameraStateBase[st];
-                    st.defaultDistance = b.def;
-                    st.minDistance = b.min;
-                    st.maxDistance = b.max;
-                    st.height = b.height;
-                    resetCount++;
-                }
-                else
-                {
-                    // 如果某个状态从未被缩放过，记录警告
-                    Debug.LogWarning($"[CharacterSizeController] 相机状态 (defaultDistance: {st.defaultDistance:F2}) 没有原始值记录，可能从未被缩放过");
+                    if (_cameraStateBase.ContainsKey(state))
+                    {
+                        var originalValues = _cameraStateBase[state];
+                        state.defaultDistance = originalValues.def;
+                        state.minDistance = originalValues.min;
+                        state.maxDistance = originalValues.max;
+                        state.height = originalValues.height;
+                        resetCount++;
+                    }
                 }
             }
             
@@ -460,6 +459,7 @@ namespace Xuwu.Character
             {
                 tp.distance = _originalTPCameraDistance;
                 _hasAppliedInitialCameraScale = false; // 重置标志，允许下次启动时重新应用
+                Debug.Log($"[CharacterSizeController] 相机重置完成 - 距离: {_originalTPCameraDistance:F2}, 状态重置数量: {resetCount}");
             }
             else
             {
@@ -581,122 +581,150 @@ namespace Xuwu.Character
         
         #endregion
 
-        #region 相机集成（Invector vThirdPersonCamera）
+        #region 相机集成（Invector vThirdPersonCamera）- 优化版本
+        
+        /// <summary>
+        /// 缓存相机原始值并应用初始缩放
+        /// </summary>
         private System.Collections.IEnumerator CacheAndScaleTPCameraCoroutine()
         {
             // 等待一到两帧，确保tpCamera已实例化并完成SetMainTarget
             yield return null;
             yield return null;
-            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
-            if (tpCam)
+            
+            // 初始化相机缓存
+            if (!InitializeCameraCache())
             {
-                if (!_cachedTPCamera)
-                {
-                    _originalTPCameraDistance = tpCam.distance;
-                    _cachedTPCamera = true;
-                    
-                    // 立即保存所有相机状态的原始值
-                    if (scaleCameraStates && tpCam.CameraStateList != null && tpCam.CameraStateList.tpCameraStates != null)
-                    {
-                        foreach (var st in tpCam.CameraStateList.tpCameraStates)
-                        {
-                            if (!_cameraStateBase.ContainsKey(st))
-                            {
-                                _cameraStateBase[st] = (st.defaultDistance, st.minDistance, st.maxDistance, st.height);
-                            }
-                        }
-                    }
-                }
-                
-                // 每次启动时自动应用相机缩放（如果sizeMultiplier不是1.0）
-                if (!_hasAppliedInitialCameraScale && !Mathf.Approximately(sizeMultiplier, 1.0f))
-                {
-                    if (scaleCameraStates)
-                        ScaleCameraStatesAndRemapDistance(sizeMultiplier);
-                    else
-                    {
-                        var targetDistance = _originalTPCameraDistance * sizeMultiplier * cameraDistanceMultiplier;
-                        _lastAppliedTPCameraDistance = tpCam.distance;
-                        tpCam.distance = targetDistance;
-                        if (!Mathf.Approximately(_lastAppliedTPCameraDistance, targetDistance))
-                        {
-                            Debug.Log($"[CharacterSizeController] 启动时设置相机距离: {targetDistance:F2}（原 {_lastAppliedTPCameraDistance:F2}）");
-                        }
-                    }
-                    _hasAppliedInitialCameraScale = true;
-                }
-                else if (_hasAppliedInitialCameraScale)
-                {
-                    // 如果已经应用过初始缩放，则应用当前的sizeMultiplier
-                    if (scaleCameraStates)
-                        ScaleCameraStatesAndRemapDistance(sizeMultiplier);
-                    else
-                    {
-                        var targetDistance = _originalTPCameraDistance * sizeMultiplier * cameraDistanceMultiplier;
-                        _lastAppliedTPCameraDistance = tpCam.distance;
-                        tpCam.distance = targetDistance;
-                        if (!Mathf.Approximately(_lastAppliedTPCameraDistance, targetDistance))
-                        {
-                            Debug.Log($"[CharacterSizeController] vThirdPersonCamera.distance 改为 {targetDistance:F2}（原 {_lastAppliedTPCameraDistance:F2}）");
-                        }
-                    }
-                }
+                yield break;
+            }
+            
+            // 应用初始缩放（如果需要）
+            if (!_hasAppliedInitialCameraScale && !Mathf.Approximately(sizeMultiplier, 1.0f))
+            {
+                AdjustInvectorCameraSystem(sizeMultiplier);
+                _hasAppliedInitialCameraScale = true;
             }
         }
-
-        private void AdjustThirdPersonCameraDistance(float multiplier)
+        
+        /// <summary>
+        /// 初始化相机缓存（保存原始值）
+        /// </summary>
+        private bool InitializeCameraCache()
         {
             var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
-            if (!tpCam) return;
+            if (!tpCam) return false;
+            
             if (!_cachedTPCamera)
             {
                 _originalTPCameraDistance = tpCam.distance;
                 _cachedTPCamera = true;
+                
+                // 保存所有相机状态的原始值
+                if (scaleCameraStates && tpCam.CameraStateList != null && tpCam.CameraStateList.tpCameraStates != null)
+                {
+                    foreach (var st in tpCam.CameraStateList.tpCameraStates)
+                    {
+                        if (!_cameraStateBase.ContainsKey(st))
+                        {
+                            _cameraStateBase[st] = (st.defaultDistance, st.minDistance, st.maxDistance, st.height);
+                        }
+                    }
+                }
+                
+                Debug.Log($"[CharacterSizeController] 相机原始值已缓存 - 距离: {_originalTPCameraDistance:F2}, 状态数量: {_cameraStateBase.Count}");
             }
-            var targetDistance = _originalTPCameraDistance * multiplier * cameraDistanceMultiplier;
-            var before = tpCam.distance;
-            if (!Mathf.Approximately(before, targetDistance))
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// 统一的Invector相机系统调整方法（通过multiplier，不直接修改原始值）
+        /// </summary>
+        private void AdjustInvectorCameraSystem(float multiplier)
+        {
+            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (!tpCam) return;
+            
+            // 确保已缓存原始值
+            if (!_cachedTPCamera && !InitializeCameraCache())
             {
-                tpCam.distance = targetDistance;
-                _lastAppliedTPCameraDistance = targetDistance;
+                return;
+            }
+            
+            if (scaleCameraStates)
+            {
+                // 使用状态缩放模式：缩放所有相机状态的distance和height
+                ApplyCameraStateMultipliers(tpCam, multiplier);
+            }
+            else
+            {
+                // 使用简单距离缩放模式：只缩放当前distance
+                ApplyCameraDistanceMultiplier(tpCam, multiplier);
             }
         }
-
-        private void ScaleCameraStatesAndRemapDistance(float scale)
+        
+        /// <summary>
+        /// 应用相机状态multiplier（缩放所有状态的distance和height）
+        /// </summary>
+        private void ApplyCameraStateMultipliers(Invector.vCamera.vThirdPersonCamera tpCam, float multiplier)
         {
-            var tp = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
-            if (!tp || tp.CameraStateList == null || tp.CameraStateList.tpCameraStates == null) return;
+            if (tpCam.CameraStateList == null || tpCam.CameraStateList.tpCameraStates == null) return;
+            
             // 记录当前distance在区间内的相对位置
-            var cur = tp.currentState;
-            float t = 0.5f;
-            if (cur != null && cur.maxDistance > cur.minDistance)
-                t = Mathf.InverseLerp(cur.minDistance, cur.maxDistance, tp.distance);
-
-            // 计算状态缩放倍率（体型 * 自定义倍率）
-            float distScale = scale * cameraStateDistanceMultiplier;
-            float hScale = scale * cameraStateHeightMultiplier;
-
-            foreach (var st in tp.CameraStateList.tpCameraStates)
+            var currentState = tpCam.currentState;
+            float relativePosition = 0.5f;
+            if (currentState != null && currentState.maxDistance > currentState.minDistance)
             {
-                if (!_cameraStateBase.ContainsKey(st))
-                    _cameraStateBase[st] = (st.defaultDistance, st.minDistance, st.maxDistance, st.height);
-                var b = _cameraStateBase[st];
-                st.defaultDistance = b.def * distScale;
-                st.minDistance = b.min * distScale;
-                st.maxDistance = b.max * distScale;
-                if (scaleCameraStateHeight) st.height = b.height * hScale;
+                relativePosition = Mathf.InverseLerp(currentState.minDistance, currentState.maxDistance, tpCam.distance);
             }
-
-            // 将当前distance映射回新的边界，保持玩家相对缩放位置
-            cur = tp.currentState;
-            if (cur != null)
+            
+            // 计算实际缩放倍率（统一使用cameraDistanceMultiplier和cameraHeightMultiplier）
+            float distanceScale = multiplier * cameraDistanceMultiplier;
+            float heightScale = multiplier * cameraHeightMultiplier;
+            
+            // 应用multiplier到所有相机状态（基于原始值）
+            foreach (var state in tpCam.CameraStateList.tpCameraStates)
             {
-                var newDist = Mathf.Lerp(cur.minDistance, cur.maxDistance, t);
-                if (!Mathf.Approximately(tp.distance, newDist))
+                if (_cameraStateBase.ContainsKey(state))
                 {
-                    var before = tp.distance;
-                    tp.distance = newDist;
+                    var originalValues = _cameraStateBase[state];
+                    
+                    // 基于原始值应用multiplier
+                    state.defaultDistance = originalValues.def * distanceScale;
+                    state.minDistance = originalValues.min * distanceScale;
+                    state.maxDistance = originalValues.max * distanceScale;
+                    
+                    if (scaleCameraStateHeight)
+                    {
+                        state.height = originalValues.height * heightScale;
+                    }
                 }
+            }
+            
+            // 重新映射当前distance到新的边界，保持相对位置
+            if (currentState != null)
+            {
+                float newDistance = Mathf.Lerp(currentState.minDistance, currentState.maxDistance, relativePosition);
+                if (!Mathf.Approximately(tpCam.distance, newDistance))
+                {
+                    tpCam.distance = newDistance;
+                    Debug.Log($"[CharacterSizeController] 相机状态缩放完成 - 新距离: {newDistance:F2} (倍率: {multiplier:F2})");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 应用相机距离multiplier（只缩放当前distance）
+        /// </summary>
+        private void ApplyCameraDistanceMultiplier(Invector.vCamera.vThirdPersonCamera tpCam, float multiplier)
+        {
+            float targetDistance = _originalTPCameraDistance * multiplier * cameraDistanceMultiplier;
+            
+            if (!Mathf.Approximately(tpCam.distance, targetDistance))
+            {
+                float previousDistance = tpCam.distance;
+                tpCam.distance = targetDistance;
+                Debug.Log($"[CharacterSizeController] 相机距离调整 - 从 {previousDistance:F2} 到 {targetDistance:F2} (倍率: {multiplier:F2})");
             }
         }
         #endregion

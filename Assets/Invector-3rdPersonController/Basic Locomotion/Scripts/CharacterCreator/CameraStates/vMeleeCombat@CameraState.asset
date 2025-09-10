@@ -17,10 +17,10 @@ MonoBehaviour:
   - Name: Default
     forward: -1
     right: 0
-    defaultDistance: 2.5
-    maxDistance: 8
-    minDistance: 0.6
-    height: 2.2
+    defaultDistance: 2.8
+    maxDistance: 71.76
+    minDistance: 5.382
+    height: 2.3
     smooth: 10
     smoothDamp: 4
     xMouseSensitivity: 3
@@ -45,9 +45,9 @@ MonoBehaviour:
     forward: -1
     right: 0
     defaultDistance: 2.5
-    maxDistance: 8
-    minDistance: 0.6
-    height: 1.8
+    maxDistance: 71.76
+    minDistance: 5.382
+    height: 2
     smooth: 10
     smoothDamp: 4
     xMouseSensitivity: 3
@@ -71,10 +71,10 @@ MonoBehaviour:
   - Name: Crouch
     forward: -1
     right: 0.2
-    defaultDistance: 1.5
-    maxDistance: 6.55
-    minDistance: 0.5
-    height: 0.7
+    defaultDistance: 2.5
+    maxDistance: 58.7535
+    minDistance: 4.485
+    height: 2
     smooth: 10
     smoothDamp: 4
     xMouseSensitivity: 3
@@ -94,10 +94,10 @@ MonoBehaviour:
   - Name: _
     forward: -1
     right: 0.82
-    defaultDistance: 1.35
-    maxDistance: 1.5
-    minDistance: 0.25
-    height: 1.6
+    defaultDistance: 12.1095
+    maxDistance: 13.455
+    minDistance: 2.2425
+    height: 14.351999
     smooth: 10
     smoothDamp: 6
     xMouseSensitivity: 1
