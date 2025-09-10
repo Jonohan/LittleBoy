@@ -58,6 +58,14 @@ namespace Xuwu.Character
         [Tooltip("限制器突破状态（4级）")]
         public bool isLimitBreakerActive = false;
         
+        [Header("体型等级独立乘区")]
+        [Tooltip("按体型等级叠乘在体型倍数上的移动速度独立倍率")] 
+        [Range(0.1f, 5.0f)]
+        public float levelMoveBonusMultiplier = 1.0f;
+        [Tooltip("按体型等级叠乘在体型倍数上的跳跃高度独立倍率")] 
+        [Range(0.1f, 5.0f)]
+        public float levelJumpBonusMultiplier = 1.0f;
+        
         [Header("动画设置")]
         [Tooltip("是否同时调整动画播放速度")]
         public bool adjustAnimationSpeed = false;
@@ -637,29 +645,50 @@ namespace Xuwu.Character
                     // 1级：迷你体型 - 体力消耗减少，免疫异能轰炸
                     staminaConsumptionMultiplier = 0.5f; // 体力消耗减半
                     immuneToEnergyBombardment = true;
+                    // 独立乘区：迷你体型额外2倍移动 & 跳跃
+                    levelMoveBonusMultiplier = 2.0f;
+                    levelJumpBonusMultiplier = 2.0f;
                     break;
                     
                 case CharacterSizeLevel.Standard:
                     // 2级：标准体型 - 正常功能
                     // 所有倍率保持1.0f，无特殊效果
+                    levelMoveBonusMultiplier = 1.0f;
+                    levelJumpBonusMultiplier = 1.0f;
                     break;
                     
                 case CharacterSizeLevel.Giant:
                     // 3级：巨大体型 - 攻击伤害提升，免疫异能洪水
                     attackDamageMultiplier = 1.5f; // 攻击伤害提升50%
                     immuneToEnergyFlood = true;
+                    levelMoveBonusMultiplier = 1.0f;
+                    levelJumpBonusMultiplier = 1.0f;
                     break;
                     
                 case CharacterSizeLevel.LimitBreaker:
                     // 4级：限制器突破 - 攻击伤害巨大提升
                     isLimitBreakerActive = true;
                     attackDamageMultiplier = 2.0f + (limitBreakerLevel * 0.5f); // 2.0, 2.5, 3.0, 3.5, 4.0
+                    levelMoveBonusMultiplier = 1.0f;
+                    levelJumpBonusMultiplier = 1.0f;
                     break;
             }
             
             // 应用倍率到实际系统
             ApplyStaminaMultiplier();
             ApplyDamageMultiplier();
+            
+            // 叠乘独立乘区后，重新应用移动速度与跳跃高度
+            if (adjustMovementSpeed)
+            {
+                float effectiveMoveMultiplier = _currentSizeMultiplier * levelMoveBonusMultiplier;
+                AdjustMovementSpeed(effectiveMoveMultiplier);
+            }
+            if (adjustJumpHeight)
+            {
+                float effectiveJumpMultiplier = _currentSizeMultiplier * levelJumpBonusMultiplier;
+                AdjustJumpHeight(effectiveJumpMultiplier);
+            }
             
             Debug.Log($"[CharacterSizeController] 体型等级效果更新 - 体力消耗: {staminaConsumptionMultiplier:F1}x, 攻击伤害: {attackDamageMultiplier:F1}x");
         }

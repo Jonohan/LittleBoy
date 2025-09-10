@@ -256,7 +256,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
             _enteredPortalColor = GetPortalColor(portal);
             _hasEnteredPortal = true;
             
-            Debug.Log($"[InvectorPortalAdapter] 记录进入传送门颜色: {_enteredPortalColor}");
         }
         
         /// <summary>
@@ -311,7 +310,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
         {
             if (!_sizeController || !_hasEnteredPortal)
             {
-                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到或未记录传送门进入");
                 return;
             }
             
@@ -325,13 +323,11 @@ namespace Xuwu.FourDimensionalPortals.Demo
                 case PortalColor.Blue:
                     // 蓝色传送门 - 体型-1（缩小）
                     ApplySizeChange(currentLevel, -1);
-                    Debug.Log($"[InvectorPortalAdapter] 蓝色传送门 - 体型缩小: {currentLevel} → {_sizeController.GetCurrentSizeLevel()}");
                     break;
                     
                 case PortalColor.Orange:
                     // 橙色传送门 - 体型+1（放大）
                     ApplySizeChange(currentLevel, 1);
-                    Debug.Log($"[InvectorPortalAdapter] 橙色传送门 - 体型放大: {currentLevel} → {_sizeController.GetCurrentSizeLevel()}");
                     break;
                     
                 case PortalColor.GiantOrange:
@@ -340,20 +336,11 @@ namespace Xuwu.FourDimensionalPortals.Demo
                     {
                         // 如果已经是限制器突破状态，则升级
                         bool upgraded = _sizeController.UpgradeLimitBreaker();
-                        if (upgraded)
-                        {
-                            Debug.Log($"[InvectorPortalAdapter] 巨型橙色传送门 - 限制器突破升级: {currentLimitBreakerLevel} → {_sizeController.GetCurrentLimitBreakerLevel()}");
-                        }
-                        else
-                        {
-                            Debug.Log("[InvectorPortalAdapter] 巨型橙色传送门 - 限制器突破已达到最高等级");
-                        }
                     }
                     else
                     {
                         // 如果不是限制器突破状态，则切换到限制器突破
                         _sizeController.SetSizeLevel(CharacterSizeLevel.LimitBreaker, 1);
-                        Debug.Log("[InvectorPortalAdapter] 巨型橙色传送门 - 切换到限制器突破状态");
                     }
                     break;
             }
@@ -392,7 +379,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
                     
                 case CharacterSizeLevel.LimitBreaker:
                     // 限制器突破状态只能通过巨型传送门升级，不能通过普通传送门变化
-                    Debug.Log("[InvectorPortalAdapter] 限制器突破状态只能通过巨型传送门升级");
                     return;
             }
             
@@ -400,10 +386,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
             if (newLevel != currentLevel)
             {
                 _sizeController.SetSizeLevel(newLevel);
-            }
-            else
-            {
-                Debug.Log($"[InvectorPortalAdapter] 体型变化无效: {currentLevel} 无法向 {change} 方向变化");
             }
         }
         
