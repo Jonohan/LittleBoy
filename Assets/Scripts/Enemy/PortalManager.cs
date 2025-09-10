@@ -578,21 +578,21 @@ namespace Invector.vCharacterController.AI
         {
             Debug.Log("[PortalManager] 开始测试前摇阶段...");
             
-            // 获取最老的传送门进行前摇
-            int oldestPortalNumber = GetOldestPortalNumber();
-            if (oldestPortalNumber > 0)
+            // 查找已经完成生成阶段的传送门进行前摇
+            int portalNumber = GetPortalReadyForTelegraphing();
+            if (portalNumber > 0)
             {
-                Debug.Log($"[PortalManager] 使用最老的传送门进行前摇: {oldestPortalNumber}号");
-                StartPortalTelegraphing(oldestPortalNumber, 2f);
+                Debug.Log($"[PortalManager] 选择已完成生成阶段的传送门进行前摇: {portalNumber}号");
+                StartPortalTelegraphing(portalNumber, 2f);
                 
                 // 显示传送门队列信息
                 ShowPortalQueueInfo();
             }
             else
             {
-                Debug.LogWarning("[PortalManager] 没有可用的传送门进行前摇");
-                Debug.LogWarning($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 时间={_portal1Data?.spawnTime:F2}");
-                Debug.LogWarning($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 时间={_portal2Data?.spawnTime:F2}");
+                Debug.LogWarning("[PortalManager] 没有已完成生成阶段的传送门进行前摇");
+                Debug.LogWarning($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 插槽状态={_portal1Data?.portalSlot?._currentState}");
+                Debug.LogWarning($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 插槽状态={_portal2Data?.portalSlot?._currentState}");
             }
         }
         
@@ -698,11 +698,11 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
-        /// 获取可用的传送门编号
+        /// 获取可用的传送门编号（轮换逻辑：1号后必定是2号，2号后必定是1号）
         /// </summary>
         private int GetAvailablePortalNumber()
         {
-            Debug.Log($"[PortalManager] 获取可用传送门编号...");
+            Debug.Log($"[PortalManager] 获取可用传送门编号（轮换逻辑）...");
             Debug.Log($"[PortalManager] 1号传送门状态: 数据={_portal1Data != null}, 插槽={_portal1Data?.portalSlot?.name}, 时间={_portal1Data?.spawnTime:F2}");
             Debug.Log($"[PortalManager] 2号传送门状态: 数据={_portal2Data != null}, 插槽={_portal2Data?.portalSlot?.name}, 时间={_portal2Data?.spawnTime:F2}");
             
@@ -712,22 +712,48 @@ namespace Invector.vCharacterController.AI
                 return 1; // 默认使用1号
             }
             
-            // 优先使用没有分配插槽的传送门
+            // 轮换逻辑：如果1号传送门没有插槽，使用1号；否则使用2号
             if (_portal1Data.portalSlot == null)
             {
                 Debug.Log("[PortalManager] 选择1号传送门（未分配插槽）");
                 return 1;
             }
-            if (_portal2Data.portalSlot == null)
+            else
             {
-                Debug.Log("[PortalManager] 选择2号传送门（未分配插槽）");
+                Debug.Log("[PortalManager] 选择2号传送门（1号已有插槽，轮换到2号）");
+                return 2;
+            }
+        }
+        
+        /// <summary>
+        /// 获取已完成生成阶段、准备进行前摇的传送门编号
+        /// </summary>
+        private int GetPortalReadyForTelegraphing()
+        {
+            Debug.Log($"[PortalManager] 查找已完成生成阶段的传送门...");
+            
+            if (_portal1Data == null || _portal2Data == null)
+            {
+                Debug.LogWarning("[PortalManager] 传送门数据未初始化");
+                return 0;
+            }
+            
+            // 检查1号传送门是否已完成生成阶段
+            if (_portal1Data.portalSlot != null && _portal1Data.portalSlot._currentState == PortalSlotState.Generating)
+            {
+                Debug.Log("[PortalManager] 选择1号传送门（已完成生成阶段）");
+                return 1;
+            }
+            
+            // 检查2号传送门是否已完成生成阶段
+            if (_portal2Data.portalSlot != null && _portal2Data.portalSlot._currentState == PortalSlotState.Generating)
+            {
+                Debug.Log("[PortalManager] 选择2号传送门（已完成生成阶段）");
                 return 2;
             }
             
-            // 如果都有插槽，使用最老的传送门
-            int oldestNumber = GetOldestPortalNumber();
-            Debug.Log($"[PortalManager] 选择最老的传送门: {oldestNumber}号");
-            return oldestNumber;
+            Debug.LogWarning("[PortalManager] 没有找到已完成生成阶段的传送门");
+            return 0;
         }
         
         /// <summary>
