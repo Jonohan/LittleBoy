@@ -36,6 +36,7 @@ namespace Invector.vCharacterController.AI
         public PortalType type;
         public PortalColor color;
         public Transform slot;
+        public PortalSlot portalSlot; // 插槽引用
         public float spawnTime;
         public bool isActive;
         
@@ -57,12 +58,6 @@ namespace Invector.vCharacterController.AI
     public class PortalManager : MonoBehaviour
     {
         [Header("传送门配置")]
-        [Tooltip("传送门预制体")]
-        public GameObject portalPrefab;
-        
-        [Tooltip("巨型传送门预制体")]
-        public GameObject giantPortalPrefab;
-        
         [Tooltip("最大传送门数量")]
         public int maxPortals = 2;
         
@@ -71,16 +66,16 @@ namespace Invector.vCharacterController.AI
         
         [Header("传送门插槽")]
         [Tooltip("天花板插槽")]
-        public Transform[] ceilingSlots;
+        public PortalSlot[] ceilingSlots;
         
         [Tooltip("左墙插槽")]
-        public Transform[] wallLeftSlots;
+        public PortalSlot[] wallLeftSlots;
         
         [Tooltip("右墙插槽")]
-        public Transform[] wallRightSlots;
+        public PortalSlot[] wallRightSlots;
         
         [Tooltip("地面插槽")]
-        public Transform[] groundSlots;
+        public PortalSlot[] groundSlots;
         
         [Header("传送门效果")]
         [Tooltip("传送门生成特效")]
@@ -158,13 +153,13 @@ namespace Invector.vCharacterController.AI
         #region 传送门管理
         
         /// <summary>
-        /// 生成传送门
+        /// 开始生成传送门
         /// </summary>
         /// <param name="type">传送门类型</param>
         /// <param name="color">传送门颜色</param>
         /// <param name="preferredSlot">首选插槽</param>
         /// <returns>生成的传送门数据</returns>
-        public PortalData SpawnPortal(PortalType type, PortalColor color, Transform preferredSlot = null)
+        public PortalData StartPortalGeneration(PortalType type, PortalColor color, PortalSlot preferredSlot = null)
         {
             // 检查是否达到最大数量
             if (_activePortals.Count >= maxPortals)
@@ -174,38 +169,48 @@ namespace Invector.vCharacterController.AI
             }
             
             // 获取可用插槽
-            Transform slot = GetAvailableSlot(type, preferredSlot);
+            PortalSlot slot = GetAvailableSlot(type, preferredSlot);
             if (!slot)
             {
                 Debug.LogWarning($"[PortalManager] 没有可用的 {type} 插槽");
                 return null;
             }
             
-            // 选择预制体
-            GameObject prefab = (color == PortalColor.GiantOrange) ? giantPortalPrefab : portalPrefab;
-            if (!prefab)
-            {
-                Debug.LogError("[PortalManager] 传送门预制体未配置");
-                return null;
-            }
-            
-            // 生成传送门
-            GameObject portalObj = Instantiate(prefab, slot.position, slot.rotation, slot);
+            // 开始生成过程
+            slot.StartGenerating(color);
             
             // 创建传送门数据
-            PortalData portalData = new PortalData(portalObj, type, color, slot);
+            PortalData portalData = new PortalData(null, type, color, slot.transform);
+            portalData.portalSlot = slot; // 添加插槽引用
             _activePortals.Add(portalData);
             _totalPortalsSpawned++;
             
             // 播放生成特效
-            PlaySpawnEffect(slot.position);
+            PlaySpawnEffect(slot.transform.position);
             
             // 触发事件
             OnPortalSpawned?.Invoke(portalData);
             
-            Debug.Log($"[PortalManager] 生成传送门: {type} {color} 在 {slot.name}");
+            Debug.Log($"[PortalManager] 开始生成传送门: {type} {color} 在 {slot.name}");
             
             return portalData;
+        }
+        
+        /// <summary>
+        /// 开始传送门前摇阶段
+        /// </summary>
+        /// <param name="portalData">传送门数据</param>
+        /// <param name="telegraphDuration">前摇持续时间</param>
+        public void StartPortalTelegraphing(PortalData portalData, float telegraphDuration)
+        {
+            if (portalData?.portalSlot == null)
+            {
+                Debug.LogWarning("[PortalManager] 传送门数据或插槽为空");
+                return;
+            }
+            
+            portalData.portalSlot.StartTelegraphing(telegraphDuration);
+            Debug.Log($"[PortalManager] 开始传送门前摇: {portalData.type}");
         }
         
         /// <summary>
@@ -283,7 +288,7 @@ namespace Invector.vCharacterController.AI
         /// <param name="type">传送门类型</param>
         /// <param name="preferredSlot">首选插槽</param>
         /// <returns>可用插槽</returns>
-        private Transform GetAvailableSlot(PortalType type, Transform preferredSlot = null)
+        private PortalSlot GetAvailableSlot(PortalType type, PortalSlot preferredSlot = null)
         {
             // 如果指定了首选插槽且可用，使用它
             if (preferredSlot && IsSlotAvailable(preferredSlot))
@@ -292,14 +297,14 @@ namespace Invector.vCharacterController.AI
             }
             
             // 根据类型获取插槽数组
-            Transform[] slots = GetSlotsByType(type);
+            PortalSlot[] slots = GetSlotsByType(type);
             if (slots == null || slots.Length == 0)
             {
                 return null;
             }
             
             // 查找可用插槽
-            var availableSlots = new List<Transform>();
+            var availableSlots = new List<PortalSlot>();
             foreach (var slot in slots)
             {
                 if (slot && IsSlotAvailable(slot))
@@ -322,7 +327,7 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         /// <param name="type">传送门类型</param>
         /// <returns>插槽数组</returns>
-        private Transform[] GetSlotsByType(PortalType type)
+        private PortalSlot[] GetSlotsByType(PortalType type)
         {
             switch (type)
             {
@@ -344,17 +349,14 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         /// <param name="slot">插槽</param>
         /// <returns>是否可用</returns>
-        private bool IsSlotAvailable(Transform slot)
+        private bool IsSlotAvailable(PortalSlot slot)
         {
             if (!slot) return false;
             
-            // 检查是否有传送门占用此插槽
-            foreach (var portal in _activePortals)
+            // 检查插槽状态
+            if (slot._currentState != PortalSlotState.Idle)
             {
-                if (portal.slot == slot && portal.isActive)
-                {
-                    return false;
-                }
+                return false;
             }
             
             return true;
@@ -494,13 +496,13 @@ namespace Invector.vCharacterController.AI
         [Button("生成测试传送门")]
         public void SpawnTestPortal()
         {
-            SpawnPortal(PortalType.Ceiling, PortalColor.Blue);
+            StartPortalGeneration(PortalType.Ceiling, PortalColor.Blue);
         }
         
         [Button("生成巨型传送门")]
         public void SpawnGiantPortal()
         {
-            SpawnPortal(PortalType.Ground, PortalColor.GiantOrange);
+            StartPortalGeneration(PortalType.Ground, PortalColor.GiantOrange);
         }
         
         [Button("关闭所有传送门")]
@@ -531,7 +533,7 @@ namespace Invector.vCharacterController.AI
             DrawActivePortalGizmos();
         }
         
-        private void DrawSlotGizmos(Transform[] slots, Color color, string label)
+        private void DrawSlotGizmos(PortalSlot[] slots, Color color, string label)
         {
             if (slots == null) return;
             
@@ -540,8 +542,8 @@ namespace Invector.vCharacterController.AI
             {
                 if (slot)
                 {
-                    Gizmos.DrawWireSphere(slot.position, 0.5f);
-                    Gizmos.DrawWireCube(slot.position, Vector3.one * 0.3f);
+                    Gizmos.DrawWireSphere(slot.transform.position, 0.5f);
+                    Gizmos.DrawWireCube(slot.transform.position, Vector3.one * 0.3f);
                 }
             }
         }

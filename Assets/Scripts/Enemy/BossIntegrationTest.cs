@@ -404,7 +404,7 @@ namespace Invector.vCharacterController.AI
                 yield return new WaitForSeconds(0.5f);
                 
                 // 测试生成传送门
-                var portal1 = portalManager.SpawnPortal(PortalType.Ceiling, PortalColor.Blue);
+                var portal1 = portalManager.StartPortalGeneration(PortalType.Ceiling, PortalColor.Blue);
                 if (portal1 != null)
                 {
                     Debug.Log("[BossIntegrationTest] ✓ 传送门生成成功");
@@ -417,7 +417,7 @@ namespace Invector.vCharacterController.AI
                 yield return new WaitForSeconds(1f);
                 
                 // 测试生成第二个传送门
-                var portal2 = portalManager.SpawnPortal(PortalType.Ground, PortalColor.Orange);
+                var portal2 = portalManager.StartPortalGeneration(PortalType.Ground, PortalColor.Orange);
                 if (portal2 != null)
                 {
                     Debug.Log("[BossIntegrationTest] ✓ 第二个传送门生成成功");

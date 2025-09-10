@@ -905,7 +905,12 @@ GameObject:
   - component: {fileID: 1073876455590800401}
   - component: {fileID: 8617716493745675319}
   - component: {fileID: 2813450618188564282}
-  - component: {fileID: 7470796357750631570}
+  - component: {fileID: 2729231711214343837}
+  - component: {fileID: 8608237882947892111}
+  - component: {fileID: 2810686315380664140}
+  - component: {fileID: 2931909310673818217}
+  - component: {fileID: 6590991413904736608}
+  - component: {fileID: 2177362421536497379}
   - component: {fileID: 7594815332962434063}
   - component: {fileID: 7818576057428344513}
   - component: {fileID: 3494621542283832259}
@@ -924,7 +929,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1121886232468040825}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.8629907, z: -0, w: 0.5052199}
+  m_LocalRotation: {x: 0, y: 0.8629902, z: 0, w: 0.50522065}
   m_LocalPosition: {x: 28.64469, y: -1.5, z: 51.346684}
   m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
   m_ConstrainProportionsScale: 1
@@ -1164,7 +1169,7 @@ CapsuleCollider:
   m_Height: 50
   m_Direction: 1
   m_Center: {x: 0, y: 15, z: 0}
---- !u!114 &7470796357750631570
+--- !u!114 &2729231711214343837
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1173,33 +1178,279 @@ MonoBehaviour:
   m_GameObject: {fileID: 1121886232468040825}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a6e29aa7f269ea44973293e4f139d58, type: 3}
+  m_Script: {fileID: 11500000, guid: 9637da7e70f47e642b27ff154a5eae7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  openCloseEvents: 0
-  openCloseWindow: 1
-  selectedToolbar: 1
-  startRagdolled: 0
-  debugTimeToStayRagdolled: 0
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 1
-  keepRagdolled: 0
-  invertGetUpAnim: 0
-  _ignoreGetUpAnimation: 0
-  removePhysicsAfterDie: 0
-  disableColliders: 0
-  collisionSource: {fileID: 0}
-  collisionClip: {fileID: 8300000, guid: 820b4795221a59a4f84bdbb8bc6957e9, type: 3}
-  ignoreTags:
-  - Weapon
-  - Ignore Ragdoll
-  horizontalMultiplier: 1
-  verticalMultiplier: 0.5
-  isActive: 0
-  inStabilize: 0
-  updateBehaviour: 0
-  state: 0
+  hpPct:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  phase:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 
+  numPortals:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  lastPortalType:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 
+  cooldown_bombard:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  cooldown_flood:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  cooldown_tentacle:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  cooldown_vortex:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  cooldown_wallThrow:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  cooldown_roar:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  target:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: {fileID: 0}
+  angerOn:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  fearOn:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  disabledOn:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 0
+  arenaSlots: []
+  angerThreshold: 0.7
+  fearThreshold: 0.4
+  maxPortals: 2
+  portalSpawnInterval: 3
+--- !u!114 &8608237882947892111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121886232468040825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 962d9ab11d4f7bc4ab762ae03638c281, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startWhenEnabled: 1
+  asynchronousLoad: 0
+  pauseWhenDisabled: 0
+  restartWhenComplete: 0
+  logTaskChanges: 0
+  group: 0
+  resetValuesOnRestart: 0
+  externalBehavior: {fileID: 0}
+  mBehaviorSource:
+    behaviorName: Behavior
+    behaviorDescription: 
+    mTaskData:
+      types: []
+      parentIndex: 
+      startIndex: 
+      variableStartIndex: 
+      JSONSerialization: 
+      fieldSerializationData:
+        typeName: []
+        fieldNameHash: 
+        startIndex: 
+        dataPosition: 
+        unityObjects: []
+        byteData: 
+        byteDataArray: 
+      Version: 
+  gizmoViewMode: 2
+  showBehaviorDesignerGizmo: 1
+  bossBlackboard: {fileID: 0}
+  bossAI: {fileID: 0}
+  p1NormalSubtree: {fileID: 0}
+  p2AngerSubtree: {fileID: 0}
+  p3FearSubtree: {fileID: 0}
+  disabledSubtree: {fileID: 0}
+  deathSubtree: {fileID: 0}
+--- !u!114 &2810686315380664140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121886232468040825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27d5b4cd44ec1014788ff7ded5ae031b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  portalPrefab: {fileID: 0}
+  giantPortalPrefab: {fileID: 0}
+  maxPortals: 2
+  portalDuration: 10
+  ceilingSlots: []
+  wallLeftSlots: []
+  wallRightSlots: []
+  groundSlots: []
+  spawnEffect: {fileID: 0}
+  closeEffect: {fileID: 0}
+--- !u!114 &2931909310673818217
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121886232468040825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42f6cb911f0b3d04fb0a63d5e18571fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weightConfig:
+    p1_bombardWeight: 20
+    p1_wallThrowWeight: 25
+    p1_tentacleWeight: 25
+    p1_floodWeight: 20
+    p1_vortexWeight: 10
+    p2_physicalWeight: 50
+    p2_bombardWeight: 25
+    p2_floodWeight: 25
+    p2_roarWeight: 15
+    p3_vortexWeight: 35
+    p3_tentacleWeight: 30
+    p3_floodWeight: 35
+    p3_disableBombard: 1
+  bossBlackboard: {fileID: 0}
+--- !u!114 &6590991413904736608
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121886232468040825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ee2e69835c46bd488b73bdf532a650f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enableInterruptSystem: 1
+  interruptCooldown: 0.5
+  bossAI: {fileID: 0}
+  bossBlackboard: {fileID: 0}
+  bossBehaviorTree: {fileID: 0}
+  hitTrigger: Hit
+  staggerTrigger: Stagger
+  deathTrigger: IsDead
+  disabledTrigger: IsDisabled
+  fearTrigger: IsFearful
+  angerTrigger: IsAngry
+--- !u!114 &2177362421536497379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121886232468040825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29551c9a5dfa1ef4d8d5b0df0c86ebe9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enableAutoTest: 0
+  testInterval: 5
+  bossBlackboard: {fileID: 0}
+  bossBehaviorTree: {fileID: 0}
+  portalManager: {fileID: 0}
+  bossPhaseWeights: {fileID: 0}
+  bossInterruptSystem: {fileID: 0}
+  bossAI: {fileID: 0}
 --- !u!114 &7594815332962434063
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1252,7 +1503,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1121886232468040825}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 0.4
   m_Speed: 1
