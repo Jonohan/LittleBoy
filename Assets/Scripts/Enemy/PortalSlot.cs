@@ -265,7 +265,7 @@ namespace Invector.vCharacterController.AI
         {
             if (_currentState != PortalSlotState.Generating)
             {
-                Debug.LogWarning($"[PortalSlot] 插槽状态错误，无法开始前摇");
+                Debug.LogWarning($"[PortalSlot] 插槽状态错误，无法开始前摇。当前状态: {_currentState}，需要状态: {PortalSlotState.Generating}");
                 return;
             }
             
