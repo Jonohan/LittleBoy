@@ -113,7 +113,7 @@ namespace Invector.vCharacterController.AI
             }
             
             // 开始生成传送门
-            _currentPortal = _portalManager.StartPortalGeneration(portalType, portalColor);
+            _currentPortal = _portalManager.StartPortalGeneration(portalType, portalColor, 1);
             if (_currentPortal == null)
             {
                 Debug.LogError($"[{skillName}] 传送门生成失败");
@@ -139,7 +139,7 @@ namespace Invector.vCharacterController.AI
             // 开始传送门前摇阶段
             if (_currentPortal?.portalSlot != null)
             {
-                _portalManager.StartPortalTelegraphing(_currentPortal, telegraphTime);
+                _portalManager.StartPortalTelegraphing(1, telegraphTime);
             }
             
             // 播放前摇动画和特效
@@ -194,11 +194,7 @@ namespace Invector.vCharacterController.AI
                 _bossBlackboard.SetCooldown(skillName.ToLower(), cooldownTime);
             }
             
-            // 清理传送门（如果需要）
-            if (ShouldClosePortalAfterSkill())
-            {
-                _portalManager?.ClosePortal(_currentPortal);
-            }
+            // 传送门不需要关闭，它们一直存在
             
             Debug.Log($"[{skillName}] 技能执行完成");
             return TaskStatus.Success;
@@ -223,11 +219,7 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected abstract void PlayPostAttackEffects();
         
-        /// <summary>
-        /// 技能结束后是否关闭传送门
-        /// </summary>
-        /// <returns>是否关闭</returns>
-        protected abstract bool ShouldClosePortalAfterSkill();
+        // 传送门不需要关闭，它们一直存在
         
         #endregion
         
@@ -348,10 +340,7 @@ namespace Invector.vCharacterController.AI
             Debug.Log($"[{skillName}] 播放后摇特效");
         }
         
-        protected override bool ShouldClosePortalAfterSkill()
-        {
-            return true; // 轰炸后关闭传送门
-        }
+        // 传送门不需要关闭，它们一直存在
     }
     
     /// <summary>
@@ -432,10 +421,7 @@ namespace Invector.vCharacterController.AI
             Debug.Log($"[{skillName}] 播放后摇特效");
         }
         
-        protected override bool ShouldClosePortalAfterSkill()
-        {
-            return true; // 投掷后关闭传送门
-        }
+        // 传送门不需要关闭，它们一直存在
     }
     
     /// <summary>
@@ -536,10 +522,7 @@ namespace Invector.vCharacterController.AI
             Debug.Log($"[{skillName}] 播放触手收回动画");
         }
         
-        protected override bool ShouldClosePortalAfterSkill()
-        {
-            return false; // 触手攻击后保持传送门开启
-        }
+        // 传送门不需要关闭，它们一直存在
     }
     
     /// <summary>
@@ -625,10 +608,7 @@ namespace Invector.vCharacterController.AI
             }
         }
         
-        protected override bool ShouldClosePortalAfterSkill()
-        {
-            return false; // 洪水期间保持传送门开启
-        }
+        // 传送门不需要关闭，它们一直存在
         
         /// <summary>
         /// 检查洪水伤害
@@ -770,10 +750,7 @@ namespace Invector.vCharacterController.AI
             }
         }
         
-        protected override bool ShouldClosePortalAfterSkill()
-        {
-            return true; // 漩涡发射后关闭传送门
-        }
+        // 传送门不需要关闭，它们一直存在
     }
     
     /// <summary>
@@ -858,10 +835,7 @@ namespace Invector.vCharacterController.AI
             Debug.Log($"[{skillName}] 播放吼叫后摇特效");
         }
         
-        protected override bool ShouldClosePortalAfterSkill()
-        {
-            return false; // 吼叫不需要传送门
-        }
+        // 传送门不需要关闭，它们一直存在
     }
     
     #endregion

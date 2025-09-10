@@ -394,8 +394,8 @@ Camera:
   m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.278431, g: 0.278431, b: 0.278431, a: 1}
-  m_projectionMatrixMode: 0
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
   m_Iso: 200
@@ -415,9 +415,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 5.756293
-  far clip plane: 4144.744
-  field of view: 60.000004
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -428,11 +428,11 @@ Camera:
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
-  m_HDR: 0
+  m_HDR: 1
   m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 0
+  m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!43 &625582501
@@ -2587,6 +2587,94 @@ PrefabInstance:
       propertyPath: m_Name
       value: KingSpawn
       objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: portal1
+      value: 
+      objectReference: {fileID: 732770464}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: portal2
+      value: 
+      objectReference: {fileID: 1186175421}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: portal1Material
+      value: 
+      objectReference: {fileID: 2100000, guid: eca68bc375be1a64681395f44b161b40, type: 2}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: portal2Material
+      value: 
+      objectReference: {fileID: 2100000, guid: b99759d4d11f5744b87253140144f4b5, type: 2}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.vfxColor.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.vfxColor.g
+      value: 0.8576665
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.vfxColor.r
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.frameColor.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.frameColor.g
+      value: 0.985899
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.frameColor.r
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.vfxColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.vfxColor.g
+      value: 0.7238613
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.vfxColor.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.frameColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.frameColor.g
+      value: 0.81211084
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.frameColor.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.generatingVfxPrefab
+      value: 
+      objectReference: {fileID: 2411298451726823637, guid: 78bee193cb02532468d53aceede28946, type: 3}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bluePortalVfx.telegraphingVfxPrefab
+      value: 
+      objectReference: {fileID: 3665152045161641556, guid: 1869fbb74e4aef74985fac67e640f42f, type: 3}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.generatingVfxPrefab
+      value: 
+      objectReference: {fileID: 2411298451726823637, guid: 5af04bf709f6dd7449ea7826ab4f4066, type: 3}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: orangePortalVfx.telegraphingVfxPrefab
+      value: 
+      objectReference: {fileID: 3665152045161641556, guid: 8cf66e3652cf45c4ca2b45bba405c271, type: 3}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: giantOrangePortalVfx.generatingVfxPrefab
+      value: 
+      objectReference: {fileID: 2411298451726823637, guid: bfb6628db30fb5d49994861d90659582, type: 3}
+    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: giantOrangePortalVfx.telegraphingVfxPrefab
+      value: 
+      objectReference: {fileID: 3665152045161641556, guid: 9412d1979ee319343ab492bba833f415, type: 3}
     - target: {fileID: 6482422768991068590, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.5102825

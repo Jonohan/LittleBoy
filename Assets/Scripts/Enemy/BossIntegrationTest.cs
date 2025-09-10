@@ -404,7 +404,7 @@ namespace Invector.vCharacterController.AI
                 yield return new WaitForSeconds(0.5f);
                 
                 // 测试生成传送门
-                var portal1 = portalManager.StartPortalGeneration(PortalType.Ceiling, PortalColor.Blue);
+                var portal1 = portalManager.GeneratePortal(PortalType.Ceiling, PortalColor.Blue, 1);
                 if (portal1 != null)
                 {
                     Debug.Log("[BossIntegrationTest] ✓ 传送门生成成功");
@@ -417,7 +417,7 @@ namespace Invector.vCharacterController.AI
                 yield return new WaitForSeconds(1f);
                 
                 // 测试生成第二个传送门
-                var portal2 = portalManager.StartPortalGeneration(PortalType.Ground, PortalColor.Orange);
+                var portal2 = portalManager.GeneratePortal(PortalType.Ground, PortalColor.Orange, 2);
                 if (portal2 != null)
                 {
                     Debug.Log("[BossIntegrationTest] ✓ 第二个传送门生成成功");
@@ -429,9 +429,8 @@ namespace Invector.vCharacterController.AI
                 
                 yield return new WaitForSeconds(2f);
                 
-                // 测试关闭传送门
-                portalManager.CloseAllPortals();
-                Debug.Log("[BossIntegrationTest] ✓ 传送门关闭成功");
+                // 传送门不需要关闭，它们一直存在
+                Debug.Log("[BossIntegrationTest] ✓ 传送门保持激活状态");
             }
             
             yield return new WaitForSeconds(1f);
@@ -582,10 +581,7 @@ namespace Invector.vCharacterController.AI
                 bossBlackboard.ResetToNormalState();
             }
             
-            if (portalManager)
-            {
-                portalManager.CloseAllPortals();
-            }
+            // 传送门不需要关闭，它们一直存在
             
             if (bossInterruptSystem)
             {

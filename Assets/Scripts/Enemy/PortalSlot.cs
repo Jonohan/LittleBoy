@@ -5,15 +5,29 @@ using Sirenix.OdinInspector;
 namespace Invector.vCharacterController.AI
 {
     /// <summary>
-    /// 传送门插槽状态
+    /// 传送门状态（每个传送门独立的状态）
     /// </summary>
-    public enum PortalSlotState
+    public enum PortalState
     {
         Idle,           // 空闲
         Generating,     // 生成中 (VFX播放)
         Telegraphing,   // 前摇阶段 (传送门移动过来)
         Active,         // 激活状态 (传送门就位)
         Closing         // 关闭中
+    }
+    
+    /// <summary>
+    /// VFX实例数据
+    /// </summary>
+    [System.Serializable]
+    public class PortalVfxInstance
+    {
+        public int portalId;                    // 传送门ID
+        public GameObject vfxObject;            // VFX对象
+        public PortalState state;               // 当前状态
+        public Vector3 finalPosition;           // 最终位置
+        public float startTime;                 // 开始时间
+        public PortalColor color;               // 传送门颜色
     }
     
     /// <summary>
@@ -28,7 +42,7 @@ namespace Invector.vCharacterController.AI
     }
     
     /// <summary>
-    /// 传送门插槽 - 管理传送门的生成、VFX播放和传送门移动
+    /// 传送门插槽 - 为多个传送门提供VFX播放和位置追踪服务
     /// </summary>
     public class PortalSlot : MonoBehaviour
     {
@@ -43,10 +57,12 @@ namespace Invector.vCharacterController.AI
         public Transform vfxSpawnPoint;
         
         [Header("VFX配置")]
-        [Tooltip("生成阶段VFX预制体")]
+        [Tooltip("生成阶段VFX预制体（从PortalManager获取）")]
+        [HideInInspector]
         public GameObject generatingVfxPrefab;
         
-        [Tooltip("前摇阶段VFX预制体")]
+        [Tooltip("前摇阶段VFX预制体（从PortalManager获取）")]
+        [HideInInspector]
         public GameObject telegraphingVfxPrefab;
         
         [Tooltip("VFX移动速度")]
@@ -60,7 +76,8 @@ namespace Invector.vCharacterController.AI
         public float vfxZOffset = 0.5f;
         
         [Header("传送门配置")]
-        [Tooltip("场景中的传送门对象")]
+        [Tooltip("场景中的传送门对象（从PortalManager获取）")]
+        [HideInInspector]
         public GameObject scenePortal;
         
         [Tooltip("传送门移动速度")]
@@ -76,28 +93,19 @@ namespace Invector.vCharacterController.AI
         [Tooltip("追踪范围")]
         public float trackingRange = 25f;
         
+        [Tooltip("传送门激活后解除插槽占用的延迟时间")]
+        public float slotReleaseDelay = 1f;
+        
         [Header("调试")]
         [ShowInInspector, ReadOnly]
-        public PortalSlotState _currentState = PortalSlotState.Idle;
+        private int _activePortalCount = 0;
         
         [ShowInInspector, ReadOnly]
-        private GameObject _currentVfx;
-        
-        [ShowInInspector, ReadOnly]
-        private bool _isTrackingPlayer = false;
-        
-        [ShowInInspector, ReadOnly]
-        private Vector3 _originalPortalPosition;
-        
-        [ShowInInspector, ReadOnly]
-        private Quaternion _originalPortalRotation;
-        
-        [ShowInInspector, ReadOnly]
-        private Vector3 _vfxFinalPosition;
+        private System.Collections.Generic.List<PortalVfxInstance> _activeVfxInstances = new System.Collections.Generic.List<PortalVfxInstance>();
         
         // 私有变量
-        private Coroutine _vfxTrackingCoroutine;
-        private Coroutine _portalMoveCoroutine;
+        private System.Collections.Generic.Dictionary<int, Coroutine> _vfxTrackingCoroutines = new System.Collections.Generic.Dictionary<int, Coroutine>();
+        private System.Collections.Generic.Dictionary<int, Coroutine> _portalMoveCoroutines = new System.Collections.Generic.Dictionary<int, Coroutine>();
         
         #region Unity生命周期
         
@@ -108,7 +116,7 @@ namespace Invector.vCharacterController.AI
         
         private void Update()
         {
-            UpdateSlotState();
+            // 插槽本身不需要状态更新，每个VFX实例独立管理
         }
         
         #endregion
@@ -120,13 +128,6 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void InitializeSlot()
         {
-            // 保存传送门原始位置
-            if (scenePortal)
-            {
-                _originalPortalPosition = scenePortal.transform.position;
-                _originalPortalRotation = scenePortal.transform.rotation;
-            }
-            
             // 查找玩家目标
             if (!playerTarget)
             {
@@ -223,7 +224,8 @@ namespace Invector.vCharacterController.AI
         /// 开始生成传送门
         /// </summary>
         /// <param name="portalColor">传送门颜色</param>
-        public void StartGenerating(PortalColor portalColor)
+        /// <param name="generatingVfxPrefab">生成阶段VFX预制体（从PortalManager传入）</param>
+        public void StartGenerating(PortalColor portalColor, GameObject generatingVfxPrefab)
         {
             if (_currentState != PortalSlotState.Idle)
             {
@@ -231,7 +233,16 @@ namespace Invector.vCharacterController.AI
                 return;
             }
             
+            if (generatingVfxPrefab == null)
+            {
+                Debug.LogError($"[PortalSlot] 生成VFX预制体为空！无法开始生成传送门");
+                return;
+            }
+            
             _currentState = PortalSlotState.Generating;
+            
+            // 设置VFX预制体
+            this.generatingVfxPrefab = generatingVfxPrefab;
             
             // 播放生成VFX
             PlayGeneratingVfx(portalColor);
@@ -246,11 +257,25 @@ namespace Invector.vCharacterController.AI
         /// 开始前摇阶段
         /// </summary>
         /// <param name="telegraphDuration">前摇持续时间</param>
-        public void StartTelegraphing(float telegraphDuration)
+        /// <param name="telegraphingVfxPrefab">前摇阶段VFX预制体（从PortalManager传入）</param>
+        /// <param name="portalObject">传送门对象（从PortalManager传入）</param>
+        public void StartTelegraphing(float telegraphDuration, GameObject telegraphingVfxPrefab, GameObject portalObject)
         {
             if (_currentState != PortalSlotState.Generating)
             {
                 Debug.LogWarning($"[PortalSlot] 插槽状态错误，无法开始前摇");
+                return;
+            }
+            
+            if (telegraphingVfxPrefab == null)
+            {
+                Debug.LogError($"[PortalSlot] 前摇VFX预制体为空！无法开始前摇阶段");
+                return;
+            }
+            
+            if (portalObject == null)
+            {
+                Debug.LogError($"[PortalSlot] 传送门对象为空！无法开始前摇阶段");
                 return;
             }
             
@@ -272,11 +297,21 @@ namespace Invector.vCharacterController.AI
             // 停止循环播放的生成VFX
             StopGeneratingVfx();
             
+            // 设置前摇VFX预制体
+            this.telegraphingVfxPrefab = telegraphingVfxPrefab;
+            
+            // 保存传送门原始位置（当第一次设置传送门对象时）
+            if (portalObject && _originalPortalPosition == Vector3.zero)
+            {
+                _originalPortalPosition = portalObject.transform.position;
+                _originalPortalRotation = portalObject.transform.rotation;
+            }
+            
             // 播放前摇VFX（与传送门移动同时进行）
             PlayTelegraphingVfx();
             
             // 开始移动传送门到VFX的最终位置
-            StartPortalMovement(telegraphDuration);
+            StartPortalMovement(telegraphDuration, portalObject);
             
             Debug.Log($"[PortalSlot] 开始前摇阶段: {slotType}");
         }
@@ -297,38 +332,33 @@ namespace Invector.vCharacterController.AI
             // 停止前摇VFX
             StopTelegraphingVfx();
             
-            // 传送门已就位
-            if (scenePortal)
-            {
-                scenePortal.SetActive(true);
-            }
+            // 传送门已就位（保持激活状态，不需要改变SetActive）
             
             Debug.Log($"[PortalSlot] 传送门激活: {slotType}");
+            
+            // 延迟一段时间后解除插槽占用，允许生成下一个传送门
+            StartCoroutine(ReleaseSlotAfterDelay(slotReleaseDelay));
         }
         
         /// <summary>
-        /// 关闭传送门
+        /// 延迟解除插槽占用
         /// </summary>
-        public void ClosePortal()
+        /// <param name="delay">延迟时间</param>
+        private IEnumerator ReleaseSlotAfterDelay(float delay)
         {
-            if (_currentState == PortalSlotState.Idle)
-            {
-                return;
-            }
+            yield return new WaitForSeconds(delay);
             
-            _currentState = PortalSlotState.Closing;
+            // 解除插槽占用，但保持传送门激活状态
+            _currentState = PortalSlotState.Idle;
             
-            // 停止所有VFX
-            StopAllVfx();
+            // 清理VFX相关状态
+            _currentVfx = null;
+            _isTrackingPlayer = false;
             
-            // 停止追踪
-            StopPlayerTracking();
-            
-            // 移动传送门回原位
-            StartPortalReturn();
-            
-            Debug.Log($"[PortalSlot] 关闭传送门: {slotType}");
+            Debug.Log($"[PortalSlot] 插槽已解除占用，可继续生成下一个传送门: {slotType}");
         }
+        
+        // 传送门不需要关闭，它们一直存在
         
         /// <summary>
         /// 重置插槽到空闲状态
@@ -620,18 +650,20 @@ namespace Invector.vCharacterController.AI
         /// 开始传送门移动
         /// </summary>
         /// <param name="duration">移动持续时间</param>
-        private void StartPortalMovement(float duration)
+        /// <param name="portalObject">传送门对象</param>
+        private void StartPortalMovement(float duration, GameObject portalObject)
         {
-            if (!scenePortal) return;
+            if (!portalObject) return;
             
-            _portalMoveCoroutine = StartCoroutine(MovePortalCoroutine(duration));
+            _portalMoveCoroutine = StartCoroutine(MovePortalCoroutine(duration, portalObject));
         }
         
         /// <summary>
         /// 传送门移动协程
         /// </summary>
         /// <param name="duration">移动持续时间</param>
-        private IEnumerator MovePortalCoroutine(float duration)
+        /// <param name="portalObject">传送门对象</param>
+        private IEnumerator MovePortalCoroutine(float duration, GameObject portalObject)
         {
             Vector3 startPos = _originalPortalPosition;
             // 传送门移动到VFX的最终位置
@@ -640,8 +672,8 @@ namespace Invector.vCharacterController.AI
             Quaternion endRot = vfxSpawnPoint.rotation;
             
             // 传送门瞬移旋转和位置到最终位置
-            scenePortal.transform.rotation = endRot;
-            scenePortal.transform.position = endPos;
+            portalObject.transform.rotation = endRot;
+            portalObject.transform.position = endPos;
             
             // 等待指定时间（用于前摇效果）
             yield return new WaitForSeconds(duration);
@@ -650,49 +682,7 @@ namespace Invector.vCharacterController.AI
             ActivatePortal();
         }
         
-        /// <summary>
-        /// 开始传送门返回
-        /// </summary>
-        private void StartPortalReturn()
-        {
-            if (!scenePortal) return;
-            
-            _portalMoveCoroutine = StartCoroutine(ReturnPortalCoroutine());
-        }
-        
-        /// <summary>
-        /// 传送门返回协程
-        /// </summary>
-        private IEnumerator ReturnPortalCoroutine()
-        {
-            Vector3 startPos = scenePortal.transform.position;
-            Vector3 endPos = _originalPortalPosition;
-            Quaternion startRot = scenePortal.transform.rotation;
-            Quaternion endRot = _originalPortalRotation;
-            
-            float duration = 1f; // 返回时间
-            float elapsed = 0f;
-            
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-                float curveT = portalMoveCurve.Evaluate(t);
-                
-                scenePortal.transform.position = Vector3.Lerp(startPos, endPos, curveT);
-                scenePortal.transform.rotation = Quaternion.Lerp(startRot, endRot, curveT);
-                
-                yield return null;
-            }
-            
-            // 确保最终位置正确
-            scenePortal.transform.position = endPos;
-            scenePortal.transform.rotation = endRot;
-            scenePortal.SetActive(false);
-            
-            // 重置到空闲状态
-            _currentState = PortalSlotState.Idle;
-        }
+        // 传送门不需要返回，它们一直存在
         
         #endregion
         
@@ -701,25 +691,35 @@ namespace Invector.vCharacterController.AI
         [Button("测试生成传送门")]
         public void TestStartGenerating()
         {
-            StartGenerating(PortalColor.Blue);
+            Debug.LogWarning("[PortalSlot] 测试生成传送门：请使用PortalManager的测试方法！PortalSlot不管理VFX资源。");
         }
         
         [Button("测试前摇阶段")]
         public void TestStartTelegraphing()
         {
-            StartTelegraphing(2f);
+            Debug.LogWarning("[PortalSlot] 测试前摇阶段：请使用PortalManager的测试方法！PortalSlot不管理VFX和传送门资源。");
         }
         
-        [Button("测试关闭传送门")]
-        public void TestClosePortal()
-        {
-            ClosePortal();
-        }
+        // 传送门不需要关闭，它们一直存在
         
         [Button("重置插槽")]
         public void TestResetSlot()
         {
             ResetSlot();
+        }
+        
+        [Button("测试插槽释放")]
+        public void TestReleaseSlot()
+        {
+            if (_currentState == PortalSlotState.Active)
+            {
+                StartCoroutine(ReleaseSlotAfterDelay(0.1f));
+                Debug.Log("[PortalSlot] 手动触发插槽释放");
+            }
+            else
+            {
+                Debug.LogWarning($"[PortalSlot] 当前状态 {_currentState} 无法释放插槽，需要先激活传送门");
+            }
         }
         
         #endregion
