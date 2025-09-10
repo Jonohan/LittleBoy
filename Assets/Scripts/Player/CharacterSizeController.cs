@@ -2,11 +2,24 @@ using UnityEngine;
 using Invector.vCharacterController;
 using System.Collections.Generic;
 using Invector.vCamera;
+using Sirenix.OdinInspector;
 
 namespace Xuwu.Character
 {
     /// <summary>
+    /// 角色体型等级枚举
+    /// </summary>
+    public enum CharacterSizeLevel
+    {
+        Mini = 1,        // 1级：迷你体型（0.5倍）
+        Standard = 2,    // 2级：标准体型（1倍）
+        Giant = 3,       // 3级：巨大体型（2倍）
+        LimitBreaker = 4 // 4级：限制器突破（4.1~4.5级，最多5次）
+    }
+    
+    /// <summary>
     /// 角色体型控制器 - 安全地调整Invector角色体型而不破坏控制器功能
+    /// 支持4个体型等级和传送门体型变化系统
     /// </summary>
     [AddComponentMenu("Xuwu/Character/Character Size Controller")]
     [RequireComponent(typeof(vThirdPersonMotor))]
@@ -17,6 +30,33 @@ namespace Xuwu.Character
         [Range(0.5f, 6.0f)]
         [Tooltip("体型缩放倍数，1.0为原始大小")]
         public float sizeMultiplier = 1.0f;
+        
+        [Header("体型等级系统")]
+        [Tooltip("当前体型等级")]
+        public CharacterSizeLevel currentSizeLevel = CharacterSizeLevel.Standard;
+        
+        [Tooltip("限制器突破等级（4.1~4.5，最多5次）")]
+        [Range(1, 5)]
+        public int limitBreakerLevel = 1;
+        
+        [Header("体型等级效果")]
+        [Tooltip("体力消耗倍率（1级迷你体型时减少）")]
+        [Range(0.1f, 2.0f)]
+        public float staminaConsumptionMultiplier = 1.0f;
+        
+        [Tooltip("攻击伤害倍率（3级巨大体型和4级限制器突破时提升）")]
+        [Range(0.1f, 5.0f)]
+        public float attackDamageMultiplier = 1.0f;
+        
+        [Header("免疫状态")]
+        [Tooltip("免疫异能轰炸攻击（1级迷你体型）")]
+        public bool immuneToEnergyBombardment = false;
+        
+        [Tooltip("免疫异能洪水攻击（3级巨大体型）")]
+        public bool immuneToEnergyFlood = false;
+        
+        [Tooltip("限制器突破状态（4级）")]
+        public bool isLimitBreakerActive = false;
         
         [Header("动画设置")]
         [Tooltip("是否同时调整动画播放速度")]
@@ -76,10 +116,10 @@ namespace Xuwu.Character
         [Tooltip("是否同时按体型倍数缩放CameraState的height参数")]
         public bool scaleCameraStateHeight = true;
         [Tooltip("相机距离缩放倍率（统一用于所有相机调整）")]
-        [Range(0.1f, 3.0f)]
+        [Range(0.1f, 6.0f)]
         public float cameraDistanceMultiplier = 1.0f;
         [Tooltip("相机高度缩放倍率（用于CameraState的height参数）")]
-        [Range(0.1f, 3.0f)]
+        [Range(0.1f, 6.0f)]
         public float cameraHeightMultiplier = 1.0f;
         private readonly Dictionary<Invector.vThirdPersonCameraState, (float def,float min,float max,float height)> _cameraStateBase = new Dictionary<Invector.vThirdPersonCameraState, (float def, float min, float max, float height)>();
         
@@ -148,7 +188,6 @@ namespace Xuwu.Character
                 var cameraController = FindObjectOfType<vThirdPersonCamera>();
                 if (cameraController)
                 {
-                    Debug.Log($"[CharacterSizeController] 找到vThirdPersonCamera组件在 {cameraController.gameObject.name}");
                     _cameraTarget = cameraController.transform;
                 }
             }
@@ -233,7 +272,7 @@ namespace Xuwu.Character
         {
             if (!_motor || !_capsuleCollider) return;
             
-            newSizeMultiplier = Mathf.Clamp(newSizeMultiplier, 0.3f, 3.0f);
+            newSizeMultiplier = Mathf.Clamp(newSizeMultiplier, 0.3f, 6.0f);
             _currentSizeMultiplier = newSizeMultiplier;
             
             // 1. 调整碰撞体参数
@@ -459,7 +498,6 @@ namespace Xuwu.Character
             {
                 tp.distance = _originalTPCameraDistance;
                 _hasAppliedInitialCameraScale = false; // 重置标志，允许下次启动时重新应用
-                Debug.Log($"[CharacterSizeController] 相机重置完成 - 距离: {_originalTPCameraDistance:F2}, 状态重置数量: {resetCount}");
             }
             else
             {
@@ -483,6 +521,181 @@ namespace Xuwu.Character
         public float GetCurrentSize()
         {
             return _currentSizeMultiplier;
+        }
+        
+        /// <summary>
+        /// 获取当前体型等级
+        /// </summary>
+        public CharacterSizeLevel GetCurrentSizeLevel()
+        {
+            return currentSizeLevel;
+        }
+        
+        /// <summary>
+        /// 切换到指定体型等级
+        /// </summary>
+        /// <param name="level">目标体型等级</param>
+        /// <param name="limitBreakerLevel">限制器突破等级（仅4级时有效）</param>
+        public void SetSizeLevel(CharacterSizeLevel level, int limitBreakerLevel = 1)
+        {
+            currentSizeLevel = level;
+            this.limitBreakerLevel = Mathf.Clamp(limitBreakerLevel, 1, 5);
+            
+            // 根据等级计算体型倍数
+            float targetSize = CalculateSizeFromLevel(level, this.limitBreakerLevel);
+            
+            // 应用体型变化
+            SetSize(targetSize);
+            
+            // 更新等级效果
+            UpdateLevelEffects();
+            
+            Debug.Log($"[CharacterSizeController] 切换到体型等级: {level} (倍数: {targetSize:F1})");
+        }
+        
+        /// <summary>
+        /// 根据体型等级计算体型倍数
+        /// </summary>
+        private float CalculateSizeFromLevel(CharacterSizeLevel level, int limitBreakerLevel)
+        {
+            switch (level)
+            {
+                case CharacterSizeLevel.Mini:
+                    return 0.5f;
+                case CharacterSizeLevel.Standard:
+                    return 1.0f;
+                case CharacterSizeLevel.Giant:
+                    return 2.0f;
+                case CharacterSizeLevel.LimitBreaker:
+                    if (limitBreakerLevel <= 5)
+                    {
+                        return 2.5f + (limitBreakerLevel * 0.5f); // 3, 3.5, 4, 4.5, 5
+                    }
+                    else
+                    {
+                        return 6.0f; // 最终形态
+                    }
+                default:
+                    return 1.0f;
+            }
+        }
+        
+        /// <summary>
+        /// 更新体型等级效果
+        /// </summary>
+        private void UpdateLevelEffects()
+        {
+            // 重置所有效果
+            staminaConsumptionMultiplier = 1.0f;
+            attackDamageMultiplier = 1.0f;
+            immuneToEnergyBombardment = false;
+            immuneToEnergyFlood = false;
+            isLimitBreakerActive = false;
+            
+            switch (currentSizeLevel)
+            {
+                case CharacterSizeLevel.Mini:
+                    // 1级：迷你体型 - 体力消耗减少，免疫异能轰炸
+                    staminaConsumptionMultiplier = 0.5f; // 体力消耗减半
+                    immuneToEnergyBombardment = true;
+                    break;
+                    
+                case CharacterSizeLevel.Standard:
+                    // 2级：标准体型 - 正常功能
+                    // 所有倍率保持1.0f，无特殊效果
+                    break;
+                    
+                case CharacterSizeLevel.Giant:
+                    // 3级：巨大体型 - 攻击伤害提升，免疫异能洪水
+                    attackDamageMultiplier = 1.5f; // 攻击伤害提升50%
+                    immuneToEnergyFlood = true;
+                    break;
+                    
+                case CharacterSizeLevel.LimitBreaker:
+                    // 4级：限制器突破 - 攻击伤害巨大提升
+                    isLimitBreakerActive = true;
+                    attackDamageMultiplier = 2.0f + (limitBreakerLevel * 0.5f); // 2.0, 2.5, 3.0, 3.5, 4.0
+                    break;
+            }
+            
+            // 应用倍率到实际系统
+            ApplyStaminaMultiplier();
+            ApplyDamageMultiplier();
+            
+            Debug.Log($"[CharacterSizeController] 体型等级效果更新 - 体力消耗: {staminaConsumptionMultiplier:F1}x, 攻击伤害: {attackDamageMultiplier:F1}x");
+        }
+        
+        /// <summary>
+        /// 应用体力消耗倍率到实际系统
+        /// </summary>
+        private void ApplyStaminaMultiplier()
+        {
+            if (!_motor) return;
+            
+            // 应用体力消耗倍率到Invector控制器
+            // 修改体力消耗相关的参数
+            _motor.sprintStamina = _motor.sprintStamina * staminaConsumptionMultiplier;
+            _motor.jumpStamina = _motor.jumpStamina * staminaConsumptionMultiplier;
+            
+            // 查找MeleeManager并应用体力消耗倍率
+            var meleeManager = GetComponent<Invector.vMelee.vMeleeManager>();
+            if (meleeManager != null)
+            {
+                // 应用体力消耗倍率到攻击体力消耗
+                meleeManager.defaultStaminaCost = meleeManager.defaultStaminaCost * staminaConsumptionMultiplier;
+            }
+            
+        }
+        
+        /// <summary>
+        /// 应用攻击伤害倍率到实际系统
+        /// </summary>
+        private void ApplyDamageMultiplier()
+        {
+            // 查找攻击系统组件
+            var meleeManager = GetComponent<Invector.vMelee.vMeleeManager>();
+            if (meleeManager != null)
+            {
+                // 应用伤害倍率到近战管理器
+                // 修改默认伤害值
+                meleeManager.defaultDamage.damageValue = meleeManager.defaultDamage.damageValue * attackDamageMultiplier;
+                
+                // 如果有装备的武器，也修改武器的伤害
+                if (meleeManager.rightWeapon != null)
+                {
+                    meleeManager.rightWeapon.damage.damageValue = meleeManager.rightWeapon.damage.damageValue * attackDamageMultiplier;
+                }
+                if (meleeManager.leftWeapon != null)
+                {
+                    meleeManager.leftWeapon.damage.damageValue = meleeManager.leftWeapon.damage.damageValue * attackDamageMultiplier;
+                }
+                
+            }
+
+        }
+        
+        /// <summary>
+        /// 限制器突破升级（4级专用）
+        /// </summary>
+        public bool UpgradeLimitBreaker()
+        {
+            if (currentSizeLevel != CharacterSizeLevel.LimitBreaker)
+            {
+                Debug.LogWarning("[CharacterSizeController] 只有4级限制器突破才能升级！");
+                return false;
+            }
+            
+            if (limitBreakerLevel >= 5)
+            {
+                Debug.LogWarning("[CharacterSizeController] 限制器突破已达到最高等级！");
+                return false;
+            }
+            
+            limitBreakerLevel++;
+            SetSizeLevel(currentSizeLevel, limitBreakerLevel);
+            
+            Debug.Log($"[CharacterSizeController] 限制器突破升级到 {limitBreakerLevel} 级！");
+            return true;
         }
         
         /// <summary>
@@ -515,36 +728,62 @@ namespace Xuwu.Character
         
         #endregion
         
-        #region 测试方法
+        #region 体型等级测试按钮
         
-        [ContextMenu("测试 - 设置为1.5倍大小")]
-        public void TestSetSize1_5x()
+        [Header("体型等级测试按钮")]
+        [Space(10)]
+        [SerializeField] private bool _testButtonsSection = true; // 占位字段，用于显示Header和Space
+        
+        [Button("切换到1级迷你体型")]
+        public void TestSetMiniLevel()
         {
-            SetSize(1.5f);
+            SetSizeLevel(CharacterSizeLevel.Mini);
         }
         
-        [ContextMenu("测试 - 设置为0.8倍大小")]
-        public void TestSetSize0_8x()
+        [Button("切换到2级标准体型")]
+        public void TestSetStandardLevel()
         {
-            SetSize(0.8f);
+            SetSizeLevel(CharacterSizeLevel.Standard);
         }
         
-        [ContextMenu("测试 - 设置为2.0倍大小")]
-        public void TestSetSize2_0x()
+        [Button("切换到3级巨大体型")]
+        public void TestSetGiantLevel()
         {
-            SetSize(2.0f);
+            SetSizeLevel(CharacterSizeLevel.Giant);
         }
         
-        [ContextMenu("测试 - 设置为0.5倍大小")]
-        public void TestSetSize0_5x()
+        [Button("切换到4级限制器突破")]
+        public void TestSetLimitBreakerLevel()
         {
-            SetSize(0.5f);
+            SetSizeLevel(CharacterSizeLevel.LimitBreaker, 1);
         }
         
-        [ContextMenu("测试 - 平滑过渡到1.2倍")]
-        public void TestSmoothTransition()
+        [Button("限制器突破升级")]
+        public void TestUpgradeLimitBreaker()
         {
-            SmoothTransitionToSize(1.2f, 2.0f);
+            UpgradeLimitBreaker();
+        }
+        
+        [Button("显示当前状态")]
+        public void TestShowCurrentStatus()
+        {
+            Debug.Log($"[CharacterSizeController] 当前状态:\n" +
+                     $"体型等级: {currentSizeLevel}\n" +
+                     $"体型倍数: {GetCurrentSize():F1}x\n" +
+                     $"限制器突破等级: {limitBreakerLevel}\n" +
+                     $"体力消耗倍率: {staminaConsumptionMultiplier:F1}x\n" +
+                     $"攻击伤害倍率: {attackDamageMultiplier:F1}x\n" +
+                     $"免疫异能轰炸: {immuneToEnergyBombardment}\n" +
+                     $"免疫异能洪水: {immuneToEnergyFlood}\n" +
+                     $"限制器突破激活: {isLimitBreakerActive}");
+        }
+        
+        [Button("测试倍率应用")]
+        public void TestApplyMultipliers()
+        {
+            Debug.Log("[CharacterSizeController] 测试倍率应用...");
+            ApplyStaminaMultiplier();
+            ApplyDamageMultiplier();
         }
         
         #endregion
@@ -708,7 +947,6 @@ namespace Xuwu.Character
                 if (!Mathf.Approximately(tpCam.distance, newDistance))
                 {
                     tpCam.distance = newDistance;
-                    Debug.Log($"[CharacterSizeController] 相机状态缩放完成 - 新距离: {newDistance:F2} (倍率: {multiplier:F2})");
                 }
             }
         }
@@ -724,7 +962,6 @@ namespace Xuwu.Character
             {
                 float previousDistance = tpCam.distance;
                 tpCam.distance = targetDistance;
-                Debug.Log($"[CharacterSizeController] 相机距离调整 - 从 {previousDistance:F2} 到 {targetDistance:F2} (倍率: {multiplier:F2})");
             }
         }
         #endregion

@@ -1196,7 +1196,7 @@ GameObject:
   - component: {fileID: 1063890977}
   - component: {fileID: 1063890976}
   - component: {fileID: 1063890975}
-  m_Layer: 0
+  m_Layer: 4
   m_Name: Floor (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2538,6 +2538,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3529364514659743628, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3693210858367730489, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0

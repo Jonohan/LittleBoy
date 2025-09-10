@@ -44,7 +44,7 @@ namespace Xuwu.FourDimensionalPortals.Demo
             {
                 TransferPivotOffset = new Vector3(0f, 0.1f, 0f); // 适合invector角色的检测点
                 CloneLayer = 8; // 传送门克隆层
-                //Debug.Log($"[InvectorPortalAdapter] 自动配置完成 - TransferPivotOffset: {TransferPivotOffset}");
+                
             }
             
             // 自动收集渲染器
@@ -64,32 +64,12 @@ namespace Xuwu.FourDimensionalPortals.Demo
             var portal = other.GetComponent<Portal>();
             if (portal)
             {
-                //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 进入传送门 {portal.name} (Layer: {other.gameObject.layer})");
                 
                 // 检查是否为地面传送门，如果是则触发真正的跳跃输入
                 HandleGroundPortalJump(portal);
             }
         }
         
-        private void OnTriggerExit(Collider other)
-        {
-            // 检查是否离开传送门
-            var portal = other.GetComponent<Portal>();
-            if (portal)
-            {
-                //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 离开传送门 {portal.name} (Layer: {other.gameObject.layer})");
-            }
-        }
-        
-        private void OnCollisionEnter(Collision collision)
-        {
-            // 检查是否与传送门发生物理碰撞
-            var portal = collision.gameObject.GetComponent<Portal>();
-            if (portal)
-            {
-                //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 与传送门 {portal.name} 发生物理碰撞 (Layer: {collision.gameObject.layer})");
-            }
-        }
         
         /// <summary>
         /// 自动收集角色的所有渲染器
@@ -115,8 +95,7 @@ namespace Xuwu.FourDimensionalPortals.Demo
         
         protected override void PassThrough(Portal fromPortal, Portal toPortal, Matrix4x4 transferMatrix)
         {
-            Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 开始穿越传送门: {fromPortal.name} -> {toPortal.name}");
-            
+          
             base.PassThrough(fromPortal, toPortal, transferMatrix);
             
             // 处理invector特有的传送门穿越逻辑
@@ -263,7 +242,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
             float upwardThreshold = 0.8f;
             if (portalForward.y > upwardThreshold)
             {
-                Debug.Log($"[InvectorPortalAdapter] 检测到地面传送门，触发真正的跳跃输入。传送门前向: {portalForward}");
                 
                 // 触发真正的跳跃输入
                 TriggerRealJump();
@@ -328,15 +306,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
             if (wasInPortal != _isInPortal && _portalSystemCameraData)
             {
                 _portalSystemCameraData.PenetratingPortal = PenetratingPortal;
-                
-                if (_isInPortal)
-                {
-                    //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 进入传送门检测区域: {PenetratingPortal.name}");
-                }
-                else
-                {
-                    //Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 离开传送门检测区域");
-                }
             }
             
             // 处理平滑旋转
