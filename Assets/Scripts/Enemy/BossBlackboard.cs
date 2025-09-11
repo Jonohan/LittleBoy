@@ -355,12 +355,18 @@ namespace Invector.vCharacterController.AI
                     cooldown_flood.Value = cooldownTime;
                     break;
                 case "tentacle":
+                case "tentacle_up":
+                case "tentacle_down":
+                case "tentacle_left":
+                case "tentacle_right":
                     cooldown_tentacle.Value = cooldownTime;
                     break;
                 case "vortex":
                     cooldown_vortex.Value = cooldownTime;
                     break;
                 case "wallthrow":
+                case "wallthrow_left":
+                case "wallthrow_right":
                     cooldown_wallThrow.Value = cooldownTime;
                     break;
                 case "roar":
@@ -386,10 +392,16 @@ namespace Invector.vCharacterController.AI
                 case "flood":
                     return cooldown_flood.Value <= 0f;
                 case "tentacle":
+                case "tentacle_up":
+                case "tentacle_down":
+                case "tentacle_left":
+                case "tentacle_right":
                     return cooldown_tentacle.Value <= 0f;
                 case "vortex":
                     return cooldown_vortex.Value <= 0f;
                 case "wallthrow":
+                case "wallthrow_left":
+                case "wallthrow_right":
                     return cooldown_wallThrow.Value <= 0f;
                 case "roar":
                     return cooldown_roar.Value <= 0f;

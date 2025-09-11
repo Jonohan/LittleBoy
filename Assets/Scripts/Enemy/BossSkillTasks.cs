@@ -851,8 +851,7 @@ namespace Invector.vCharacterController.AI
             var lastUsedSkill = _bossBlackboard.GetLastUsedSkill();
             var lastUsedSlot = _bossBlackboard.GetLastPortalSlot();
             
-            Debug.Log($"[BossSmartSkillSelection] 上次使用的技能: {lastUsedSkill}, 插槽: {lastUsedSlot}");
-            
+
             for (int i = 0; i < availableSkills.Length; i++)
             {
                 string skillName = availableSkills[i];
@@ -860,7 +859,6 @@ namespace Invector.vCharacterController.AI
                 // 检查技能冷却
                 if (IsSkillOnCooldown(skillName))
                 {
-                    Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 在冷却中");
                     continue;
                 }
                     
@@ -868,15 +866,10 @@ namespace Invector.vCharacterController.AI
                 if (CanUseSkill(skillName))
                 {
                     available.Add(skillName);
-                    Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 可用");
                 }
-                else
-                {
-                    Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 不可用（与上次技能冲突）");
-                }
+
             }
             
-            Debug.Log($"[BossSmartSkillSelection] 最终可用技能: {string.Join(", ", available)}");
             return available;
     }
     
@@ -1044,7 +1037,6 @@ namespace Invector.vCharacterController.AI
             if (task != null)
             {
                 task.Owner = this.Owner;
-                Debug.Log($"[BossSmartSkillSelection] 为技能Task设置Owner: {(task.Owner != null ? task.Owner.name : "null")}");
             }
             
             return task;
@@ -1088,12 +1080,11 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手上方前摇特效");
+
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行触手上方攻击");
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
@@ -1104,7 +1095,6 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手上方后摇特效");
         }
     }
     
@@ -1141,12 +1131,10 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手下方前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行触手下方攻击");
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
@@ -1157,7 +1145,6 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手下方后摇特效");
         }
     }
     
@@ -1194,12 +1181,10 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手左方前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行触手左方攻击");
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
@@ -1210,7 +1195,6 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手左方后摇特效");
         }
     }
     
@@ -1247,12 +1231,10 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手右方前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行触手右方攻击");
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
@@ -1263,7 +1245,6 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手右方后摇特效");
         }
     }
     
@@ -1300,12 +1281,10 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放侧墙投掷左方前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行侧墙投掷左方攻击");
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
@@ -1316,7 +1295,6 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放侧墙投掷左方后摇特效");
         }
     }
     
@@ -1353,12 +1331,10 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放侧墙投掷右方前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行侧墙投掷右方攻击");
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
@@ -1369,7 +1345,6 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放侧墙投掷右方后摇特效");
         }
     }
     
