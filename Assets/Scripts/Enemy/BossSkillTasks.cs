@@ -877,6 +877,10 @@ namespace Invector.vCharacterController.AI
         private List<string> GetAvailableSkills()
         {
             var available = new List<string>();
+            var lastUsedSkill = _bossBlackboard.GetLastUsedSkill();
+            var lastUsedSlot = _bossBlackboard.GetLastPortalSlot();
+            
+            Debug.Log($"[BossSmartSkillSelection] 上次使用的技能: {lastUsedSkill}, 插槽: {lastUsedSlot}");
             
             for (int i = 0; i < availableSkills.Length; i++)
             {
@@ -884,15 +888,24 @@ namespace Invector.vCharacterController.AI
                 
                 // 检查技能冷却
                 if (IsSkillOnCooldown(skillName))
+                {
+                    Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 在冷却中");
                     continue;
+                }
                     
                 // 检查技能是否可以使用（避免与上次技能重复）
                 if (CanUseSkill(skillName))
                 {
                     available.Add(skillName);
+                    Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 可用");
+                }
+                else
+                {
+                    Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 不可用（与上次技能冲突）");
                 }
             }
             
+            Debug.Log($"[BossSmartSkillSelection] 最终可用技能: {string.Join(", ", available)}");
             return available;
         }
         
@@ -938,9 +951,34 @@ namespace Invector.vCharacterController.AI
             if (availableTypes.Length == 0)
                 return true; // 不需要传送门的技能（如roar）
                 
-            // 检查是否有可用的插槽
-            // 这里可以添加更复杂的逻辑来检查插槽可用性
-            return true; // 简化版本，实际使用时可以添加更详细的检查
+            // 检查是否有可用的插槽，避免与上次技能重复
+            var portalManager = UnityEngine.Object.FindObjectOfType<PortalManager>();
+            if (portalManager == null)
+            {
+                Debug.LogError("[BossSmartSkillSelection] 未找到PortalManager");
+                return false;
+            }
+            
+            var allAvailableSlots = new List<PortalSlot>();
+            foreach (var type in availableTypes)
+            {
+                var slots = portalManager.GetSlotsByType(type);
+                if (slots != null)
+                {
+                    allAvailableSlots.AddRange(slots);
+                }
+            }
+            
+            // 检查是否有可用的插槽（避免与上次技能冲突）
+            foreach (var slot in allAvailableSlots)
+            {
+                if (_bossBlackboard.CanUseSlotForSkill(skillName, slot.name))
+                {
+                    return true; // 至少有一个可用插槽
+                }
+            }
+            
+            return false; // 没有可用插槽
         }
         
         /// <summary>
