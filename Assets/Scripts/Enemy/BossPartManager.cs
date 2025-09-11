@@ -336,23 +336,6 @@ namespace Invector.vCharacterController.AI
             }
         }
         
-        /// <summary>
-        /// 设置部件的伤害倍数
-        /// </summary>
-        /// <param name="multiplier">倍数</param>
-        public void SetPartDamageMultiplier(float multiplier)
-        {
-            if (bossPart != null)
-            {
-                bossPart.SetDamageMultiplier(multiplier);
-                Debug.Log($"[BossPartManager] 设置部件伤害倍数为: {multiplier}");
-            }
-            else
-            {
-                Debug.LogWarning($"[BossPartManager] 未找到部件");
-            }
-        }
-        
         #endregion
         
         #region 状态查询

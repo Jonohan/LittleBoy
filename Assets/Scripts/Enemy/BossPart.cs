@@ -53,9 +53,6 @@ namespace Invector.vCharacterController.AI
         [Tooltip("是否自动设置受击碰撞器（如果为true，将使用组件自身的碰撞器）")]
         public bool autoSetDamageCollider = true;
         
-        [Tooltip("伤害倍数")]
-        public float damageMultiplier = 1f;
-        
         [Tooltip("是否可以被玩家攻击")]
         public bool canReceiveDamage = true;
         
@@ -399,17 +396,13 @@ namespace Invector.vCharacterController.AI
             // 触发开始受击事件
             onStartReceiveDamage.Invoke(damage);
             
-            // 应用伤害倍数
-            var modifiedDamage = new vDamage(damage);
-            modifiedDamage.damageValue *= damageMultiplier;
-            
             // 将伤害传递给Boss
             if (bossBlackboard)
             {
                 var bossAI = bossBlackboard.GetComponent<NonHumanoidBossAI>();
                 if (bossAI)
                 {
-                    bossAI.TakeDamage(modifiedDamage);
+                    bossAI.TakeDamage(damage);
                 }
             }
             
@@ -421,7 +414,7 @@ namespace Invector.vCharacterController.AI
                 PlaySound(hitSound);
             
             // 触发受击事件
-            onReceiveDamage.Invoke(modifiedDamage);
+            onReceiveDamage.Invoke(damage);
             
             _lastHitTime = Time.time;
         }
@@ -489,15 +482,6 @@ namespace Invector.vCharacterController.AI
         public void SetAttackDamage(float damage)
         {
             attackDamage = damage;
-        }
-        
-        /// <summary>
-        /// 设置伤害倍数
-        /// </summary>
-        /// <param name="multiplier">倍数</param>
-        public void SetDamageMultiplier(float multiplier)
-        {
-            damageMultiplier = multiplier;
         }
         
         #endregion
