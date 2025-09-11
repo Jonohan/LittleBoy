@@ -154,17 +154,17 @@ namespace Invector.vCharacterController.AI
                 
                 // 在选定的插槽上生成传送门
                 _currentPortal = _portalManager.GeneratePortal(portalType, portalColor, selectedSlot);
-                if (_currentPortal == null)
-                {
-                    Debug.LogError($"[{skillName}] 传送门生成失败");
-                    return TaskStatus.Failure;
-                }
-                
-                // 更新黑板变量
-                if (_bossBlackboard)
-                {
-                    _bossBlackboard.UpdatePortalCount(_portalManager.GetActivePortalCount());
-                    _bossBlackboard.SetLastPortalType(portalType.ToString());
+            if (_currentPortal == null)
+            {
+                Debug.LogError($"[{skillName}] 传送门生成失败");
+                return TaskStatus.Failure;
+            }
+            
+            // 更新黑板变量
+            if (_bossBlackboard)
+            {
+                _bossBlackboard.UpdatePortalCount(_portalManager.GetActivePortalCount());
+                _bossBlackboard.SetLastPortalType(portalType.ToString());
                     _bossBlackboard.SetLastPortalSlot(selectedSlot.name); // 记录最后使用的插槽
                     _bossBlackboard.SetLastUsedSkill(skillName); // 记录最后使用的技能
                 }
@@ -175,7 +175,7 @@ namespace Invector.vCharacterController.AI
             // 等待传送门生成时间（给传送门一些生成动画时间）
             if (Time.time - _skillStartTime >= spawnPortalTime)
             {
-                _currentPhase = SkillPhase.Telegraph;
+            _currentPhase = SkillPhase.Telegraph;
                 Debug.Log($"[{skillName}] 传送门生成阶段完成，进入前摇阶段");
             }
             

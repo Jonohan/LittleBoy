@@ -1011,12 +1011,17 @@ namespace Xuwu.Character
         {
             if (tpCam.CameraStateList == null || tpCam.CameraStateList.tpCameraStates == null) return;
             
-            // 记录当前distance在区间内的相对位置
+            // 记录当前distance在区间内的相对位置（基于原始值）
             var currentState = tpCam.currentState;
             float relativePosition = 0.5f;
-            if (currentState != null && currentState.maxDistance > currentState.minDistance)
+            if (currentState != null && _cameraStateBase.ContainsKey(currentState))
             {
-                relativePosition = Mathf.InverseLerp(currentState.minDistance, currentState.maxDistance, tpCam.distance);
+                var originalValues = _cameraStateBase[currentState];
+                if (originalValues.max > originalValues.min)
+                {
+                    // 基于原始值计算相对位置
+                    relativePosition = Mathf.InverseLerp(originalValues.min, originalValues.max, tpCam.distance);
+                }
             }
             
             // 计算实际缩放倍率（统一使用cameraDistanceMultiplier和cameraHeightMultiplier）
@@ -1042,10 +1047,13 @@ namespace Xuwu.Character
                 }
             }
             
-            // 重新映射当前distance到新的边界，保持相对位置
-            if (currentState != null)
+            // 重新映射当前distance到新的边界，保持相对位置（基于原始值计算）
+            if (currentState != null && _cameraStateBase.ContainsKey(currentState))
             {
-                float newDistance = Mathf.Lerp(currentState.minDistance, currentState.maxDistance, relativePosition);
+                var originalValues = _cameraStateBase[currentState];
+                float newMinDistance = originalValues.min * distanceScale;
+                float newMaxDistance = originalValues.max * distanceScale;
+                float newDistance = Mathf.Lerp(newMinDistance, newMaxDistance, relativePosition);
                 if (!Mathf.Approximately(tpCam.distance, newDistance))
                 {
                     tpCam.distance = newDistance;
