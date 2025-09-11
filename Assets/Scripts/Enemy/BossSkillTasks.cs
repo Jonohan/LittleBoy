@@ -85,7 +85,6 @@ namespace Invector.vCharacterController.AI
             _currentPhase = SkillPhase.SpawnPortal;
             _hasExecutedSkill = false;
             
-            Debug.Log($"[{skillName}] 开始执行技能，传送门颜色: {portalColor}");
         }
         
         public override TaskStatus OnUpdate()
@@ -129,7 +128,6 @@ namespace Invector.vCharacterController.AI
                 var availableTypes = _bossBlackboard.GetAvailableSlotTypesForSkill(skillName);
                 if (availableTypes.Length == 0)
                 {
-                    Debug.Log($"[{skillName}] 该技能不需要传送门，跳过传送门阶段");
                     _currentPhase = SkillPhase.Telegraph;
                     return TaskStatus.Running;
                 }
@@ -167,16 +165,14 @@ namespace Invector.vCharacterController.AI
                 _bossBlackboard.SetLastPortalType(portalType.ToString());
                     _bossBlackboard.SetLastPortalSlot(selectedSlot.name); // 记录最后使用的插槽
                     _bossBlackboard.SetLastUsedSkill(skillName); // 记录最后使用的技能
-                }
-                
-                Debug.Log($"[{skillName}] 传送门生成完成，等待生成时间...");
+            }
+            
             }
             
             // 等待传送门生成时间（给传送门一些生成动画时间）
             if (Time.time - _skillStartTime >= spawnPortalTime)
             {
             _currentPhase = SkillPhase.Telegraph;
-                Debug.Log($"[{skillName}] 传送门生成阶段完成，进入前摇阶段");
             }
             
             return TaskStatus.Running;
@@ -193,7 +189,6 @@ namespace Invector.vCharacterController.AI
                 int selectedPortal = _portalManager.StartPortalTelegraphing(telegraphTime);
                 if (selectedPortal == 0)
                 {
-                    Debug.LogWarning($"[{skillName}] 没有可用传送门进行前摇，跳过前摇阶段");
                 }
             }
             
@@ -260,7 +255,6 @@ namespace Invector.vCharacterController.AI
             
             // 传送门不需要关闭，它们一直存在
             
-            Debug.Log($"[{skillName}] 技能执行完成");
             return TaskStatus.Success;
         }
         
@@ -294,13 +288,10 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void InitializeComponents()
         {
-            Debug.Log($"[{skillName}] 开始初始化组件 - Owner: {(Owner != null ? Owner.name : "null")}");
-            
             // BossBlackboard和Behavior Tree在同一个对象上，直接获取
             if (!_bossBlackboard && Owner)
             {
                 _bossBlackboard = Owner.GetComponent<BossBlackboard>();
-                Debug.Log($"[{skillName}] 通过Owner获取BossBlackboard: {(_bossBlackboard != null ? "成功" : "失败")}");
             }
             else if (!_bossBlackboard)
             {
@@ -311,20 +302,16 @@ namespace Invector.vCharacterController.AI
             if (portalManager.Value != null)
             {
                 _portalManager = portalManager.Value.GetComponent<PortalManager>();
-                Debug.Log($"[{skillName}] 通过手动引用获取PortalManager: {(_portalManager != null ? "成功" : "失败")}");
             }
             else
             {
                 _portalManager = UnityEngine.Object.FindObjectOfType<PortalManager>();
-                Debug.Log($"[{skillName}] 通过FindObjectOfType获取PortalManager: {(_portalManager != null ? "成功" : "失败")}");
             }
             
             if (bossAI.Value != null)
                 _bossAI = bossAI.Value.GetComponent<NonHumanoidBossAI>();
             else if (Owner)
                 _bossAI = Owner.GetComponent<NonHumanoidBossAI>();
-                
-            Debug.Log($"[{skillName}] 组件初始化完成 - BossBlackboard: {(_bossBlackboard != null ? "✓" : "✗")}, PortalManager: {(_portalManager != null ? "✓" : "✗")}, BossAI: {(_bossAI != null ? "✓" : "✗")}");
         }
         
         /// <summary>
@@ -339,14 +326,12 @@ namespace Invector.vCharacterController.AI
             {
                 // 恐惧阶段：使用巨大传送门
                 portalColor = PortalColor.GiantOrange;
-                Debug.Log($"[{skillName}] 恐惧阶段 - 使用巨大传送门");
             }
             else
             {
                 // 其他阶段：从Blue和Orange随机选择
                 PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
                 portalColor = normalColors[Random.Range(0, normalColors.Length)];
-                Debug.Log($"[{skillName}] 普通阶段 - 随机选择传送门颜色: {portalColor}");
             }
         }
         
@@ -364,11 +349,8 @@ namespace Invector.vCharacterController.AI
             
             // 获取当前技能可用的插槽类型
             var availableTypes = _bossBlackboard.GetAvailableSlotTypesForSkill(skillName);
-            Debug.Log($"[{skillName}] 可用插槽类型: {string.Join(", ", availableTypes)}");
-            
             if (availableTypes.Length == 0)
             {
-                Debug.LogWarning($"[{skillName}] 该技能不需要传送门插槽");
                 return null;
             }
             
@@ -377,14 +359,12 @@ namespace Invector.vCharacterController.AI
             foreach (var type in availableTypes)
             {
                 var slots = _portalManager.GetSlotsByType(type);
-                Debug.Log($"[{skillName}] {type}类型插槽数量: {(slots != null ? slots.Length : 0)}");
                 if (slots != null)
                 {
                     allAvailableSlots.AddRange(slots);
                 }
             }
             
-            Debug.Log($"[{skillName}] 总共找到 {allAvailableSlots.Count} 个插槽");
             
             if (allAvailableSlots.Count == 0)
             {
@@ -406,7 +386,6 @@ namespace Invector.vCharacterController.AI
             int randomIndex = Random.Range(0, validSlots.Count);
             PortalSlot selectedSlot = validSlots[randomIndex];
             
-            Debug.Log($"[{skillName}] 从 {validSlots.Count} 个可用插槽中选择了: {selectedSlot.name}");
             
             return selectedSlot;
         }
@@ -456,17 +435,14 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放异能轰炸前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行异能轰炸攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放异能轰炸后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -507,17 +483,14 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放直线投掷前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行直线投掷攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放直线投掷后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -558,17 +531,14 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手横扫前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行触手横扫攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放触手横扫后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -615,17 +585,14 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放洪水前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行洪水攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放洪水后摇特效");
         }
     }
     
@@ -670,17 +637,14 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放漩涡前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行漩涡发射攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放漩涡后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -721,17 +685,14 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            Debug.Log($"[{skillName}] 播放吼叫前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            Debug.Log($"[{skillName}] 执行Boss吼叫");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            Debug.Log($"[{skillName}] 播放吼叫后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -740,11 +701,11 @@ namespace Invector.vCharacterController.AI
     #endregion
     
     #region 智能技能选择
-    
-    /// <summary>
+        
+        /// <summary>
     /// 智能技能选择任务
     /// 根据当前状态和冷却时间选择可用的技能
-    /// </summary>
+        /// </summary>
     [TaskDescription("智能技能选择 - 根据状态和冷却选择可用技能")]
     [TaskIcon("{SkinColor}ActionIcon.png")]
     public class BossSmartSkillSelection : Action
@@ -776,7 +737,6 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
-            Debug.Log("[BossSmartSkillSelection] OnStart被调用");
             
             // 优先使用手动指定的引用
             if (bossBlackboard.Value)
@@ -791,7 +751,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogError("[BossSmartSkillSelection] 无法找到BossBlackboard！");
             }
         }
         
@@ -803,7 +762,6 @@ namespace Invector.vCharacterController.AI
             // 如果还没有选择技能，先选择技能
             if (_currentSkillTask == null && !_isExecutingSkill)
             {
-                Debug.Log("[BossSmartSkillSelection] OnUpdate被调用");
                 
                 if (!_bossBlackboard)
                 {
@@ -816,7 +774,6 @@ namespace Invector.vCharacterController.AI
                
                 if (validSkills.Count == 0)
                 {
-                    Debug.LogWarning("[BossSmartSkillSelection] 没有可用的技能");
                     return TaskStatus.Failure;
                 }
                 
@@ -824,7 +781,6 @@ namespace Invector.vCharacterController.AI
                 string selectedSkillName = SelectSkillByWeight(validSkills);
                 selectedSkill.Value = selectedSkillName;
                 
-                Debug.Log($"[BossSmartSkillSelection] 选择了技能: {selectedSkillName}, selectedSkill.Value = {selectedSkill.Value}");
                 
                 // 直接创建并开始执行技能
                 _currentSkillTask = CreateSkillTask(selectedSkillName);
@@ -834,7 +790,6 @@ namespace Invector.vCharacterController.AI
                     return TaskStatus.Failure;
                 }
                 
-                Debug.Log($"[BossSmartSkillSelection] 创建技能类: {_currentSkillTask.GetType().Name}");
                 _currentSkillTask.OnStart();
                 _isExecutingSkill = true;
             }
@@ -847,7 +802,6 @@ namespace Invector.vCharacterController.AI
                 // 如果技能执行完成，清理并返回成功
                 if (status == TaskStatus.Success)
                 {
-                    Debug.Log($"[BossSmartSkillSelection] 技能执行完成: {_currentSkillTask.GetType().Name}");
                     _currentSkillTask.OnEnd();
                     _currentSkillTask = null;
                     _isExecutingSkill = false;
@@ -868,11 +822,11 @@ namespace Invector.vCharacterController.AI
                 _currentSkillTask = null;
             }
             _isExecutingSkill = false;
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// 获取当前可用的技能列表
-        /// </summary>
+    /// </summary>
         /// <returns>可用技能列表</returns>
         private List<string> GetAvailableSkills()
         {

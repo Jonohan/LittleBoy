@@ -89,6 +89,9 @@ namespace Invector.vCharacterController.AI
         [ShowInInspector, ReadOnly]
         private Vector3 _vfxFinalPosition;
         
+        [ShowInInspector, ReadOnly]
+        public Vector3 portalWorldPosition;
+        
         // 私有变量
         private Coroutine _vfxTrackingCoroutine;
         private Coroutine _portalMoveCoroutine;
@@ -224,10 +227,7 @@ namespace Invector.vCharacterController.AI
             // 停止循环播放的生成VFX
             StopGeneratingVfx();
             
-            // 播放前摇VFX（与传送门移动同时进行）
-            PlayTelegraphingVfx();
-            
-            // 开始移动传送门到VFX的最终位置
+            // 先开始移动传送门到VFX的最终位置
             StartPortalMovement(telegraphDuration);
         }
         
@@ -335,11 +335,10 @@ namespace Invector.vCharacterController.AI
                 UnityEngine.Object.Destroy(_currentVfx);
             }
             
-            // 计算VFX位置：沿Quad Z方向偏移
-            Vector3 vfxPosition = CalculateVfxPosition();
-            
-            // 计算VFX朝向：Y轴朝向平面Z轴正方向
+            // 在传送门的世界坐标位置生成VFX
+            Vector3 vfxPosition = portalWorldPosition;
             Quaternion vfxRotation = CalculateVfxRotation();
+            
             
             _currentVfx = UnityEngine.Object.Instantiate(telegraphingVfxPrefab, vfxPosition, vfxRotation);
         }
@@ -573,6 +572,22 @@ namespace Invector.vCharacterController.AI
             // 传送门瞬移旋转和位置到最终位置
             scenePortal.transform.rotation = endRot;
             scenePortal.transform.position = endPos;
+            
+            // 获取传送门瞬移后的世界坐标（考虑一级父对象）
+            if (scenePortal.transform.parent)
+            {
+                // 如果有父对象，计算世界坐标
+                portalWorldPosition = scenePortal.transform.parent.TransformPoint(scenePortal.transform.position);
+            }
+            else
+            {
+                // 如果没有父对象，直接使用本地坐标
+                portalWorldPosition = scenePortal.transform.position;
+            }
+            
+            
+            // 传送门移动完成后，播放前摇VFX
+            PlayTelegraphingVfx();
             
             // 等待指定时间（用于前摇效果）
             yield return new WaitForSeconds(duration);

@@ -137,6 +137,10 @@ namespace Xuwu.Character
         public float cameraHeightMultiplier = 1.0f;
         private readonly Dictionary<Invector.vThirdPersonCameraState, (float def,float min,float max,float height)> _cameraStateBase = new Dictionary<Invector.vThirdPersonCameraState, (float def, float min, float max, float height)>();
         
+        // 相机multiplier系统
+        private float _currentCameraMultiplier = 1.0f;
+        private bool _cameraMultiplierApplied = false;
+        
         // 初始相机缩放参数（启动时自动应用）
         private bool _hasAppliedInitialCameraScale = false;
         
@@ -171,8 +175,8 @@ namespace Xuwu.Character
         
         private void OnDestroy()
         {
-            // 游戏结束时重置相机状态到原始值
-            ResetCameraStatesToOriginal();
+            // 游戏结束时重置相机multiplier系统
+            ResetCameraMultiplierSystem();
         }
         
         private void OnValidate()
@@ -457,8 +461,100 @@ namespace Xuwu.Character
                 _cameraTarget.position = transform.position + direction * newDistance;
             }
             
-            // 调整Invector相机系统（统一使用multiplier方式）
-            AdjustInvectorCameraSystem(multiplier);
+            // 使用multiplier系统而不是直接修改原始值
+            ApplyCameraMultiplierSystem(multiplier);
+        }
+        
+        /// <summary>
+        /// 应用相机multiplier系统（不直接修改原始值）
+        /// </summary>
+        private void ApplyCameraMultiplierSystem(float multiplier)
+        {
+            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (!tpCam) return;
+            
+            // 确保已缓存原始值
+            if (!_cachedTPCamera && !InitializeCameraCache())
+            {
+                return;
+            }
+            
+            // 更新当前multiplier
+            _currentCameraMultiplier = multiplier;
+            
+            // 计算实际缩放倍率
+            float distanceScale = multiplier * cameraDistanceMultiplier;
+            float heightScale = multiplier * cameraHeightMultiplier;
+            
+            // 应用multiplier到相机系统（基于原始值计算，但不修改原始值）
+            ApplyCameraMultiplierToSystem(tpCam, distanceScale, heightScale);
+            
+            _cameraMultiplierApplied = true;
+        }
+        
+        /// <summary>
+        /// 将multiplier应用到相机系统（基于原始值计算）
+        /// </summary>
+        private void ApplyCameraMultiplierToSystem(Invector.vCamera.vThirdPersonCamera tpCam, float distanceScale, float heightScale)
+        {
+            // 计算当前distance（基于原始值）
+            float currentDistance = _originalTPCameraDistance * distanceScale;
+            
+            // 设置当前distance（这是唯一需要修改的地方）
+            tpCam.distance = currentDistance;
+            
+            // 对于相机状态，我们通过动态计算而不是修改原始值
+            if (tpCam.CameraStateList != null && tpCam.CameraStateList.tpCameraStates != null)
+            {
+                foreach (var state in tpCam.CameraStateList.tpCameraStates)
+                {
+                    if (_cameraStateBase.ContainsKey(state))
+                    {
+                        var originalValues = _cameraStateBase[state];
+                        
+                        // 动态计算并设置值（基于原始值）
+                        state.defaultDistance = originalValues.def * distanceScale;
+                        state.minDistance = originalValues.min * distanceScale;
+                        state.maxDistance = originalValues.max * distanceScale;
+                        
+                        if (scaleCameraStateHeight)
+                        {
+                            state.height = originalValues.height * heightScale;
+                        }
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 重置相机multiplier系统
+        /// </summary>
+        public void ResetCameraMultiplierSystem()
+        {
+            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
+            if (!tpCam) return;
+            
+            // 重置到原始值
+            if (_cameraStateBase.Count > 0)
+            {
+                foreach (var state in tpCam.CameraStateList.tpCameraStates)
+                {
+                    if (_cameraStateBase.ContainsKey(state))
+                    {
+                        var originalValues = _cameraStateBase[state];
+                        state.defaultDistance = originalValues.def;
+                        state.minDistance = originalValues.min;
+                        state.maxDistance = originalValues.max;
+                        state.height = originalValues.height;
+                    }
+                }
+            }
+            
+            // 重置当前distance
+            tpCam.distance = _originalTPCameraDistance;
+            
+            _currentCameraMultiplier = 1.0f;
+            _cameraMultiplierApplied = false;
         }
         
         #endregion
@@ -551,6 +647,22 @@ namespace Xuwu.Character
         public int GetCurrentLimitBreakerLevel()
         {
             return limitBreakerLevel;
+        }
+        
+        /// <summary>
+        /// 获取当前相机multiplier
+        /// </summary>
+        public float GetCurrentCameraMultiplier()
+        {
+            return _currentCameraMultiplier;
+        }
+        
+        /// <summary>
+        /// 检查相机multiplier是否已应用
+        /// </summary>
+        public bool IsCameraMultiplierApplied()
+        {
+            return _cameraMultiplierApplied;
         }
         
         /// <summary>
@@ -916,7 +1028,7 @@ namespace Xuwu.Character
             // 应用初始缩放（如果需要）
             if (!_hasAppliedInitialCameraScale && !Mathf.Approximately(sizeMultiplier, 1.0f))
             {
-                AdjustInvectorCameraSystem(sizeMultiplier);
+                ApplyCameraMultiplierSystem(sizeMultiplier);
                 _hasAppliedInitialCameraScale = true;
             }
         }
@@ -978,102 +1090,6 @@ namespace Xuwu.Character
             return true;
         }
         
-        /// <summary>
-        /// 统一的Invector相机系统调整方法（通过multiplier，不直接修改原始值）
-        /// </summary>
-        private void AdjustInvectorCameraSystem(float multiplier)
-        {
-            var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
-            if (!tpCam) return;
-            
-            // 确保已缓存原始值
-            if (!_cachedTPCamera && !InitializeCameraCache())
-            {
-                return;
-            }
-            
-            if (scaleCameraStates)
-            {
-                // 使用状态缩放模式：缩放所有相机状态的distance和height
-                ApplyCameraStateMultipliers(tpCam, multiplier);
-            }
-            else
-            {
-                // 使用简单距离缩放模式：只缩放当前distance
-                ApplyCameraDistanceMultiplier(tpCam, multiplier);
-            }
-        }
-        
-        /// <summary>
-        /// 应用相机状态multiplier（缩放所有状态的distance和height）
-        /// </summary>
-        private void ApplyCameraStateMultipliers(Invector.vCamera.vThirdPersonCamera tpCam, float multiplier)
-        {
-            if (tpCam.CameraStateList == null || tpCam.CameraStateList.tpCameraStates == null) return;
-            
-            // 记录当前distance在区间内的相对位置（基于原始值）
-            var currentState = tpCam.currentState;
-            float relativePosition = 0.5f;
-            if (currentState != null && _cameraStateBase.ContainsKey(currentState))
-            {
-                var originalValues = _cameraStateBase[currentState];
-                if (originalValues.max > originalValues.min)
-                {
-                    // 基于原始值计算相对位置
-                    relativePosition = Mathf.InverseLerp(originalValues.min, originalValues.max, tpCam.distance);
-                }
-            }
-            
-            // 计算实际缩放倍率（统一使用cameraDistanceMultiplier和cameraHeightMultiplier）
-            float distanceScale = multiplier * cameraDistanceMultiplier;
-            float heightScale = multiplier * cameraHeightMultiplier;
-            
-            // 应用multiplier到所有相机状态（基于原始值）
-            foreach (var state in tpCam.CameraStateList.tpCameraStates)
-            {
-                if (_cameraStateBase.ContainsKey(state))
-                {
-                    var originalValues = _cameraStateBase[state];
-                    
-                    // 基于原始值应用multiplier
-                    state.defaultDistance = originalValues.def * distanceScale;
-                    state.minDistance = originalValues.min * distanceScale;
-                    state.maxDistance = originalValues.max * distanceScale;
-                    
-                    if (scaleCameraStateHeight)
-                    {
-                        state.height = originalValues.height * heightScale;
-                    }
-                }
-            }
-            
-            // 重新映射当前distance到新的边界，保持相对位置（基于原始值计算）
-            if (currentState != null && _cameraStateBase.ContainsKey(currentState))
-            {
-                var originalValues = _cameraStateBase[currentState];
-                float newMinDistance = originalValues.min * distanceScale;
-                float newMaxDistance = originalValues.max * distanceScale;
-                float newDistance = Mathf.Lerp(newMinDistance, newMaxDistance, relativePosition);
-                if (!Mathf.Approximately(tpCam.distance, newDistance))
-                {
-                    tpCam.distance = newDistance;
-                }
-            }
-        }
-        
-        /// <summary>
-        /// 应用相机距离multiplier（只缩放当前distance）
-        /// </summary>
-        private void ApplyCameraDistanceMultiplier(Invector.vCamera.vThirdPersonCamera tpCam, float multiplier)
-        {
-            float targetDistance = _originalTPCameraDistance * multiplier * cameraDistanceMultiplier;
-            
-            if (!Mathf.Approximately(tpCam.distance, targetDistance))
-            {
-                float previousDistance = tpCam.distance;
-                tpCam.distance = targetDistance;
-            }
-        }
         #endregion
         
         private Transform FindChildByName(Transform root, string childName)
