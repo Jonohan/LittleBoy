@@ -277,6 +277,17 @@ namespace Invector.vCharacterController.AI
         #region 辅助方法
         
         /// <summary>
+        /// 从外部设置自定义传送门颜色（会禁用动态颜色选择）
+        /// </summary>
+        /// <param name="color">要使用的颜色</param>
+        public void SetCustomPortalColor(PortalColor color)
+        {
+            customPortalColor = color;
+            useCustomPortalColor = true;
+            useDynamicPortalColor = false;
+        }
+
+        /// <summary>
         /// 初始化组件引用
         /// </summary>
         private void InitializeComponents()
@@ -730,6 +741,32 @@ namespace Invector.vCharacterController.AI
     #endregion
     
     #region 智能技能选择
+    
+    /// <summary>
+    /// 技能颜色配置类
+    /// </summary>
+    [System.Serializable]
+    public class SkillColorConfig
+    {
+        [UnityEngine.Tooltip("技能名称")]
+        public string skillName;
+        
+        [UnityEngine.Tooltip("首选颜色")]
+        public PortalColor preferredColor;
+        
+        [UnityEngine.Tooltip("是否在Blue和Orange之间随机选择")]
+        public bool useRandomColor;
+        
+        // 无参构造用于序列化/反序列化
+        public SkillColorConfig() {}
+
+        public SkillColorConfig(string name, PortalColor color, bool random)
+        {
+            skillName = name;
+            preferredColor = color;
+            useRandomColor = random;
+        }
+    }
         
         /// <summary>
     /// 智能技能选择任务
@@ -744,18 +781,63 @@ namespace Invector.vCharacterController.AI
         public SharedGameObject bossBlackboard;
         
         [Header("技能配置")]
-        [UnityEngine.Tooltip("可用技能列表")]
+        [UnityEngine.Tooltip("可用技能列表（不含触发型技能）")]
         public string[] availableSkills = {
             "tentacle_up", "tentacle_down", "tentacle_left", "tentacle_right",
             "wallthrow_left", "wallthrow_right",
-            "bombard", "flood", "vortex", "roar"
+            "roar"
         };
         
-        [UnityEngine.Tooltip("技能权重（影响选择概率）")]
+        [UnityEngine.Tooltip("技能权重（影响选择概率，对应 availableSkills 顺序，不含触发型技能）")]
         public float[] skillWeights = {
             1f, 1f, 1f, 1f,  // tentacle技能
             1f, 1f,          // wallthrow技能
-            1f, 1f, 1f, 1f   // 其他技能
+            1f               // roar
+        };
+
+        [System.Serializable]
+        public class TriggerCandidate
+        {
+            public string skillName;  // 只能是 bombard/flood/vortex 或你定义的其它触发型技能
+            [Range(0f,1f)] public float probability; // 触发概率（在下一次选择中单独评估或按权重归一）
+        }
+
+        [System.Serializable]
+        public class NextSkillTrigger
+        {
+            public string triggerSkill;              // 上一次使用的技能名
+            public TriggerCandidate[] candidates;    // 下一次可能触发的技能与概率
+        }
+
+        [Header("触发型技能配置（根据上一次技能，在下一次中按概率触发）")]
+        public NextSkillTrigger[] nextSkillTriggers = new NextSkillTrigger[] {
+            new NextSkillTrigger {
+                triggerSkill = "tentacle_up",
+                candidates = new TriggerCandidate[] {
+                    new TriggerCandidate { skillName = "flood", probability = 0.5f },
+                }
+            },
+            new NextSkillTrigger {
+                triggerSkill = "tentacle_down",
+                candidates = new TriggerCandidate[] {
+                    new TriggerCandidate { skillName = "bombard", probability = 0.5f }
+                }
+            }
+        };
+        
+        [Header("技能颜色配置")]
+        [UnityEngine.Tooltip("技能特定颜色配置")]
+        public SkillColorConfig[] skillColorConfigs = {
+            new SkillColorConfig("tentacle_up", PortalColor.Blue, true), //在这之后flood有1/2的概率发生，1/2是vortex
+            new SkillColorConfig("tentacle_down", PortalColor.Blue, false), // 只有在这之后bombard才有1/2的发生概率会发生
+            new SkillColorConfig("tentacle_left", PortalColor.Blue, true), // 随机选择
+            new SkillColorConfig("tentacle_right", PortalColor.Orange, true), // 随机选择
+            new SkillColorConfig("wallthrow_left", PortalColor.Blue, true),
+            new SkillColorConfig("wallthrow_right", PortalColor.Orange, true),
+            new SkillColorConfig("bombard", PortalColor.Blue, true), // 随机选择
+            new SkillColorConfig("flood", PortalColor.Orange, false),
+            new SkillColorConfig("vortex", PortalColor.Blue, true), // 随机选择
+            new SkillColorConfig("roar", PortalColor.Blue, false) // roar不需要传送门，但保留配置
         };
         
         [Header("输出")]
@@ -798,6 +880,7 @@ namespace Invector.vCharacterController.AI
             // 如果还没有选择技能，先选择技能
             if (_currentSkillTask == null && !_isExecutingSkill)
             {
+                Debug.Log("------");
                 
                 if (!_bossBlackboard)
                 {
@@ -813,8 +896,14 @@ namespace Invector.vCharacterController.AI
                     return TaskStatus.Failure;
                 }
                 
-                // 根据权重随机选择技能
-                string selectedSkillName = SelectSkillByWeight(validSkills);
+                // 先尝试触发型技能（基于上一次技能，在下一次选择中按概率触发）
+                string selectedSkillName = TrySelectTriggeredSkill();
+                
+                // 如果没有触发，则按权重在可用技能中选择（已不包含触发型技能）
+                if (string.IsNullOrEmpty(selectedSkillName))
+                {
+                    selectedSkillName = SelectSkillByWeight(validSkills);
+                }
                 selectedSkill.Value = selectedSkillName;
                 
                 
@@ -891,6 +980,69 @@ namespace Invector.vCharacterController.AI
             
             return available;
     }
+
+        /// <summary>
+        /// 根据上一次技能，尝试选择触发型技能（只在下一次选择中评估）
+        /// </summary>
+        /// <returns>若触发则返回技能名，否则返回空字符串</returns>
+        private string TrySelectTriggeredSkill()
+        {
+            if (_bossBlackboard == null || nextSkillTriggers == null || nextSkillTriggers.Length == 0) return string.Empty;
+            string last = _bossBlackboard.GetLastUsedSkill();
+            if (string.IsNullOrEmpty(last)) return string.Empty;
+            
+            // 找到对应触发配置
+            NextSkillTrigger trigger = null;
+            foreach (var t in nextSkillTriggers)
+            {
+                if (t != null && t.triggerSkill == last)
+                {
+                    trigger = t; break;
+                }
+            }
+            if (trigger == null || trigger.candidates == null || trigger.candidates.Length == 0) return string.Empty;
+            
+            // 过滤掉冷却中或无可用插槽的候选，并拷贝概率（0..1）
+            var validCandidates = new List<TriggerCandidate>();
+            foreach (var c in trigger.candidates)
+            {
+                if (c == null || string.IsNullOrEmpty(c.skillName)) continue;
+                float p = Mathf.Clamp01(c.probability);
+                if (p <= 0f) continue;
+                if (IsSkillOnCooldown(c.skillName)) continue;
+                if (!CanUseSkill(c.skillName)) continue;
+                validCandidates.Add(new TriggerCandidate { skillName = c.skillName, probability = p });
+            }
+            if (validCandidates.Count == 0) return string.Empty;
+            
+            // 概率解释为“绝对概率”：按顺序累加，roll in [0,1]
+            // 若总和 < 1，有剩余概率用来回退到权重选择
+            float totalP = 0f;
+            foreach (var c in validCandidates) totalP += c.probability;
+            float roll = Random.value;
+            // 若总和>1，按总和归一（避免>1导致必定触发）
+            if (totalP > 1f)
+            {
+                float accNorm = 0f;
+                foreach (var c in validCandidates)
+                {
+                    accNorm += c.probability / totalP;
+                    if (roll <= accNorm) return c.skillName;
+                }
+                return string.Empty;
+            }
+            else
+            {
+                float acc = 0f;
+                foreach (var c in validCandidates)
+                {
+                    acc += c.probability;
+                    if (roll <= acc) return c.skillName;
+                }
+                // roll 落在剩余概率段：不触发，回退到权重系统
+                return string.Empty;
+            }
+        }
     
     /// <summary>
         /// 检查技能是否在冷却中
@@ -1057,10 +1209,55 @@ namespace Invector.vCharacterController.AI
             {
                 task.Owner = this.Owner;
                 task.isCalledBySmartSkill = true; // 标记为SmartSkill调用
+                
+                // 根据技能配置设置颜色
+                ConfigureSkillColor(task, skillName);
+                
                 Debug.Log($"[BossSmartSkillSelection] 为技能Task设置Owner: {(task.Owner != null ? task.Owner.name : "null")}");
             }
             
             return task;
+        }
+        
+        /// <summary>
+        /// 根据技能配置设置技能颜色
+        /// </summary>
+        /// <param name="task">技能Task</param>
+        /// <param name="skillName">技能名称</param>
+        private void ConfigureSkillColor(BossSkillTask task, string skillName)
+        {
+            // 查找对应的颜色配置
+            SkillColorConfig config = null;
+            foreach (var skillConfig in skillColorConfigs)
+            {
+                if (skillConfig.skillName == skillName)
+                {
+                    config = skillConfig;
+                    break;
+                }
+            }
+            
+            if (config == null)
+            {
+                Debug.LogWarning($"[BossSmartSkillSelection] 未找到技能 {skillName} 的颜色配置，使用默认颜色");
+                return;
+            }
+            
+            // 设置颜色配置
+            if (config.useRandomColor)
+            {
+                // 随机选择Blue或Orange
+                PortalColor[] randomColors = { PortalColor.Blue, PortalColor.Orange };
+                var chosen = randomColors[Random.Range(0, randomColors.Length)];
+                task.SetCustomPortalColor(chosen);
+                Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 使用随机颜色: {chosen}");
+            }
+            else
+            {
+                // 使用指定的首选颜色
+                task.SetCustomPortalColor(config.preferredColor);
+                Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 使用指定颜色: {config.preferredColor}");
+            }
         }
     }
     
