@@ -279,6 +279,7 @@ MonoBehaviour:
   playerTarget: {fileID: 676714697}
   trackingRange: 25
   _isInUse: 0
+  portalWorldPosition: {x: 0, y: 0, z: 0}
 --- !u!1 &142614003
 GameObject:
   m_ObjectHideFlags: 0
@@ -892,7 +893,7 @@ Camera:
   m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.278431, g: 0.278431, b: 0.278431, a: 1}
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -913,9 +914,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.07747503
-  far clip plane: 15495.007
-  field of view: 60.000004
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -926,11 +927,11 @@ Camera:
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
-  m_HDR: 0
+  m_HDR: 1
   m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 0
+  m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!43 &625582501
@@ -1788,6 +1789,7 @@ MonoBehaviour:
   playerTarget: {fileID: 676714697}
   trackingRange: 25
   _isInUse: 0
+  portalWorldPosition: {x: 0, y: 0, z: 0}
 --- !u!1001 &1098553927
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2535,6 +2537,7 @@ MonoBehaviour:
   playerTarget: {fileID: 676714697}
   trackingRange: 25
   _isInUse: 0
+  portalWorldPosition: {x: 0, y: 0, z: 0}
 --- !u!43 &1299640964
 Mesh:
   m_ObjectHideFlags: 0
@@ -3461,6 +3464,7 @@ MonoBehaviour:
   playerTarget: {fileID: 676714697}
   trackingRange: 25
   _isInUse: 0
+  portalWorldPosition: {x: 0, y: 0, z: 0}
 --- !u!1 &1671554443
 GameObject:
   m_ObjectHideFlags: 0

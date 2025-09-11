@@ -792,38 +792,26 @@ namespace Invector.vCharacterController.AI
         public float[] skillWeights = {
             1f, 1f, 1f, 1f,  // tentacle技能
             1f, 1f,          // wallthrow技能
-            1f               // roar
+            0f               // roar
         };
 
+        // 扁平化触发配置：避免嵌套数组在 BT Inspector 中显示异常
         [System.Serializable]
-        public class TriggerCandidate
+        public class TriggerProbConfig
         {
-            public string skillName;  // 只能是 bombard/flood/vortex 或你定义的其它触发型技能
-            [Range(0f,1f)] public float probability; // 触发概率（在下一次选择中单独评估或按权重归一）
+            [Range(0f,1f)] public float bombard; // 下一次触发"bombard"的绝对概率
+            [Range(0f,1f)] public float flood;   // 下一次触发"flood"的绝对概率
+            [Range(0f,1f)] public float vortex;  // 下一次触发"vortex"的绝对概率
         }
 
-        [System.Serializable]
-        public class NextSkillTrigger
-        {
-            public string triggerSkill;              // 上一次使用的技能名
-            public TriggerCandidate[] candidates;    // 下一次可能触发的技能与概率
-        }
-
-        [Header("触发型技能配置（根据上一次技能，在下一次中按概率触发）")]
-        public NextSkillTrigger[] nextSkillTriggers = new NextSkillTrigger[] {
-            new NextSkillTrigger {
-                triggerSkill = "tentacle_up",
-                candidates = new TriggerCandidate[] {
-                    new TriggerCandidate { skillName = "flood", probability = 0.5f },
-                }
-            },
-            new NextSkillTrigger {
-                triggerSkill = "tentacle_down",
-                candidates = new TriggerCandidate[] {
-                    new TriggerCandidate { skillName = "bombard", probability = 0.5f }
-                }
-            }
-        };
+        [Header("触发型技能概率（根据上一次技能，在下一次中按绝对概率触发）")]
+        public TriggerProbConfig tentacle_upTrigger = new TriggerProbConfig { flood = 0.5f };
+        public TriggerProbConfig tentacle_downTrigger = new TriggerProbConfig { bombard = 0.5f };
+        public TriggerProbConfig tentacle_leftTrigger = new TriggerProbConfig();
+        public TriggerProbConfig tentacle_rightTrigger = new TriggerProbConfig();
+        public TriggerProbConfig wallthrow_leftTrigger = new TriggerProbConfig();
+        public TriggerProbConfig wallthrow_rightTrigger = new TriggerProbConfig();
+        public TriggerProbConfig roarTrigger = new TriggerProbConfig();
         
         [Header("技能颜色配置")]
         [UnityEngine.Tooltip("技能特定颜色配置")]
@@ -834,7 +822,7 @@ namespace Invector.vCharacterController.AI
             new SkillColorConfig("tentacle_right", PortalColor.Orange, true), // 随机选择
             new SkillColorConfig("wallthrow_left", PortalColor.Blue, true),
             new SkillColorConfig("wallthrow_right", PortalColor.Orange, true),
-            new SkillColorConfig("bombard", PortalColor.Blue, true), // 随机选择
+            new SkillColorConfig("bombard", PortalColor.Blue, false),
             new SkillColorConfig("flood", PortalColor.Orange, false),
             new SkillColorConfig("vortex", PortalColor.Blue, true), // 随机选择
             new SkillColorConfig("roar", PortalColor.Blue, false) // roar不需要传送门，但保留配置
@@ -987,60 +975,64 @@ namespace Invector.vCharacterController.AI
         /// <returns>若触发则返回技能名，否则返回空字符串</returns>
         private string TrySelectTriggeredSkill()
         {
-            if (_bossBlackboard == null || nextSkillTriggers == null || nextSkillTriggers.Length == 0) return string.Empty;
+            if (_bossBlackboard == null) return string.Empty;
             string last = _bossBlackboard.GetLastUsedSkill();
             if (string.IsNullOrEmpty(last)) return string.Empty;
-            
-            // 找到对应触发配置
-            NextSkillTrigger trigger = null;
-            foreach (var t in nextSkillTriggers)
+
+            TriggerProbConfig cfg = GetTriggerConfig(last);
+            if (cfg == null) return string.Empty;
+
+            var candidates = new List<(string skill, float p)>();
+            if (cfg.bombard > 0f) candidates.Add(("bombard", Mathf.Clamp01(cfg.bombard)));
+            if (cfg.flood > 0f) candidates.Add(("flood", Mathf.Clamp01(cfg.flood)));
+            if (cfg.vortex > 0f) candidates.Add(("vortex", Mathf.Clamp01(cfg.vortex)));
+            if (candidates.Count == 0) return string.Empty;
+
+            var valid = new List<(string skill, float p)>();
+            foreach (var c in candidates)
             {
-                if (t != null && t.triggerSkill == last)
-                {
-                    trigger = t; break;
-                }
+                if (IsSkillOnCooldown(c.skill)) continue;
+                if (!CanUseSkill(c.skill)) continue;
+                valid.Add(c);
             }
-            if (trigger == null || trigger.candidates == null || trigger.candidates.Length == 0) return string.Empty;
-            
-            // 过滤掉冷却中或无可用插槽的候选，并拷贝概率（0..1）
-            var validCandidates = new List<TriggerCandidate>();
-            foreach (var c in trigger.candidates)
-            {
-                if (c == null || string.IsNullOrEmpty(c.skillName)) continue;
-                float p = Mathf.Clamp01(c.probability);
-                if (p <= 0f) continue;
-                if (IsSkillOnCooldown(c.skillName)) continue;
-                if (!CanUseSkill(c.skillName)) continue;
-                validCandidates.Add(new TriggerCandidate { skillName = c.skillName, probability = p });
-            }
-            if (validCandidates.Count == 0) return string.Empty;
-            
-            // 概率解释为“绝对概率”：按顺序累加，roll in [0,1]
-            // 若总和 < 1，有剩余概率用来回退到权重选择
-            float totalP = 0f;
-            foreach (var c in validCandidates) totalP += c.probability;
+            if (valid.Count == 0) return string.Empty;
+
+            float total = 0f; foreach (var v in valid) total += v.p;
             float roll = Random.value;
-            // 若总和>1，按总和归一（避免>1导致必定触发）
-            if (totalP > 1f)
+            if (total > 1f)
             {
-                float accNorm = 0f;
-                foreach (var c in validCandidates)
+                float accN = 0f;
+                foreach (var v in valid)
                 {
-                    accNorm += c.probability / totalP;
-                    if (roll <= accNorm) return c.skillName;
+                    accN += v.p / total;
+                    if (roll <= accN) return v.skill;
                 }
                 return string.Empty;
             }
             else
             {
                 float acc = 0f;
-                foreach (var c in validCandidates)
+                foreach (var v in valid)
                 {
-                    acc += c.probability;
-                    if (roll <= acc) return c.skillName;
+                    acc += v.p;
+                    if (roll <= acc) return v.skill;
                 }
-                // roll 落在剩余概率段：不触发，回退到权重系统
                 return string.Empty;
+            }
+        }
+
+        private TriggerProbConfig GetTriggerConfig(string lastSkill)
+        {
+            switch (lastSkill)
+            {
+                case "tentacle_up": return tentacle_upTrigger;
+                case "tentacle_down": return tentacle_downTrigger;
+                case "tentacle_left": return tentacle_leftTrigger;
+                case "tentacle_right": return tentacle_rightTrigger;
+                case "wallthrow_left": return wallthrow_leftTrigger;
+                case "wallthrow_right": return wallthrow_rightTrigger;
+                case "roar": return roarTrigger;
+                default: return null;
             }
         }
     
