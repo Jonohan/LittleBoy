@@ -115,8 +115,6 @@ namespace Invector.vCharacterController.AI
         [ShowInInspector, ReadOnly]
         private int _totalPortalsSpawned = 0;
         
-        [ShowInInspector, ReadOnly]
-        private int _totalPortalsClosed = 0;
         
         [ShowInInspector, ReadOnly]
         private PortalData _portal1Data;
@@ -552,6 +550,19 @@ namespace Invector.vCharacterController.AI
                 }
             }
             return result;
+        }
+        
+        /// <summary>
+        /// 获取最新的传送门
+        /// </summary>
+        /// <returns>最新的传送门数据，如果没有则返回null</returns>
+        public PortalData GetLatestPortal()
+        {
+            if (_activePortals.Count == 0)
+                return null;
+            
+            // 返回最后创建的传送门
+            return _activePortals[_activePortals.Count - 1];
         }
         
         /// <summary>

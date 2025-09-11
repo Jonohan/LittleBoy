@@ -13,69 +13,73 @@ namespace Invector.vCharacterController.AI
     public class BossBlackboard : MonoBehaviour
     {
         [Header("血量与阶段")]
-        [Tooltip("Boss当前血量百分比 (0-1)")]
+        [UnityEngine.Tooltip("Boss当前血量百分比 (0-1)")]
         public SharedFloat hpPct = new SharedFloat();
         
-        [Tooltip("当前阶段")]
+        [UnityEngine.Tooltip("当前阶段")]
         public SharedString phase = new SharedString();
         
         [Header("传送门管理")]
-        [Tooltip("当前场上传送门数量")]
+        [UnityEngine.Tooltip("当前场上传送门数量")]
         public SharedInt numPortals = new SharedInt();
         
-        [Tooltip("上一个生成的传送门类型")]
+        [UnityEngine.Tooltip("上一个生成的传送门类型")]
         public SharedString lastPortalType = new SharedString();
         
         [Header("技能冷却")]
-        [Tooltip("异能轰炸冷却时间")]
+        [UnityEngine.Tooltip("异能轰炸冷却时间")]
         public SharedFloat cooldown_bombard = new SharedFloat();
         
-        [Tooltip("异能洪水冷却时间")]
+        [UnityEngine.Tooltip("异能洪水冷却时间")]
         public SharedFloat cooldown_flood = new SharedFloat();
         
-        [Tooltip("触手横扫冷却时间")]
+        [UnityEngine.Tooltip("触手横扫冷却时间")]
         public SharedFloat cooldown_tentacle = new SharedFloat();
         
-        [Tooltip("漩涡发射冷却时间")]
+        [UnityEngine.Tooltip("漩涡发射冷却时间")]
         public SharedFloat cooldown_vortex = new SharedFloat();
         
-        [Tooltip("侧墙直线投掷冷却时间")]
+        [UnityEngine.Tooltip("侧墙直线投掷冷却时间")]
         public SharedFloat cooldown_wallThrow = new SharedFloat();
         
-        [Tooltip("吼叫冷却时间")]
+        [UnityEngine.Tooltip("吼叫冷却时间")]
         public SharedFloat cooldown_roar = new SharedFloat();
         
         [Header("目标与状态")]
-        [Tooltip("玩家引用")]
+        [UnityEngine.Tooltip("玩家引用")]
         public SharedGameObject target = new SharedGameObject();
         
-        [Tooltip("愤怒态开关 (70%以下)")]
+        [UnityEngine.Tooltip("愤怒态开关 (70%以下)")]
         public SharedBool angerOn = new SharedBool();
         
-        [Tooltip("恐惧态开关 (40%以下)")]
+        [UnityEngine.Tooltip("恐惧态开关 (40%以下)")]
         public SharedBool fearOn = new SharedBool();
         
-        [Tooltip("失能态开关 (玩家4.5体型落地触发)")]
+        [UnityEngine.Tooltip("失能态开关 (玩家4.5体型落地触发)")]
         public SharedBool disabledOn = new SharedBool();
         
         [Header("传送门插槽")]
-        [Tooltip("可放置传送门的预设插槽")]
+        [UnityEngine.Tooltip("可放置传送门的预设插槽")]
         public Transform[] arenaSlots;
         
+        [Header("Boss部件管理")]
+        [UnityEngine.Tooltip("Boss部件管理器")]
+        public BossPartManager bossPartManager;
+        
         [Header("阶段阈值")]
-        [Tooltip("愤怒阶段血量阈值")]
+        [UnityEngine.Tooltip("愤怒阶段血量阈值")]
         [Range(0f, 1f)]
         public float angerThreshold = 0.7f;
         
-        [Tooltip("恐惧阶段血量阈值")]
+        [UnityEngine.Tooltip("恐惧阶段血量阈值")]
         [Range(0f, 1f)]
         public float fearThreshold = 0.4f;
         
         [Header("传送门限制")]
-        [Tooltip("最大传送门数量")]
+        [UnityEngine.Tooltip("最大传送门数量")]
         public int maxPortals = 2;
         
-        [Tooltip("传送门生成间隔")]
+        [UnityEngine.Tooltip("传送门生成间隔")]
         public float portalSpawnInterval = 3f;
         
         [Header("调试信息")]
@@ -106,6 +110,9 @@ namespace Invector.vCharacterController.AI
             
             // 查找玩家
             FindPlayer();
+            
+            // 查找Boss部件管理器
+            FindBossPartManager();
         }
         
         private void Start()
@@ -167,6 +174,30 @@ namespace Invector.vCharacterController.AI
             else
             {
                 Debug.LogWarning("[BossBlackboard] 未找到玩家对象");
+            }
+        }
+        
+        /// <summary>
+        /// 查找Boss部件管理器
+        /// </summary>
+        private void FindBossPartManager()
+        {
+            if (!bossPartManager)
+            {
+                bossPartManager = GetComponent<BossPartManager>();
+                if (!bossPartManager)
+                {
+                    bossPartManager = GetComponentInChildren<BossPartManager>();
+                }
+            }
+            
+            if (bossPartManager)
+            {
+                Debug.Log($"[BossBlackboard] 找到Boss部件管理器: {bossPartManager.name}");
+            }
+            else
+            {
+                Debug.LogWarning("[BossBlackboard] 未找到Boss部件管理器");
             }
         }
         
@@ -420,6 +451,91 @@ namespace Invector.vCharacterController.AI
             }
             
             return null;
+        }
+        
+        #endregion
+        
+        #region Boss部件控制方法
+        
+        /// <summary>
+        /// 激活Boss部件
+        /// </summary>
+        public void ActivateBossPart()
+        {
+            if (bossPartManager)
+            {
+                bossPartManager.ActivatePart();
+            }
+        }
+        
+        /// <summary>
+        /// 非激活Boss部件
+        /// </summary>
+        public void DeactivateBossPart()
+        {
+            if (bossPartManager)
+            {
+                bossPartManager.DeactivatePart();
+            }
+        }
+        
+        /// <summary>
+        /// 激活Boss部件攻击
+        /// </summary>
+        public void ActivateBossPartAttack()
+        {
+            if (bossPartManager)
+            {
+                bossPartManager.ActivatePartAttack();
+            }
+        }
+        
+        /// <summary>
+        /// 关闭Boss部件攻击
+        /// </summary>
+        public void DeactivateBossPartAttack()
+        {
+            if (bossPartManager)
+            {
+                bossPartManager.DeactivatePartAttack();
+            }
+        }
+        
+        /// <summary>
+        /// 移动到传送门位置并攻击
+        /// </summary>
+        public void MoveBossPartToPortalAndAttack()
+        {
+            if (bossPartManager)
+            {
+                bossPartManager.MoveToPortalAndAttack();
+            }
+        }
+        
+        /// <summary>
+        /// 获取Boss部件是否激活
+        /// </summary>
+        /// <returns>是否激活</returns>
+        public bool IsBossPartActive()
+        {
+            if (bossPartManager && bossPartManager.bossPart)
+            {
+                return bossPartManager.bossPart.IsActive();
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// 获取Boss部件是否正在攻击
+        /// </summary>
+        /// <returns>是否正在攻击</returns>
+        public bool IsBossPartAttacking()
+        {
+            if (bossPartManager && bossPartManager.bossPart)
+            {
+                return bossPartManager.bossPart.IsAttackActive();
+            }
+            return false;
         }
         
         #endregion
