@@ -246,7 +246,33 @@ namespace Invector.vCharacterController.AI
                 _bossBlackboard.SetCooldown(skillName.ToLower(), cooldownTime);
             }
             
-            // 传送门不需要关闭，它们一直存在
+            // 通用清理：确保被打断或正常结束时资源全部回收、状态复原
+            try
+            {
+                // 1) 仅在 Spawn 阶段被中止时回收VFX并复原插槽数据
+                //    其余阶段视为“传送门已成功创建且流程完成”，不复位传送门
+                if (_currentPhase == SkillPhase.SpawnPortal)
+                {
+                    if (_currentPortal != null && _currentPortal.portalSlot != null)
+                    {
+                        _currentPortal.portalSlot.ResetSlot();
+                    }
+                }
+                
+                // 2) 关闭可能仍在激活的Boss部件与攻击（与传送门是否复位无关）
+                if (_bossBlackboard && _bossBlackboard.bossPartManager)
+                {
+                    _bossBlackboard.bossPartManager.DeactivatePartAttack();
+                    _bossBlackboard.bossPartManager.DeactivatePart();
+                }
+            }
+            finally
+            {
+                // 3) 复位本地状态机标志
+                _currentPortal = null;
+                _hasExecutedSkill = false;
+                _currentPhase = SkillPhase.None;
+            }
             
             return TaskStatus.Success;
         }
@@ -873,6 +899,7 @@ namespace Invector.vCharacterController.AI
                 if (!_bossBlackboard)
                 {
                     Debug.LogError("[BossSmartSkillSelection] BossBlackboard未找到");
+                    LogBTFailure("BossBlackboard is null");
                     return TaskStatus.Failure;
                 }
                 
@@ -881,6 +908,7 @@ namespace Invector.vCharacterController.AI
                
                 if (validSkills.Count == 0)
                 {
+                    LogBTFailure("No available skills after cooldown/slot checks");
                     return TaskStatus.Failure;
                 }
                 
@@ -900,6 +928,7 @@ namespace Invector.vCharacterController.AI
                 if (_currentSkillTask == null)
                 {
                     Debug.LogError($"[BossSmartSkillSelection] 未找到技能类: {selectedSkillName}");
+                    LogBTFailure($"CreateSkillTask returned null for {selectedSkillName}");
                     return TaskStatus.Failure;
                 }
                 
@@ -925,6 +954,21 @@ namespace Invector.vCharacterController.AI
             }
             
             return TaskStatus.Failure;
+        }
+
+        // 打印行为树失败原因与黑板快照，辅助定位“状态切换导致失败”的问题
+        private void LogBTFailure(string reason)
+        {
+            if (_bossBlackboard)
+            {
+                Debug.LogWarning(
+                    $"[BossSmartSkillSelection] Failure: {reason} | phase={_bossBlackboard.phase.Value}, hpPct={_bossBlackboard.hpPct.Value:F2}, angerOn={_bossBlackboard.angerOn.Value}, fearOn={_bossBlackboard.fearOn.Value}, lastSkill={_bossBlackboard.GetLastUsedSkill()}, portals={_bossBlackboard.numPortals.Value}"
+                );
+            }
+            else
+            {
+                Debug.LogWarning($"[BossSmartSkillSelection] Failure: {reason} | bossBlackboard=null");
+            }
         }
         
         public override void OnEnd()

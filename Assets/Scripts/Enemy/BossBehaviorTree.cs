@@ -310,9 +310,18 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("恐惧状态变量")]
         public SharedBool fearOn;
         
+        private BossBlackboard _bossBlackboard;
+        
+        public override void OnStart()
+        {
+            _bossBlackboard = GetComponent<BossBlackboard>();
+        }
+        
         public override TaskStatus OnUpdate()
         {
-            if (fearOn.Value)
+            // 优先使用BossBlackboard的值，如果没有则使用SharedVariable
+            bool currentFear = _bossBlackboard ? _bossBlackboard.fearOn.Value : fearOn.Value;
+            if (currentFear)
             {
                 return TaskStatus.Success;
             }

@@ -4331,11 +4331,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1073876455590800401, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: _maxHealth
-      value: 300
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 1073876455590800401, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: selectedToolbar
-      value: 3
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: m_Name
