@@ -16,41 +16,27 @@ namespace Invector.vCharacterController.AI
     /// </summary>
     public abstract class BossSkillTask : Action
     {
-        [Header("技能配置")]
-        [UnityEngine.Tooltip("技能名称")]
-        public string skillName = "Unknown";
-        
-        [UnityEngine.Tooltip("技能冷却时间")]
-        public float cooldownTime = 5f;
-        
-        [UnityEngine.Tooltip("传送门生成时间")]
-        public float spawnPortalTime = 5f;
-        
-        [UnityEngine.Tooltip("前摇时间")]
-        public float telegraphTime = 2f;
-        
-        [UnityEngine.Tooltip("后摇时间")]
-        public float postAttackTime = 1f;
-        
         [Header("传送门配置")]
-        [UnityEngine.Tooltip("传送门类型")]
-        public PortalType portalType = PortalType.Ceiling;
+        [UnityEngine.Tooltip("自定义传送门颜色（可选，不设置则使用默认逻辑）")]
+        public PortalColor customPortalColor = PortalColor.Blue;
         
-        [UnityEngine.Tooltip("传送门颜色")]
-        public PortalColor portalColor = PortalColor.Blue;
+        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
+        public bool useCustomPortalColor = false;
         
-        [UnityEngine.Tooltip("是否根据Boss阶段动态选择传送门颜色")]
-        public bool useDynamicPortalColor = true;
+        // 内部参数，不需要在Inspector中设置
+        protected string skillName = "Unknown";
+        protected float cooldownTime = 5f;
+        protected float spawnPortalTime = 5f;
+        protected float telegraphTime = 2f;
+        protected float postAttackTime = 1f;
+        protected PortalType portalType = PortalType.Ceiling;
+        protected PortalColor portalColor = PortalColor.Blue;
+        protected bool useDynamicPortalColor = true;
         
-        [Header("组件引用")]
-        [UnityEngine.Tooltip("传送门管理器")]
-        public SharedGameObject portalManager = new SharedGameObject();
-        
-        [UnityEngine.Tooltip("Boss黑板变量")]
-        public SharedGameObject bossBlackboard = new SharedGameObject();
-        
-        [UnityEngine.Tooltip("Boss AI控制器")]
-        public SharedGameObject bossAI = new SharedGameObject();
+        // 组件引用，自动配置
+        protected SharedGameObject portalManager = new SharedGameObject();
+        protected SharedGameObject bossBlackboard = new SharedGameObject();
+        protected SharedGameObject bossAI = new SharedGameObject();
         
         // 私有变量
         protected PortalManager _portalManager;
@@ -75,8 +61,12 @@ namespace Invector.vCharacterController.AI
         {
             InitializeComponents();
             
-            // 根据Boss阶段动态选择传送门颜色
-            if (useDynamicPortalColor)
+            // 设置传送门颜色
+            if (useCustomPortalColor)
+            {
+                portalColor = customPortalColor;
+            }
+            else if (useDynamicPortalColor)
             {
                 SelectPortalColorByBossPhase();
             }
@@ -288,30 +278,50 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void InitializeComponents()
         {
-            // BossBlackboard和Behavior Tree在同一个对象上，直接获取
-            if (!_bossBlackboard && Owner)
+            // 自动配置所有组件引用（避免重复配置）
+            AutoConfigureComponents();
+        }
+        
+        /// <summary>
+        /// 自动配置所有组件引用
+        /// </summary>
+        private void AutoConfigureComponents()
+        {
+            if (!Owner) return;
+            
+            // 自动配置BossBlackboard
+            if (!_bossBlackboard)
             {
                 _bossBlackboard = Owner.GetComponent<BossBlackboard>();
             }
-            else if (!_bossBlackboard)
-            {
-                Debug.LogError($"[{skillName}] 无法获取BossBlackboard - Owner为空");
-            }
             
-            // 如果手动指定了引用，优先使用
-            if (portalManager.Value != null)
-            {
-                _portalManager = portalManager.Value.GetComponent<PortalManager>();
-            }
-            else
+            // 自动配置PortalManager
+            if (!_portalManager)
             {
                 _portalManager = UnityEngine.Object.FindObjectOfType<PortalManager>();
             }
             
-            if (bossAI.Value != null)
-                _bossAI = bossAI.Value.GetComponent<NonHumanoidBossAI>();
-            else if (Owner)
+            // 自动配置BossAI
+            if (!_bossAI)
+            {
                 _bossAI = Owner.GetComponent<NonHumanoidBossAI>();
+            }
+            
+            // 自动配置SharedGameObject引用（避免在Inspector中手动配置）
+            if (portalManager.Value == null && _portalManager)
+            {
+                portalManager.Value = _portalManager.gameObject;
+            }
+            
+            if (bossBlackboard.Value == null && _bossBlackboard)
+            {
+                bossBlackboard.Value = _bossBlackboard.gameObject;
+            }
+            
+            if (bossAI.Value == null && _bossAI)
+            {
+                bossAI.Value = _bossAI.gameObject;
+            }
         }
         
         /// <summary>
@@ -422,9 +432,9 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "bombard";
             portalType = PortalType.Ceiling;
-            portalColor = PortalColor.Blue;
             cooldownTime = 8f;
             spawnPortalTime = 5f;
             telegraphTime = 3f;
@@ -470,9 +480,9 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "wallthrow";
-            portalType = PortalType.WallLeft; // 默认左墙，可通过参数调整
-            portalColor = PortalColor.Blue;
+            portalType = PortalType.WallLeft; // 默认左墙
             cooldownTime = 6f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
@@ -518,9 +528,9 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "tentacle";
             portalType = PortalType.Ground; // 触手从地面伸出
-            portalColor = PortalColor.Orange;
             cooldownTime = 7f;
             spawnPortalTime = 5f;
             telegraphTime = 2.5f;
@@ -572,9 +582,9 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "flood";
             portalType = PortalType.Ground;
-            portalColor = PortalColor.Orange;
             cooldownTime = 10f;
             spawnPortalTime = 5f;
             telegraphTime = 3f;
@@ -624,9 +634,9 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "vortex";
             portalType = PortalType.Ground;
-            portalColor = PortalColor.Orange;
             cooldownTime = 12f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
@@ -672,9 +682,9 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "roar";
             portalType = PortalType.None; // 吼叫不需要传送门
-            portalColor = PortalColor.Blue;
             cooldownTime = 15f;
             spawnPortalTime = 5f;
             telegraphTime = 1f;
@@ -737,20 +747,27 @@ namespace Invector.vCharacterController.AI
         
         public override void OnStart()
         {
+            // 自动配置组件引用
+            AutoConfigureComponents();
+        }
+        
+        /// <summary>
+        /// 自动配置所有组件引用
+        /// </summary>
+        private void AutoConfigureComponents()
+        {
+            if (!Owner) return;
             
-            // 优先使用手动指定的引用
-            if (bossBlackboard.Value)
-            {
-                _bossBlackboard = bossBlackboard.Value.GetComponent<BossBlackboard>();
-               
-            }
-            // 如果没指定，直接从Owner获取（BossBlackboard和Behavior Tree在同一个对象上）
-            else if (Owner)
+            // 自动配置BossBlackboard
+            if (!_bossBlackboard)
             {
                 _bossBlackboard = Owner.GetComponent<BossBlackboard>();
             }
-            else
+            
+            // 自动配置SharedGameObject引用
+            if (bossBlackboard.Value == null && _bossBlackboard)
             {
+                bossBlackboard.Value = _bossBlackboard.gameObject;
             }
         }
         
@@ -861,11 +878,11 @@ namespace Invector.vCharacterController.AI
             
             Debug.Log($"[BossSmartSkillSelection] 最终可用技能: {string.Join(", ", available)}");
             return available;
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// 检查技能是否在冷却中
-        /// </summary>
+    /// </summary>
         /// <param name="skillName">技能名称</param>
         /// <returns>是否在冷却中</returns>
         private bool IsSkillOnCooldown(string skillName)
@@ -1055,30 +1072,12 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("击退力度")]
         public float knockbackForce = 10f;
         
-        [Header("传送门配置")]
-        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
-        public PortalColor customPortalColor = PortalColor.Blue;
-        
-        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
-        public bool useCustomPortalColor = false;
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "tentacle_up";
             portalType = PortalType.Ceiling;
-            
-            // 设置传送门颜色
-            if (useCustomPortalColor)
-            {
-                portalColor = customPortalColor;
-            }
-            else
-            {
-                // 默认从Blue和Orange随机选择
-                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
-                portalColor = normalColors[Random.Range(0, normalColors.Length)];
-            }
-            
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
@@ -1126,30 +1125,12 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("击退力度")]
         public float knockbackForce = 10f;
         
-        [Header("传送门配置")]
-        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
-        public PortalColor customPortalColor = PortalColor.Blue;
-        
-        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
-        public bool useCustomPortalColor = false;
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "tentacle_down";
             portalType = PortalType.Ground;
-            
-            // 设置传送门颜色
-            if (useCustomPortalColor)
-            {
-                portalColor = customPortalColor;
-            }
-            else
-            {
-                // 默认从Blue和Orange随机选择
-                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
-                portalColor = normalColors[Random.Range(0, normalColors.Length)];
-            }
-            
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
@@ -1197,30 +1178,12 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("击退力度")]
         public float knockbackForce = 10f;
         
-        [Header("传送门配置")]
-        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
-        public PortalColor customPortalColor = PortalColor.Blue;
-        
-        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
-        public bool useCustomPortalColor = false;
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "tentacle_left";
             portalType = PortalType.WallLeft;
-            
-            // 设置传送门颜色
-            if (useCustomPortalColor)
-            {
-                portalColor = customPortalColor;
-            }
-            else
-            {
-                // 默认从Blue和Orange随机选择
-                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
-                portalColor = normalColors[Random.Range(0, normalColors.Length)];
-            }
-            
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
@@ -1268,30 +1231,12 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("击退力度")]
         public float knockbackForce = 10f;
         
-        [Header("传送门配置")]
-        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
-        public PortalColor customPortalColor = PortalColor.Blue;
-        
-        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
-        public bool useCustomPortalColor = false;
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "tentacle_right";
             portalType = PortalType.WallRight;
-            
-            // 设置传送门颜色
-            if (useCustomPortalColor)
-            {
-                portalColor = customPortalColor;
-            }
-            else
-            {
-                // 默认从Blue和Orange随机选择
-                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
-                portalColor = normalColors[Random.Range(0, normalColors.Length)];
-            }
-            
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
@@ -1339,30 +1284,12 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("伤害值")]
         public float damage = 40f;
         
-        [Header("传送门配置")]
-        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
-        public PortalColor customPortalColor = PortalColor.Blue;
-        
-        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
-        public bool useCustomPortalColor = false;
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "wallthrow_left";
             portalType = PortalType.WallLeft;
-            
-            // 设置传送门颜色
-            if (useCustomPortalColor)
-            {
-                portalColor = customPortalColor;
-            }
-            else
-            {
-                // 默认从Blue和Orange随机选择
-                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
-                portalColor = normalColors[Random.Range(0, normalColors.Length)];
-            }
-            
             cooldownTime = 4f;
             spawnPortalTime = 5f;
             telegraphTime = 1.5f;
@@ -1410,30 +1337,12 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("伤害值")]
         public float damage = 40f;
         
-        [Header("传送门配置")]
-        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
-        public PortalColor customPortalColor = PortalColor.Blue;
-        
-        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
-        public bool useCustomPortalColor = false;
         
         public override void OnStart()
         {
+            // 自动设置技能参数
             skillName = "wallthrow_right";
             portalType = PortalType.WallRight;
-            
-            // 设置传送门颜色
-            if (useCustomPortalColor)
-            {
-                portalColor = customPortalColor;
-            }
-            else
-            {
-                // 默认从Blue和Orange随机选择
-                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
-                portalColor = normalColors[Random.Range(0, normalColors.Length)];
-            }
-            
             cooldownTime = 4f;
             spawnPortalTime = 5f;
             telegraphTime = 1.5f;
