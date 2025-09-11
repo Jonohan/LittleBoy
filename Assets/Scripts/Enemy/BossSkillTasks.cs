@@ -33,6 +33,9 @@ namespace Invector.vCharacterController.AI
         protected PortalColor portalColor = PortalColor.Blue;
         protected bool useDynamicPortalColor = true;
         
+        // 标记是否由SmartSkill调用（用于插槽选择逻辑）
+        public bool isCalledBySmartSkill = false;
+        
         // 组件引用，自动配置
         protected SharedGameObject portalManager = new SharedGameObject();
         protected SharedGameObject bossBlackboard = new SharedGameObject();
@@ -382,20 +385,36 @@ namespace Invector.vCharacterController.AI
                 return null;
             }
             
-            // 过滤掉与上次技能冲突的插槽
-            var validSlots = allAvailableSlots.Where(slot => 
-                _bossBlackboard.CanUseSlotForSkill(skillName, slot.name)).ToList();
+            // 根据调用方式决定插槽选择逻辑
+            List<PortalSlot> validSlots;
             
-            // 如果没有其他插槽可选，则使用所有插槽
-            if (validSlots.Count == 0)
+            if (isCalledBySmartSkill)
             {
-                validSlots = allAvailableSlots;
+                // SmartSkill调用：保留避免重复的逻辑
+                validSlots = allAvailableSlots.Where(slot => 
+                    _bossBlackboard.CanUseSlotForSkill(skillName, slot.name)).ToList();
+                
+                // 如果没有其他插槽可选，则使用所有插槽
+                if (validSlots.Count == 0)
+                {
+                    validSlots = allAvailableSlots;
+                    Debug.LogWarning($"[{skillName}] SmartSkill: 没有可用插槽，使用所有插槽");
+                }
             }
+            else
+            {
+                // 独立Task调用：允许重复使用插槽
+                validSlots = allAvailableSlots;
+                Debug.Log($"[{skillName}] 独立Task: 允许重复使用插槽，使用所有插槽");
+            }
+            
+            Debug.Log($"[{skillName}] 可用插槽数量: {validSlots.Count}, 总插槽数量: {allAvailableSlots.Count}");
             
             // 随机选择一个插槽
             int randomIndex = Random.Range(0, validSlots.Count);
             PortalSlot selectedSlot = validSlots[randomIndex];
             
+            Debug.Log($"[{skillName}] 选择插槽: {selectedSlot.name}, 上次使用插槽: {_bossBlackboard.GetLastPortalSlot()}, 上次使用技能: {_bossBlackboard.GetLastUsedSkill()}");
             
             return selectedSlot;
         }
@@ -1037,6 +1056,8 @@ namespace Invector.vCharacterController.AI
             if (task != null)
             {
                 task.Owner = this.Owner;
+                task.isCalledBySmartSkill = true; // 标记为SmartSkill调用
+                Debug.Log($"[BossSmartSkillSelection] 为技能Task设置Owner: {(task.Owner != null ? task.Owner.name : "null")}");
             }
             
             return task;
