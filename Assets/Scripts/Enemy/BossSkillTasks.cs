@@ -3,6 +3,7 @@ using BehaviorDesigner.Runtime;
 using BehaviorDesigner.Runtime.Tasks;
 using Sirenix.OdinInspector;
 using System.Linq;
+using System.Collections.Generic;
 using Invector;
 
 namespace Invector.vCharacterController.AI
@@ -22,6 +23,9 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("技能冷却时间")]
         public float cooldownTime = 5f;
         
+        [UnityEngine.Tooltip("传送门生成时间")]
+        public float spawnPortalTime = 5f;
+        
         [UnityEngine.Tooltip("前摇时间")]
         public float telegraphTime = 2f;
         
@@ -35,15 +39,18 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("传送门颜色")]
         public PortalColor portalColor = PortalColor.Blue;
         
+        [UnityEngine.Tooltip("是否根据Boss阶段动态选择传送门颜色")]
+        public bool useDynamicPortalColor = true;
+        
         [Header("组件引用")]
         [UnityEngine.Tooltip("传送门管理器")]
-        public SharedGameObject portalManager;
+        public SharedGameObject portalManager = new SharedGameObject();
         
         [UnityEngine.Tooltip("Boss黑板变量")]
-        public SharedGameObject bossBlackboard;
+        public SharedGameObject bossBlackboard = new SharedGameObject();
         
         [UnityEngine.Tooltip("Boss AI控制器")]
-        public SharedGameObject bossAI;
+        public SharedGameObject bossAI = new SharedGameObject();
         
         // 私有变量
         protected PortalManager _portalManager;
@@ -52,6 +59,7 @@ namespace Invector.vCharacterController.AI
         protected PortalData _currentPortal;
         protected float _skillStartTime;
         protected SkillPhase _currentPhase;
+        protected bool _hasExecutedSkill = false;
         
         protected enum SkillPhase
         {
@@ -66,10 +74,18 @@ namespace Invector.vCharacterController.AI
         public override void OnStart()
         {
             InitializeComponents();
+            
+            // 根据Boss阶段动态选择传送门颜色
+            if (useDynamicPortalColor)
+            {
+                SelectPortalColorByBossPhase();
+            }
+            
             _skillStartTime = Time.time;
             _currentPhase = SkillPhase.SpawnPortal;
+            _hasExecutedSkill = false;
             
-            Debug.Log($"[{skillName}] 开始执行技能");
+            Debug.Log($"[{skillName}] 开始执行技能，传送门颜色: {portalColor}");
         }
         
         public override TaskStatus OnUpdate()
@@ -106,28 +122,63 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected virtual TaskStatus HandleSpawnPortal()
         {
+            
+            // 检查技能是否需要传送门
+            if (_bossBlackboard)
+            {
+                var availableTypes = _bossBlackboard.GetAvailableSlotTypesForSkill(skillName);
+                if (availableTypes.Length == 0)
+                {
+                    Debug.Log($"[{skillName}] 该技能不需要传送门，跳过传送门阶段");
+                    _currentPhase = SkillPhase.Telegraph;
+                    return TaskStatus.Running;
+                }
+            }
+            
             if (!_portalManager)
             {
                 Debug.LogError($"[{skillName}] 传送门管理器未找到");
                 return TaskStatus.Failure;
             }
             
-            // 开始生成传送门（使用轮换逻辑自动选择传送门编号）
-            _currentPortal = _portalManager.GeneratePortal(portalType, portalColor);
+            // 如果还没有生成传送门，先生成传送门
             if (_currentPortal == null)
             {
-                Debug.LogError($"[{skillName}] 传送门生成失败");
-                return TaskStatus.Failure;
+                // 根据技能名称选择可用的插槽
+                PortalSlot selectedSlot = SelectSlotForSkill();
+                if (selectedSlot == null)
+                {
+                    Debug.LogError($"[{skillName}] 没有可用的插槽生成传送门");
+                    return TaskStatus.Failure;
+                }
+                
+                // 在选定的插槽上生成传送门
+                _currentPortal = _portalManager.GeneratePortal(portalType, portalColor, selectedSlot);
+                if (_currentPortal == null)
+                {
+                    Debug.LogError($"[{skillName}] 传送门生成失败");
+                    return TaskStatus.Failure;
+                }
+                
+                // 更新黑板变量
+                if (_bossBlackboard)
+                {
+                    _bossBlackboard.UpdatePortalCount(_portalManager.GetActivePortalCount());
+                    _bossBlackboard.SetLastPortalType(portalType.ToString());
+                    _bossBlackboard.SetLastPortalSlot(selectedSlot.name); // 记录最后使用的插槽
+                    _bossBlackboard.SetLastUsedSkill(skillName); // 记录最后使用的技能
+                }
+                
+                Debug.Log($"[{skillName}] 传送门生成完成，等待生成时间...");
             }
             
-            // 更新黑板变量
-            if (_bossBlackboard)
+            // 等待传送门生成时间（给传送门一些生成动画时间）
+            if (Time.time - _skillStartTime >= spawnPortalTime)
             {
-                _bossBlackboard.UpdatePortalCount(_portalManager.GetActivePortalCount());
-                _bossBlackboard.SetLastPortalType(portalType.ToString());
+                _currentPhase = SkillPhase.Telegraph;
+                Debug.Log($"[{skillName}] 传送门生成阶段完成，进入前摇阶段");
             }
             
-            _currentPhase = SkillPhase.Telegraph;
             return TaskStatus.Running;
         }
         
@@ -163,10 +214,19 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected virtual TaskStatus HandleCast()
         {
-            // 执行技能效果
+            // 执行技能效果（只在第一次进入时执行）
+            if (!_hasExecutedSkill)
+            {
             ExecuteSkillEffect();
+                _hasExecutedSkill = true;
+            }
             
+            // 检查施放时间（给技能效果一些执行时间）
+            if (Time.time - _skillStartTime >= telegraphTime + 0.1f) // 给0.1秒的执行时间
+            {
             _currentPhase = SkillPhase.PostAttack;
+            }
+            
             return TaskStatus.Running;
         }
         
@@ -234,14 +294,121 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void InitializeComponents()
         {
-            if (portalManager.Value)
+            Debug.Log($"[{skillName}] 开始初始化组件 - Owner: {(Owner != null ? Owner.name : "null")}");
+            
+            // BossBlackboard和Behavior Tree在同一个对象上，直接获取
+            if (!_bossBlackboard && Owner)
+            {
+                _bossBlackboard = Owner.GetComponent<BossBlackboard>();
+                Debug.Log($"[{skillName}] 通过Owner获取BossBlackboard: {(_bossBlackboard != null ? "成功" : "失败")}");
+            }
+            else if (!_bossBlackboard)
+            {
+                Debug.LogError($"[{skillName}] 无法获取BossBlackboard - Owner为空");
+            }
+            
+            // 如果手动指定了引用，优先使用
+            if (portalManager.Value != null)
+            {
                 _portalManager = portalManager.Value.GetComponent<PortalManager>();
+                Debug.Log($"[{skillName}] 通过手动引用获取PortalManager: {(_portalManager != null ? "成功" : "失败")}");
+            }
+            else
+            {
+                _portalManager = UnityEngine.Object.FindObjectOfType<PortalManager>();
+                Debug.Log($"[{skillName}] 通过FindObjectOfType获取PortalManager: {(_portalManager != null ? "成功" : "失败")}");
+            }
             
-            if (bossBlackboard.Value)
-                _bossBlackboard = bossBlackboard.Value.GetComponent<BossBlackboard>();
-            
-            if (bossAI.Value)
+            if (bossAI.Value != null)
                 _bossAI = bossAI.Value.GetComponent<NonHumanoidBossAI>();
+            else if (Owner)
+                _bossAI = Owner.GetComponent<NonHumanoidBossAI>();
+                
+            Debug.Log($"[{skillName}] 组件初始化完成 - BossBlackboard: {(_bossBlackboard != null ? "✓" : "✗")}, PortalManager: {(_portalManager != null ? "✓" : "✗")}, BossAI: {(_bossAI != null ? "✓" : "✗")}");
+        }
+        
+        /// <summary>
+        /// 根据Boss阶段动态选择传送门颜色
+        /// </summary>
+        private void SelectPortalColorByBossPhase()
+        {
+            if (!_bossBlackboard) return;
+            
+            // 检查是否处于恐惧阶段
+            if (_bossBlackboard.fearOn.Value)
+            {
+                // 恐惧阶段：使用巨大传送门
+                portalColor = PortalColor.GiantOrange;
+                Debug.Log($"[{skillName}] 恐惧阶段 - 使用巨大传送门");
+            }
+            else
+            {
+                // 其他阶段：从Blue和Orange随机选择
+                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
+                portalColor = normalColors[Random.Range(0, normalColors.Length)];
+                Debug.Log($"[{skillName}] 普通阶段 - 随机选择传送门颜色: {portalColor}");
+            }
+        }
+        
+        /// <summary>
+        /// 根据技能名称选择可用的插槽，避免与上次技能重复
+        /// </summary>
+        /// <returns>选中的插槽，如果没有可用插槽则返回null</returns>
+        private PortalSlot SelectSlotForSkill()
+        {
+            if (!_portalManager || !_bossBlackboard) 
+            {
+                Debug.LogError($"[{skillName}] PortalManager或BossBlackboard为空 - PortalManager: {(_portalManager != null ? "✓" : "✗")}, BossBlackboard: {(_bossBlackboard != null ? "✓" : "✗")}");
+                return null;
+            }
+            
+            // 获取当前技能可用的插槽类型
+            var availableTypes = _bossBlackboard.GetAvailableSlotTypesForSkill(skillName);
+            Debug.Log($"[{skillName}] 可用插槽类型: {string.Join(", ", availableTypes)}");
+            
+            if (availableTypes.Length == 0)
+            {
+                Debug.LogWarning($"[{skillName}] 该技能不需要传送门插槽");
+                return null;
+            }
+            
+            // 收集所有可用的插槽
+            var allAvailableSlots = new List<PortalSlot>();
+            foreach (var type in availableTypes)
+            {
+                var slots = _portalManager.GetSlotsByType(type);
+                Debug.Log($"[{skillName}] {type}类型插槽数量: {(slots != null ? slots.Length : 0)}");
+                if (slots != null)
+                {
+                    allAvailableSlots.AddRange(slots);
+                }
+            }
+            
+            Debug.Log($"[{skillName}] 总共找到 {allAvailableSlots.Count} 个插槽");
+            
+            if (allAvailableSlots.Count == 0)
+            {
+                Debug.LogError($"[{skillName}] 没有找到可用的插槽");
+                return null;
+            }
+            
+            // 过滤掉与上次技能冲突的插槽
+            var validSlots = allAvailableSlots.Where(slot => 
+                _bossBlackboard.CanUseSlotForSkill(skillName, slot.name)).ToList();
+            
+            // 如果没有其他插槽可选，则使用所有插槽
+            if (validSlots.Count == 0)
+            {
+                validSlots = allAvailableSlots;
+            }
+            
+            // 随机选择一个插槽
+            int randomIndex = Random.Range(0, validSlots.Count);
+            PortalSlot selectedSlot = validSlots[randomIndex];
+            
+            Debug.Log($"[{skillName}] 从 {validSlots.Count} 个可用插槽中选择了: {selectedSlot.name}");
+            
+            return selectedSlot;
         }
         
         #endregion
@@ -280,6 +447,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ceiling;
             portalColor = PortalColor.Blue;
             cooldownTime = 8f;
+            spawnPortalTime = 5f;
             telegraphTime = 3f;
             postAttackTime = 2f;
             
@@ -288,60 +456,17 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            // 播放全场散点预警特效
-            if (_currentPortal?.portalObject)
-            {
-                // 这里可以播放预警特效，比如地面上的红色圆圈
-                Debug.Log($"[{skillName}] 播放全场散点预警特效");
-            }
+            Debug.Log($"[{skillName}] 播放异能轰炸前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            if (!projectilePrefab || !_currentPortal?.portalObject)
-            {
-                Debug.LogError($"[{skillName}] 投掷物预制体或传送门未找到");
-                return;
-            }
-            
-            // 生成投掷物
-            for (int i = 0; i < projectileCount; i++)
-            {
-                // 随机位置
-                Vector3 randomPos = _currentPortal.slot.position + 
-                    new Vector3(
-                        Random.Range(-bombardRadius, bombardRadius),
-                        0,
-                        Random.Range(-bombardRadius, bombardRadius)
-                    );
-                
-                // 生成投掷物
-                GameObject projectile = UnityEngine.Object.Instantiate(projectilePrefab, _currentPortal.slot.position, Quaternion.identity);
-                
-                // 设置投掷物方向
-                Vector3 direction = (randomPos - _currentPortal.slot.position).normalized;
-                projectile.GetComponent<Rigidbody>()?.AddForce(direction * projectileSpeed, ForceMode.VelocityChange);
-                
-                // 设置伤害
-                var damageComponent = projectile.GetComponent<vObjectDamage>();
-                if (damageComponent)
-                {
-                    damageComponent.damage.damageValue = damage;
-                }
-            }
-            
-            Debug.Log($"[{skillName}] 执行异能轰炸，生成 {projectileCount} 个投掷物");
+            Debug.Log($"[{skillName}] 执行异能轰炸攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            // 播放后摇动画
-            if (_bossAI?.animator)
-            {
-                _bossAI.animator.SetTrigger("PostAttack");
-            }
-            
-            Debug.Log($"[{skillName}] 播放后摇特效");
+            Debug.Log($"[{skillName}] 播放异能轰炸后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -373,6 +498,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.WallLeft; // 默认左墙，可通过参数调整
             portalColor = PortalColor.Blue;
             cooldownTime = 6f;
+            spawnPortalTime = 5f;
             telegraphTime = 2f;
             postAttackTime = 1f;
             
@@ -381,48 +507,17 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            // 播放直线预警特效
-            if (_currentPortal?.portalObject)
-            {
-                // 这里可以播放直线预警特效
-                Debug.Log($"[{skillName}] 播放直线预警特效");
-            }
+            Debug.Log($"[{skillName}] 播放直线投掷前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            if (!projectilePrefab || !_currentPortal?.portalObject)
-            {
-                Debug.LogError($"[{skillName}] 投掷物预制体或传送门未找到");
-                return;
-            }
-            
-            // 生成投掷物
-            GameObject projectile = UnityEngine.Object.Instantiate(projectilePrefab, _currentPortal.slot.position, Quaternion.identity);
-            
-            // 设置投掷方向
-            Vector3 direction = _currentPortal.slot.TransformDirection(throwDirection).normalized;
-            projectile.GetComponent<Rigidbody>()?.AddForce(direction * projectileSpeed, ForceMode.VelocityChange);
-            
-            // 设置伤害
-            var damageComponent = projectile.GetComponent<vObjectDamage>();
-            if (damageComponent)
-            {
-                damageComponent.damage.damageValue = damage;
-            }
-            
             Debug.Log($"[{skillName}] 执行直线投掷攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            // 播放后摇动画
-            if (_bossAI?.animator)
-            {
-                _bossAI.animator.SetTrigger("PostAttack");
-            }
-            
-            Debug.Log($"[{skillName}] 播放后摇特效");
+            Debug.Log($"[{skillName}] 播放直线投掷后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -454,6 +549,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ground; // 触手从地面伸出
             portalColor = PortalColor.Orange;
             cooldownTime = 7f;
+            spawnPortalTime = 5f;
             telegraphTime = 2.5f;
             postAttackTime = 1.5f;
             
@@ -462,68 +558,17 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            // 播放扇形预警特效
-            if (_currentPortal?.portalObject)
-            {
-                // 这里可以播放扇形预警特效
-                Debug.Log($"[{skillName}] 播放扇形预警特效");
-            }
+            Debug.Log($"[{skillName}] 播放触手横扫前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            if (!_currentPortal?.portalObject)
-            {
-                Debug.LogError($"[{skillName}] 传送门未找到");
-                return;
-            }
-            
-            // 执行扇形攻击
-            Vector3 center = _currentPortal.slot.position;
-            Vector3 forward = _currentPortal.slot.forward;
-            
-            // 检测范围内的玩家
-            Collider[] colliders = Physics.OverlapSphere(center, swipeRadius);
-            foreach (var collider in colliders)
-            {
-                if (collider.CompareTag("Player"))
-                {
-                    Vector3 direction = (collider.transform.position - center).normalized;
-                    float angle = Vector3.Angle(forward, direction);
-                    
-                    // 检查是否在扇形范围内
-                    if (angle <= swipeAngle / 2f)
-                    {
-                        // 造成伤害
-                        var health = collider.GetComponent<vIHealthController>();
-                        if (health != null)
-                        {
-                            var vDamage = new vDamage((int)damage);
-                            health.TakeDamage(vDamage);
-                        }
-                        
-                        // 击退效果
-                        var rigidbody = collider.GetComponent<Rigidbody>();
-                        if (rigidbody)
-                        {
-                            rigidbody.AddForce(direction * knockbackForce, ForceMode.Impulse);
-                        }
-                    }
-                }
-            }
-            
             Debug.Log($"[{skillName}] 执行触手横扫攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            // 播放后摇动画 - 触手收回
-            if (_bossAI?.animator)
-            {
-                _bossAI.animator.SetTrigger("TentacleRetract");
-            }
-            
-            Debug.Log($"[{skillName}] 播放触手收回动画");
+            Debug.Log($"[{skillName}] 播放触手横扫后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -561,6 +606,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ground;
             portalColor = PortalColor.Orange;
             cooldownTime = 10f;
+            spawnPortalTime = 5f;
             telegraphTime = 3f;
             postAttackTime = 1f;
             
@@ -569,77 +615,17 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            // 播放水位预警特效
-            if (_currentPortal?.portalObject)
-            {
-                // 这里可以播放水位预警特效
-                Debug.Log($"[{skillName}] 播放水位预警特效");
-            }
+            Debug.Log($"[{skillName}] 播放洪水前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            if (!floodPrefab || !_currentPortal?.portalObject)
-            {
-                Debug.LogError($"[{skillName}] 洪水预制体或传送门未找到");
-                return;
-            }
-            
-            // 生成洪水
-            _floodObject = UnityEngine.Object.Instantiate(floodPrefab, _currentPortal.slot.position, Quaternion.identity);
-            _floodStartTime = Time.time;
-            
             Debug.Log($"[{skillName}] 执行洪水攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            // 洪水持续期间的处理
-            if (_floodObject && Time.time - _floodStartTime < floodDuration)
-            {
-                // 水位上升逻辑
-                float currentHeight = Mathf.Lerp(0, maxWaterHeight, (Time.time - _floodStartTime) / floodDuration);
-                _floodObject.transform.localScale = new Vector3(1, currentHeight, 1);
-                
-                // 检测水位中的玩家
-                CheckFloodDamage();
-            }
-            else if (_floodObject)
-            {
-                // 洪水结束
-                UnityEngine.Object.Destroy(_floodObject);
-                _floodObject = null;
-            }
-        }
-        
-        // 传送门不需要关闭，它们一直存在
-        
-        /// <summary>
-        /// 检查洪水伤害
-        /// </summary>
-        private void CheckFloodDamage()
-        {
-            if (!_floodObject) return;
-            
-            // 检测洪水范围内的玩家
-            Collider[] colliders = Physics.OverlapBox(
-                _floodObject.transform.position + Vector3.up * _floodObject.transform.localScale.y / 2f,
-                new Vector3(10f, _floodObject.transform.localScale.y / 2f, 10f)
-            );
-            
-            foreach (var collider in colliders)
-            {
-                if (collider.CompareTag("Player"))
-                {
-                    // 造成持续伤害
-                    var health = collider.GetComponent<vIHealthController>();
-                    if (health != null)
-                    {
-                        var vDamage = new vDamage((int)(damage * Time.deltaTime));
-                        health.TakeDamage(vDamage);
-                    }
-                }
-            }
+            Debug.Log($"[{skillName}] 播放洪水后摇特效");
         }
     }
     
@@ -675,6 +661,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ground;
             portalColor = PortalColor.Orange;
             cooldownTime = 12f;
+            spawnPortalTime = 5f;
             telegraphTime = 2f;
             postAttackTime = 3f;
             
@@ -683,75 +670,17 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            // 播放漩涡预警特效
-            if (_currentPortal?.portalObject)
-            {
-                // 这里可以播放漩涡预警特效
-                Debug.Log($"[{skillName}] 播放漩涡预警特效");
-            }
+            Debug.Log($"[{skillName}] 播放漩涡前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            if (!vortexPrefab || !_currentPortal?.portalObject)
-            {
-                Debug.LogError($"[{skillName}] 漩涡预制体或传送门未找到");
-                return;
-            }
-            
-            // 检查是否有天花板传送门
-            var ceilingPortals = _portalManager?.GetActivePortalsByType(PortalType.Ceiling);
-            _ceilingPortal = (ceilingPortals != null && ceilingPortals.Count > 0) ? ceilingPortals[0] : null;
-            if (_ceilingPortal == null)
-            {
-                Debug.LogWarning($"[{skillName}] 没有天花板传送门，无法执行漩涡发射");
-                return;
-            }
-            
-            // 生成漩涡
-            _vortexObject = UnityEngine.Object.Instantiate(vortexPrefab, _currentPortal.slot.position, Quaternion.identity);
-            
             Debug.Log($"[{skillName}] 执行漩涡发射攻击");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            if (!_vortexObject || _ceilingPortal == null) return;
-            
-            // 执行吸入和抛出逻辑
-            Vector3 vortexCenter = _currentPortal.slot.position;
-            Vector3 ceilingCenter = _ceilingPortal.slot.position;
-            
-            // 检测范围内的玩家
-            Collider[] colliders = Physics.OverlapSphere(vortexCenter, suckRadius);
-            foreach (var collider in colliders)
-            {
-                if (collider.CompareTag("Player"))
-                {
-                    var rigidbody = collider.GetComponent<Rigidbody>();
-                    if (rigidbody)
-                    {
-                        // 吸入阶段
-                        Vector3 suckDirection = (vortexCenter - collider.transform.position).normalized;
-                        rigidbody.AddForce(suckDirection * suckForce, ForceMode.Force);
-                        
-                        // 如果玩家接近漩涡中心，执行抛出
-                        if (Vector3.Distance(collider.transform.position, vortexCenter) < 1f)
-                        {
-                            Vector3 launchDirection = (ceilingCenter - vortexCenter).normalized;
-                            rigidbody.AddForce(launchDirection * launchForce, ForceMode.Impulse);
-                            
-                            // 造成伤害
-                            var health = collider.GetComponent<vIHealthController>();
-                            if (health != null)
-                            {
-                                var vDamage = new vDamage((int)damage);
-                                health.TakeDamage(vDamage);
-                            }
-                        }
-                    }
-                }
-            }
+            Debug.Log($"[{skillName}] 播放漩涡后摇特效");
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -783,6 +712,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.None; // 吼叫不需要传送门
             portalColor = PortalColor.Blue;
             cooldownTime = 15f;
+            spawnPortalTime = 5f;
             telegraphTime = 1f;
             postAttackTime = 2f;
             
@@ -791,51 +721,16 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayTelegraphEffects()
         {
-            // 播放吼叫预警特效
-            Debug.Log($"[{skillName}] 播放吼叫预警特效");
+            Debug.Log($"[{skillName}] 播放吼叫前摇特效");
         }
         
         protected override void ExecuteSkillEffect()
         {
-            // 播放吼叫动画
-            if (_bossAI?.animator)
-            {
-                _bossAI.animator.SetTrigger(roarTrigger);
-            }
-            
-            // 播放吼叫音效
-            if (roarSound && _bossAI?.GetComponent<AudioSource>())
-            {
-                _bossAI.GetComponent<AudioSource>().PlayOneShot(roarSound);
-            }
-            
-            // 执行击退效果
-            Vector3 bossCenter = _bossAI.transform.position;
-            Collider[] colliders = Physics.OverlapSphere(bossCenter, knockbackRadius);
-            foreach (var collider in colliders)
-            {
-                if (collider.CompareTag("Player"))
-                {
-                    Vector3 direction = (collider.transform.position - bossCenter).normalized;
-                    var rigidbody = collider.GetComponent<Rigidbody>();
-                    if (rigidbody)
-                    {
-                        rigidbody.AddForce(direction * knockbackForce, ForceMode.Impulse);
-                    }
-                }
-            }
-            
             Debug.Log($"[{skillName}] 执行Boss吼叫");
         }
         
         protected override void PlayPostAttackEffects()
         {
-            // 吼叫后摇动画
-            if (_bossAI?.animator)
-            {
-                _bossAI.animator.SetTrigger("PostRoar");
-            }
-            
             Debug.Log($"[{skillName}] 播放吼叫后摇特效");
         }
         
@@ -843,4 +738,740 @@ namespace Invector.vCharacterController.AI
     }
     
     #endregion
+    
+    #region 智能技能选择
+    
+    /// <summary>
+    /// 智能技能选择任务
+    /// 根据当前状态和冷却时间选择可用的技能
+    /// </summary>
+    [TaskDescription("智能技能选择 - 根据状态和冷却选择可用技能")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class BossSmartSkillSelection : Action
+    {
+        [Header("组件引用")]
+        [UnityEngine.Tooltip("Boss黑板引用")]
+        public SharedGameObject bossBlackboard;
+        
+        [Header("技能配置")]
+        [UnityEngine.Tooltip("可用技能列表")]
+        public string[] availableSkills = {
+            "tentacle_up", "tentacle_down", "tentacle_left", "tentacle_right",
+            "wallthrow_left", "wallthrow_right",
+            "bombard", "flood", "vortex", "roar"
+        };
+        
+        [UnityEngine.Tooltip("技能权重（影响选择概率）")]
+        public float[] skillWeights = {
+            1f, 1f, 1f, 1f,  // tentacle技能
+            1f, 1f,          // wallthrow技能
+            1f, 1f, 1f, 1f   // 其他技能
+        };
+        
+        [Header("输出")]
+        [UnityEngine.Tooltip("选中的技能名称")]
+        public SharedString selectedSkill;
+        
+        private BossBlackboard _bossBlackboard;
+        
+        public override void OnStart()
+        {
+            Debug.Log("[BossSmartSkillSelection] OnStart被调用");
+            
+            // 优先使用手动指定的引用
+            if (bossBlackboard.Value)
+            {
+                _bossBlackboard = bossBlackboard.Value.GetComponent<BossBlackboard>();
+               
+            }
+            // 如果没指定，直接从Owner获取（BossBlackboard和Behavior Tree在同一个对象上）
+            else if (Owner)
+            {
+                _bossBlackboard = Owner.GetComponent<BossBlackboard>();
+            }
+            else
+            {
+                Debug.LogError("[BossSmartSkillSelection] 无法找到BossBlackboard！");
+            }
+        }
+        
+        private BossSkillTask _currentSkillTask;
+        private bool _isExecutingSkill = false;
+        
+        public override TaskStatus OnUpdate()
+        {
+            // 如果还没有选择技能，先选择技能
+            if (_currentSkillTask == null && !_isExecutingSkill)
+            {
+                Debug.Log("[BossSmartSkillSelection] OnUpdate被调用");
+                
+                if (!_bossBlackboard)
+                {
+                    Debug.LogError("[BossSmartSkillSelection] BossBlackboard未找到");
+                    return TaskStatus.Failure;
+                }
+                
+                // 获取可用的技能
+                var validSkills = GetAvailableSkills();
+               
+                if (validSkills.Count == 0)
+                {
+                    Debug.LogWarning("[BossSmartSkillSelection] 没有可用的技能");
+                    return TaskStatus.Failure;
+                }
+                
+                // 根据权重随机选择技能
+                string selectedSkillName = SelectSkillByWeight(validSkills);
+                selectedSkill.Value = selectedSkillName;
+                
+                Debug.Log($"[BossSmartSkillSelection] 选择了技能: {selectedSkillName}, selectedSkill.Value = {selectedSkill.Value}");
+                
+                // 直接创建并开始执行技能
+                _currentSkillTask = CreateSkillTask(selectedSkillName);
+                if (_currentSkillTask == null)
+                {
+                    Debug.LogError($"[BossSmartSkillSelection] 未找到技能类: {selectedSkillName}");
+                    return TaskStatus.Failure;
+                }
+                
+                Debug.Log($"[BossSmartSkillSelection] 创建技能类: {_currentSkillTask.GetType().Name}");
+                _currentSkillTask.OnStart();
+                _isExecutingSkill = true;
+            }
+            
+            // 执行当前技能Task
+            if (_currentSkillTask != null)
+            {
+                TaskStatus status = _currentSkillTask.OnUpdate();
+                
+                // 如果技能执行完成，清理并返回成功
+                if (status == TaskStatus.Success)
+                {
+                    Debug.Log($"[BossSmartSkillSelection] 技能执行完成: {_currentSkillTask.GetType().Name}");
+                    _currentSkillTask.OnEnd();
+                    _currentSkillTask = null;
+                    _isExecutingSkill = false;
+                    return TaskStatus.Success;
+                }
+                
+                return status;
+            }
+            
+            return TaskStatus.Failure;
+        }
+        
+        public override void OnEnd()
+        {
+            if (_currentSkillTask != null)
+            {
+                _currentSkillTask.OnEnd();
+                _currentSkillTask = null;
+            }
+            _isExecutingSkill = false;
+        }
+        
+        /// <summary>
+        /// 获取当前可用的技能列表
+        /// </summary>
+        /// <returns>可用技能列表</returns>
+        private List<string> GetAvailableSkills()
+        {
+            var available = new List<string>();
+            
+            for (int i = 0; i < availableSkills.Length; i++)
+            {
+                string skillName = availableSkills[i];
+                
+                // 检查技能冷却
+                if (IsSkillOnCooldown(skillName))
+                    continue;
+                    
+                // 检查技能是否可以使用（避免与上次技能重复）
+                if (CanUseSkill(skillName))
+                {
+                    available.Add(skillName);
+                }
+            }
+            
+            return available;
+        }
+        
+        /// <summary>
+        /// 检查技能是否在冷却中
+        /// </summary>
+        /// <param name="skillName">技能名称</param>
+        /// <returns>是否在冷却中</returns>
+        private bool IsSkillOnCooldown(string skillName)
+        {
+            switch (skillName)
+            {
+                case "tentacle_up":
+                case "tentacle_down":
+                case "tentacle_left":
+                case "tentacle_right":
+                    return _bossBlackboard.cooldown_tentacle.Value > 0;
+                case "wallthrow_left":
+                case "wallthrow_right":
+                    return _bossBlackboard.cooldown_wallThrow.Value > 0;
+                case "bombard":
+                    return _bossBlackboard.cooldown_bombard.Value > 0;
+                case "flood":
+                    return _bossBlackboard.cooldown_flood.Value > 0;
+                case "vortex":
+                    return _bossBlackboard.cooldown_vortex.Value > 0;
+                case "roar":
+                    return _bossBlackboard.cooldown_roar.Value > 0;
+                default:
+                    return false;
+            }
+        }
+        
+        /// <summary>
+        /// 检查技能是否可以使用（避免与上次技能重复）
+        /// </summary>
+        /// <param name="skillName">技能名称</param>
+        /// <returns>是否可以使用</returns>
+        private bool CanUseSkill(string skillName)
+        {
+            // 获取技能可用的插槽类型
+            var availableTypes = _bossBlackboard.GetAvailableSlotTypesForSkill(skillName);
+            if (availableTypes.Length == 0)
+                return true; // 不需要传送门的技能（如roar）
+                
+            // 检查是否有可用的插槽
+            // 这里可以添加更复杂的逻辑来检查插槽可用性
+            return true; // 简化版本，实际使用时可以添加更详细的检查
+        }
+        
+        /// <summary>
+        /// 根据权重随机选择技能
+        /// </summary>
+        /// <param name="availableSkills">可用技能列表</param>
+        /// <returns>选中的技能名称</returns>
+        private string SelectSkillByWeight(List<string> availableSkills)
+        {
+            if (availableSkills.Count == 1)
+                return availableSkills[0];
+                
+            // 计算总权重
+            float totalWeight = 0f;
+            foreach (string skill in availableSkills)
+            {
+                int index = System.Array.IndexOf(this.availableSkills, skill);
+                if (index >= 0 && index < skillWeights.Length)
+                {
+                    totalWeight += skillWeights[index];
+                }
+            }
+            
+            // 随机选择
+            float randomValue = Random.Range(0f, totalWeight);
+            float currentWeight = 0f;
+            
+            foreach (string skill in availableSkills)
+            {
+                int index = System.Array.IndexOf(this.availableSkills, skill);
+                if (index >= 0 && index < skillWeights.Length)
+                {
+                    currentWeight += skillWeights[index];
+                    if (randomValue <= currentWeight)
+                    {
+                        return skill;
+                    }
+                }
+            }
+            
+            // 兜底返回第一个技能
+            return availableSkills[0];
+        }
+        
+        /// <summary>
+        /// 根据技能名称直接创建对应的技能类
+        /// </summary>
+        /// <param name="skillName">技能名称</param>
+        /// <returns>技能Task实例</returns>
+        private BossSkillTask CreateSkillTask(string skillName)
+        {
+            BossSkillTask task = null;
+            
+            switch (skillName)
+            {
+                case "tentacle_up":
+                    task = new TentacleUpAttack();
+                    break;
+                case "tentacle_down":
+                    task = new TentacleDownAttack();
+                    break;
+                case "tentacle_left":
+                    task = new TentacleLeftAttack();
+                    break;
+                case "tentacle_right":
+                    task = new TentacleRightAttack();
+                    break;
+                case "wallthrow_left":
+                    task = new WallThrowLeftAttack();
+                    break;
+                case "wallthrow_right":
+                    task = new WallThrowRightAttack();
+                    break;
+                case "bombard":
+                    task = new CeilingEnergyBombard();
+                    break;
+                case "flood":
+                    task = new GroundFlood();
+                    break;
+                case "vortex":
+                    task = new VortexLaunch();
+                    break;
+                case "roar":
+                    task = new BossRoar();
+                    break;
+                default:
+                    Debug.LogError($"[BossSmartSkillSelection] 未知的技能名称: {skillName}");
+                    return null;
+            }
+            
+            // 设置Owner，这样技能Task就能正确获取BossBlackboard
+            if (task != null)
+            {
+                task.Owner = this.Owner;
+                Debug.Log($"[BossSmartSkillSelection] 为技能Task设置Owner: {(task.Owner != null ? task.Owner.name : "null")}");
+            }
+            
+            return task;
+        }
+    }
+    
+    #endregion
+    
+    #region 方向化技能实现
+    
+    /// <summary>
+    /// 触手上方攻击
+    /// </summary>
+    [TaskDescription("触手上方攻击 - 从天花板伸出触手攻击")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class TentacleUpAttack : BossSkillTask
+    {
+        [Header("触手配置")]
+        [UnityEngine.Tooltip("触手长度")]
+        public float tentacleLength = 10f;
+        
+        [UnityEngine.Tooltip("伤害值")]
+        public float damage = 60f;
+        
+        [UnityEngine.Tooltip("击退力度")]
+        public float knockbackForce = 10f;
+        
+        [Header("传送门配置")]
+        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
+        public PortalColor customPortalColor = PortalColor.Blue;
+        
+        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
+        public bool useCustomPortalColor = false;
+        
+        public override void OnStart()
+        {
+            skillName = "tentacle_up";
+            portalType = PortalType.Ceiling;
+            
+            // 设置传送门颜色
+            if (useCustomPortalColor)
+            {
+                portalColor = customPortalColor;
+            }
+            else
+            {
+                // 默认从Blue和Orange随机选择
+                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
+                portalColor = normalColors[Random.Range(0, normalColors.Length)];
+            }
+            
+            cooldownTime = 5f;
+            spawnPortalTime = 5f;
+            telegraphTime = 2f;
+            postAttackTime = 1f;
+            
+            base.OnStart();
+        }
+        
+        protected override void PlayTelegraphEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手上方前摇特效");
+        }
+        
+        protected override void ExecuteSkillEffect()
+        {
+            Debug.Log($"[{skillName}] 执行触手上方攻击");
+            
+            // 激活BossPart攻击
+            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            {
+                _bossBlackboard.bossPartManager.ActivatePartAttack();
+            }
+        }
+        
+        protected override void PlayPostAttackEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手上方后摇特效");
+        }
+    }
+    
+    /// <summary>
+    /// 触手下方攻击
+    /// </summary>
+    [TaskDescription("触手下方攻击 - 从地面伸出触手攻击")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class TentacleDownAttack : BossSkillTask
+    {
+        [Header("触手配置")]
+        [UnityEngine.Tooltip("触手长度")]
+        public float tentacleLength = 10f;
+        
+        [UnityEngine.Tooltip("伤害值")]
+        public float damage = 60f;
+        
+        [UnityEngine.Tooltip("击退力度")]
+        public float knockbackForce = 10f;
+        
+        [Header("传送门配置")]
+        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
+        public PortalColor customPortalColor = PortalColor.Blue;
+        
+        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
+        public bool useCustomPortalColor = false;
+        
+        public override void OnStart()
+        {
+            skillName = "tentacle_down";
+            portalType = PortalType.Ground;
+            
+            // 设置传送门颜色
+            if (useCustomPortalColor)
+            {
+                portalColor = customPortalColor;
+            }
+            else
+            {
+                // 默认从Blue和Orange随机选择
+                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
+                portalColor = normalColors[Random.Range(0, normalColors.Length)];
+            }
+            
+            cooldownTime = 5f;
+            spawnPortalTime = 5f;
+            telegraphTime = 2f;
+            postAttackTime = 1f;
+            
+            base.OnStart();
+        }
+        
+        protected override void PlayTelegraphEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手下方前摇特效");
+        }
+        
+        protected override void ExecuteSkillEffect()
+        {
+            Debug.Log($"[{skillName}] 执行触手下方攻击");
+            
+            // 激活BossPart攻击
+            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            {
+                _bossBlackboard.bossPartManager.ActivatePartAttack();
+            }
+        }
+        
+        protected override void PlayPostAttackEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手下方后摇特效");
+        }
+    }
+    
+    /// <summary>
+    /// 触手左方攻击
+    /// </summary>
+    [TaskDescription("触手左方攻击 - 从左墙伸出触手攻击")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class TentacleLeftAttack : BossSkillTask
+    {
+        [Header("触手配置")]
+        [UnityEngine.Tooltip("触手长度")]
+        public float tentacleLength = 10f;
+        
+        [UnityEngine.Tooltip("伤害值")]
+        public float damage = 60f;
+        
+        [UnityEngine.Tooltip("击退力度")]
+        public float knockbackForce = 10f;
+        
+        [Header("传送门配置")]
+        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
+        public PortalColor customPortalColor = PortalColor.Blue;
+        
+        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
+        public bool useCustomPortalColor = false;
+        
+        public override void OnStart()
+        {
+            skillName = "tentacle_left";
+            portalType = PortalType.WallLeft;
+            
+            // 设置传送门颜色
+            if (useCustomPortalColor)
+            {
+                portalColor = customPortalColor;
+            }
+            else
+            {
+                // 默认从Blue和Orange随机选择
+                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
+                portalColor = normalColors[Random.Range(0, normalColors.Length)];
+            }
+            
+            cooldownTime = 5f;
+            spawnPortalTime = 5f;
+            telegraphTime = 2f;
+            postAttackTime = 1f;
+            
+            base.OnStart();
+        }
+        
+        protected override void PlayTelegraphEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手左方前摇特效");
+        }
+        
+        protected override void ExecuteSkillEffect()
+        {
+            Debug.Log($"[{skillName}] 执行触手左方攻击");
+            
+            // 激活BossPart攻击
+            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            {
+                _bossBlackboard.bossPartManager.ActivatePartAttack();
+            }
+        }
+        
+        protected override void PlayPostAttackEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手左方后摇特效");
+        }
+    }
+    
+    /// <summary>
+    /// 触手右方攻击
+    /// </summary>
+    [TaskDescription("触手右方攻击 - 从右墙伸出触手攻击")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class TentacleRightAttack : BossSkillTask
+    {
+        [Header("触手配置")]
+        [UnityEngine.Tooltip("触手长度")]
+        public float tentacleLength = 10f;
+        
+        [UnityEngine.Tooltip("伤害值")]
+        public float damage = 60f;
+        
+        [UnityEngine.Tooltip("击退力度")]
+        public float knockbackForce = 10f;
+        
+        [Header("传送门配置")]
+        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
+        public PortalColor customPortalColor = PortalColor.Blue;
+        
+        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
+        public bool useCustomPortalColor = false;
+        
+        public override void OnStart()
+        {
+            skillName = "tentacle_right";
+            portalType = PortalType.WallRight;
+            
+            // 设置传送门颜色
+            if (useCustomPortalColor)
+            {
+                portalColor = customPortalColor;
+            }
+            else
+            {
+                // 默认从Blue和Orange随机选择
+                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
+                portalColor = normalColors[Random.Range(0, normalColors.Length)];
+            }
+            
+            cooldownTime = 5f;
+            spawnPortalTime = 5f;
+            telegraphTime = 2f;
+            postAttackTime = 1f;
+            
+            base.OnStart();
+        }
+        
+        protected override void PlayTelegraphEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手右方前摇特效");
+        }
+        
+        protected override void ExecuteSkillEffect()
+        {
+            Debug.Log($"[{skillName}] 执行触手右方攻击");
+            
+            // 激活BossPart攻击
+            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            {
+                _bossBlackboard.bossPartManager.ActivatePartAttack();
+            }
+        }
+        
+        protected override void PlayPostAttackEffects()
+        {
+            Debug.Log($"[{skillName}] 播放触手右方后摇特效");
+        }
+    }
+    
+    /// <summary>
+    /// 侧墙投掷左方攻击
+    /// </summary>
+    [TaskDescription("侧墙投掷左方攻击 - 从左墙投掷直线攻击")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class WallThrowLeftAttack : BossSkillTask
+    {
+        [Header("投掷配置")]
+        [UnityEngine.Tooltip("投掷物预制体")]
+        public GameObject projectilePrefab;
+        
+        [UnityEngine.Tooltip("投掷物速度")]
+        public float projectileSpeed = 25f;
+        
+        [UnityEngine.Tooltip("伤害值")]
+        public float damage = 40f;
+        
+        [Header("传送门配置")]
+        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
+        public PortalColor customPortalColor = PortalColor.Blue;
+        
+        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
+        public bool useCustomPortalColor = false;
+        
+        public override void OnStart()
+        {
+            skillName = "wallthrow_left";
+            portalType = PortalType.WallLeft;
+            
+            // 设置传送门颜色
+            if (useCustomPortalColor)
+            {
+                portalColor = customPortalColor;
+            }
+            else
+            {
+                // 默认从Blue和Orange随机选择
+                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
+                portalColor = normalColors[Random.Range(0, normalColors.Length)];
+            }
+            
+            cooldownTime = 4f;
+            spawnPortalTime = 5f;
+            telegraphTime = 1.5f;
+            postAttackTime = 0.5f;
+            
+            base.OnStart();
+        }
+        
+        protected override void PlayTelegraphEffects()
+        {
+            Debug.Log($"[{skillName}] 播放侧墙投掷左方前摇特效");
+        }
+        
+        protected override void ExecuteSkillEffect()
+        {
+            Debug.Log($"[{skillName}] 执行侧墙投掷左方攻击");
+            
+            // 激活BossPart攻击
+            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            {
+                _bossBlackboard.bossPartManager.ActivatePartAttack();
+            }
+        }
+        
+        protected override void PlayPostAttackEffects()
+        {
+            Debug.Log($"[{skillName}] 播放侧墙投掷左方后摇特效");
+        }
+    }
+    
+    /// <summary>
+    /// 侧墙投掷右方攻击
+    /// </summary>
+    [TaskDescription("侧墙投掷右方攻击 - 从右墙投掷直线攻击")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class WallThrowRightAttack : BossSkillTask
+    {
+        [Header("投掷配置")]
+        [UnityEngine.Tooltip("投掷物预制体")]
+        public GameObject projectilePrefab;
+        
+        [UnityEngine.Tooltip("投掷物速度")]
+        public float projectileSpeed = 25f;
+        
+        [UnityEngine.Tooltip("伤害值")]
+        public float damage = 40f;
+        
+        [Header("传送门配置")]
+        [UnityEngine.Tooltip("传送门颜色（恐惧阶段会自动使用巨大传送门）")]
+        public PortalColor customPortalColor = PortalColor.Blue;
+        
+        [UnityEngine.Tooltip("是否使用自定义传送门颜色")]
+        public bool useCustomPortalColor = false;
+        
+        public override void OnStart()
+        {
+            skillName = "wallthrow_right";
+            portalType = PortalType.WallRight;
+            
+            // 设置传送门颜色
+            if (useCustomPortalColor)
+            {
+                portalColor = customPortalColor;
+            }
+            else
+            {
+                // 默认从Blue和Orange随机选择
+                PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
+                portalColor = normalColors[Random.Range(0, normalColors.Length)];
+            }
+            
+            cooldownTime = 4f;
+            spawnPortalTime = 5f;
+            telegraphTime = 1.5f;
+            postAttackTime = 0.5f;
+            
+            base.OnStart();
+        }
+        
+        protected override void PlayTelegraphEffects()
+        {
+            Debug.Log($"[{skillName}] 播放侧墙投掷右方前摇特效");
+        }
+        
+        protected override void ExecuteSkillEffect()
+        {
+            Debug.Log($"[{skillName}] 执行侧墙投掷右方攻击");
+            
+            // 激活BossPart攻击
+            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            {
+                _bossBlackboard.bossPartManager.ActivatePartAttack();
+            }
+        }
+        
+        protected override void PlayPostAttackEffects()
+        {
+            Debug.Log($"[{skillName}] 播放侧墙投掷右方后摇特效");
+        }
+    }
+    
+    #endregion
+    
 }

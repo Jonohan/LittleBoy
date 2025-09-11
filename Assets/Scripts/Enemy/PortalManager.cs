@@ -443,7 +443,7 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         /// <param name="type">传送门类型</param>
         /// <returns>插槽数组</returns>
-        private PortalSlot[] GetSlotsByType(PortalType type)
+        public PortalSlot[] GetSlotsByType(PortalType type)
         {
             switch (type)
             {

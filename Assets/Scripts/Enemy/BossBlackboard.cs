@@ -1,6 +1,7 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime;
 using Sirenix.OdinInspector;
+using System.Linq;
 using Xuwu.Character;
 
 namespace Invector.vCharacterController.AI
@@ -25,6 +26,12 @@ namespace Invector.vCharacterController.AI
         
         [UnityEngine.Tooltip("上一个生成的传送门类型")]
         public SharedString lastPortalType = new SharedString();
+        
+        [UnityEngine.Tooltip("上一个使用的传送门插槽名称")]
+        public SharedString lastPortalSlot = new SharedString();
+        
+        [UnityEngine.Tooltip("上一个使用的技能名称")]
+        public SharedString lastUsedSkill = new SharedString();
         
         [Header("技能冷却")]
         [UnityEngine.Tooltip("异能轰炸冷却时间")]
@@ -408,6 +415,100 @@ namespace Invector.vCharacterController.AI
         public void SetLastPortalType(string portalType)
         {
             lastPortalType.Value = portalType;
+        }
+        
+        /// <summary>
+        /// 设置最后使用的传送门插槽
+        /// </summary>
+        /// <param name="slotName">插槽名称</param>
+        public void SetLastPortalSlot(string slotName)
+        {
+            lastPortalSlot.Value = slotName;
+        }
+        
+        /// <summary>
+        /// 获取最后使用的传送门插槽
+        /// </summary>
+        /// <returns>插槽名称</returns>
+        public string GetLastPortalSlot()
+        {
+            return lastPortalSlot.Value;
+        }
+        
+        /// <summary>
+        /// 根据技能名称获取可用的插槽类型
+        /// </summary>
+        /// <param name="skillName">技能名称</param>
+        /// <returns>可用的插槽类型数组</returns>
+        public PortalType[] GetAvailableSlotTypesForSkill(string skillName)
+        {
+            switch (skillName)
+            {
+                case "tentacle_up":
+                    return new PortalType[] { PortalType.Ceiling };
+                case "tentacle_down":
+                    return new PortalType[] { PortalType.Ground };
+                case "tentacle_left":
+                    return new PortalType[] { PortalType.WallLeft };
+                case "tentacle_right":
+                    return new PortalType[] { PortalType.WallRight };
+                case "wallthrow_left":
+                    return new PortalType[] { PortalType.WallLeft };
+                case "wallthrow_right":
+                    return new PortalType[] { PortalType.WallRight };
+                case "bombard":
+                    return new PortalType[] { PortalType.Ceiling };
+                case "flood":
+                    return new PortalType[] { PortalType.Ground };
+                case "vortex":
+                    return new PortalType[] { PortalType.Ceiling, PortalType.Ground };
+                case "roar":
+                    return new PortalType[] { }; // 吼叫不需要传送门
+                default:
+                    return new PortalType[] { };
+            }
+        }
+        
+        /// <summary>
+        /// 检查技能是否可以使用指定插槽（避免与上次技能重复）
+        /// </summary>
+        /// <param name="skillName">技能名称</param>
+        /// <param name="slotName">插槽名称</param>
+        /// <returns>是否可以使用</returns>
+        public bool CanUseSlotForSkill(string skillName, string slotName)
+        {
+            // 如果插槽名称为空，表示没有上次使用的插槽，可以使用
+            if (string.IsNullOrEmpty(lastPortalSlot.Value))
+                return true;
+                
+            // 如果插槽名称与上次不同，可以使用
+            if (slotName != lastPortalSlot.Value)
+                return true;
+                
+            // 如果插槽名称相同，检查是否是不同类型的技能
+            var lastSkillTypes = GetAvailableSlotTypesForSkill(GetLastUsedSkill());
+            var currentSkillTypes = GetAvailableSlotTypesForSkill(skillName);
+            
+            // 如果技能类型完全不同，可以使用
+            return !lastSkillTypes.Any(type => currentSkillTypes.Contains(type));
+        }
+        
+        /// <summary>
+        /// 获取上次使用的技能名称
+        /// </summary>
+        /// <returns>技能名称</returns>
+        public string GetLastUsedSkill()
+        {
+            return lastUsedSkill.Value;
+        }
+        
+        /// <summary>
+        /// 设置上次使用的技能名称
+        /// </summary>
+        /// <param name="skillName">技能名称</param>
+        public void SetLastUsedSkill(string skillName)
+        {
+            lastUsedSkill.Value = skillName;
         }
         
         /// <summary>
