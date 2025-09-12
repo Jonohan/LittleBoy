@@ -120,7 +120,9 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 处理invector特有的传送门穿越逻辑
             HandleInvectorPortalTransition(fromPortal, toPortal, transferMatrix);
             
-            Debug.Log($"[InvectorPortalAdapter] 玩家 {gameObject.name} 完成传送门穿越");
+            // 通知BossBlackboard玩家穿过了传送门
+            NotifyBossBlackboardPortalPassed();
+            
         }
         
         /// <summary>
@@ -390,6 +392,22 @@ namespace Xuwu.FourDimensionalPortals.Demo
         }
         
         /// <summary>
+        /// 通知BossBlackboard玩家穿过了传送门
+        /// </summary>
+        private void NotifyBossBlackboardPortalPassed()
+        {
+            // 查找BossBlackboard并触发事件
+            var bossBlackboard = FindObjectOfType<BossBlackboard>();
+            if (bossBlackboard)
+            {
+                bossBlackboard.TriggerPlayerPassedThroughPortal();
+            }
+            else
+            {
+            }
+        }
+        
+        /// <summary>
         /// 处理地面传送门跳跃 - 触发玩家一次真正的跳跃输入
         /// </summary>
         private void HandleGroundPortalJump(Portal portal)
@@ -540,7 +558,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
         {
             if (!_sizeController)
             {
-                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到");
                 return;
             }
             
@@ -550,7 +567,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
             HandleSizeChange(null, null);
             CharacterSizeLevel afterLevel = _sizeController.GetCurrentSizeLevel();
             
-            Debug.Log($"[InvectorPortalAdapter] 蓝色传送门测试: {beforeLevel} → {afterLevel}");
         }
         
         [ContextMenu("测试 - 模拟橙色传送门穿越（放大）")]
@@ -558,7 +574,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
         {
             if (!_sizeController)
             {
-                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到");
                 return;
             }
             
@@ -568,7 +583,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
             HandleSizeChange(null, null);
             CharacterSizeLevel afterLevel = _sizeController.GetCurrentSizeLevel();
             
-            Debug.Log($"[InvectorPortalAdapter] 橙色传送门测试: {beforeLevel} → {afterLevel}");
         }
         
         [ContextMenu("测试 - 模拟巨型橙色传送门穿越（限制器突破）")]
@@ -576,7 +590,6 @@ namespace Xuwu.FourDimensionalPortals.Demo
         {
             if (!_sizeController)
             {
-                Debug.LogWarning("[InvectorPortalAdapter] 体型控制器未找到");
                 return;
             }
             
@@ -588,35 +601,16 @@ namespace Xuwu.FourDimensionalPortals.Demo
             CharacterSizeLevel afterLevel = _sizeController.GetCurrentSizeLevel();
             int afterLimitBreakerLevel = _sizeController.GetCurrentLimitBreakerLevel();
             
-            Debug.Log($"[InvectorPortalAdapter] 巨型橙色传送门测试: {beforeLevel}({beforeLimitBreakerLevel}) → {afterLevel}({afterLimitBreakerLevel})");
         }
         
         [ContextMenu("测试 - 显示当前传送门状态")]
         public void TestShowPortalStatus()
         {
-            Debug.Log($"[InvectorPortalAdapter] 当前传送门状态:\n" +
-                     $"已进入传送门: {_hasEnteredPortal}\n" +
-                     $"进入的传送门颜色: {_enteredPortalColor}\n" +
-                     $"体型控制器: {(_sizeController ? "已找到" : "未找到")}");
         }
         
         [ContextMenu("测试 - 展示所有体型变化规则")]
         public void TestShowAllSizeChangeRules()
         {
-            Debug.Log("[InvectorPortalAdapter] 体型变化规则:\n" +
-                     "蓝色传送门（缩小）:\n" +
-                     "  Mini → 无变化（已是最小）\n" +
-                     "  Standard → Mini\n" +
-                     "  Giant → Standard\n" +
-                     "  LimitBreaker → 无变化（只能通过巨型传送门升级）\n\n" +
-                     "橙色传送门（放大）:\n" +
-                     "  Mini → Standard\n" +
-                     "  Standard → Giant\n" +
-                     "  Giant → 无变化（不能直接变成LimitBreaker）\n" +
-                     "  LimitBreaker → 无变化（只能通过巨型传送门升级）\n\n" +
-                     "巨型橙色传送门（限制器突破）:\n" +
-                     "  Mini/Standard/Giant → LimitBreaker(1级)\n" +
-                     "  LimitBreaker → 升级到下一级（最多5级）");
         }
         
         #endregion

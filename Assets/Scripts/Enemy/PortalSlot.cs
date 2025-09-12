@@ -186,8 +186,7 @@ namespace Invector.vCharacterController.AI
             
             // 开始追踪玩家
             StartPlayerTracking();
-            
-            Debug.Log($"[PortalSlot] 开始生成传送门: {slotType} {portalColor}");
+
         }
         
         /// <summary>
@@ -290,7 +289,6 @@ namespace Invector.vCharacterController.AI
             {
                 scenePortal.transform.position = _originalPortalPosition;
                 scenePortal.transform.rotation = _originalPortalRotation;
-                scenePortal.SetActive(false);
             }
 
         }

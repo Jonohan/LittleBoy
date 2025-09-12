@@ -130,11 +130,14 @@ namespace Invector.vCharacterController.AI
                 _portalManager = GetComponent<PortalManager>();
             }
             
-            // 订阅玩家体型变化事件
+            // 订阅玩家穿过传送门事件
             if (bossBlackboard)
             {
-                bossBlackboard.OnPlayerSizeLevelChanged += OnPlayerSizeLevelChanged;
+                bossBlackboard.OnPlayerPassedThroughPortal += OnPlayerPassedThroughPortal;
             }
+            
+            // 打印CastManager中的体型信息
+            PrintSizeInfo();
             
             _initialized = true;
             
@@ -243,7 +246,6 @@ namespace Invector.vCharacterController.AI
         {
             if (!_initialized)
             {
-                Debug.LogWarning("[CastManager] 管理器未初始化");
                 return;
             }
             
@@ -251,7 +253,6 @@ namespace Invector.vCharacterController.AI
             Vector3 castPosition = GetCurrentPortalPosition();
             if (castPosition == Vector3.zero)
             {
-                Debug.LogWarning($"[CastManager] 无法获取传送门位置，跳过 {attackName} cast阶段");
                 return;
             }
             
@@ -285,7 +286,6 @@ namespace Invector.vCharacterController.AI
         {
             if (!_initialized)
             {
-                Debug.LogWarning("[CastManager] 管理器未初始化");
                 return;
             }
             
@@ -293,7 +293,6 @@ namespace Invector.vCharacterController.AI
             Vector3 castPosition = GetCurrentPortalPosition();
             if (castPosition == Vector3.zero)
             {
-                Debug.LogWarning($"[CastManager] 无法获取传送门位置，跳过 {attackName} cast阶段");
                 return;
             }
             
@@ -325,7 +324,6 @@ namespace Invector.vCharacterController.AI
         {
             if (!_portalManager)
             {
-                Debug.LogWarning("[CastManager] PortalManager未找到");
                 return Vector3.zero;
             }
             
@@ -337,7 +335,6 @@ namespace Invector.vCharacterController.AI
                 return portalData.portalSlot.GetPortalWorldPosition();
             }
             
-            Debug.LogWarning("[CastManager] 无法获取传送门数据");
             return Vector3.zero;
         }
         
@@ -370,19 +367,38 @@ namespace Invector.vCharacterController.AI
         }
 
         /// <summary>
-        /// 玩家体型等级变化回调
+        /// 玩家穿过传送门回调
         /// </summary>
-        /// <param name="newLevel">新的体型等级</param>
-        private void OnPlayerSizeLevelChanged(int newLevel)
+        private void OnPlayerPassedThroughPortal()
         {
-            if (!_initialized) return;
-            if (_isBombardCasting)
+            if (!_initialized) 
             {
-                ActivateDamageObjectWithLevel(bombardDamageObject, true, newLevel);
+                return;
+            }   
+            
+            // 获取当前技能状态（从BossBlackboard获取，确保状态正确）
+            bool isBombardCasting = GetBombardCastingStatusFromBlackboard();
+            bool isFloodCasting = GetFloodCastingStatusFromBlackboard();
+            
+            
+            // 只有在cast期间才响应传送门穿越事件
+            if (isBombardCasting)
+            {
+                // 获取当前玩家体型等级并判断伤害对象（实时获取，确保是最新值）
+                int currentLevel = GetPlayerSizeLevel();
+                bool shouldDisable = (currentLevel == 1);
+                
+                
+                ActivateDamageObjectWithLevel(bombardDamageObject, true, currentLevel);
             }
-            if (_isFloodCasting)
+            if (isFloodCasting)
             {
-                ActivateDamageObjectWithLevel(floodDamageObject, false, newLevel);
+                // 获取当前玩家体型等级并判断伤害对象（实时获取，确保是最新值）
+                int currentLevel = GetPlayerSizeLevel();
+                bool shouldDisable = (currentLevel >= 3);
+                
+                
+                ActivateDamageObjectWithLevel(floodDamageObject, false, currentLevel);
             }
         }
 
@@ -390,7 +406,7 @@ namespace Invector.vCharacterController.AI
         {
             if (bossBlackboard)
             {
-                bossBlackboard.OnPlayerSizeLevelChanged -= OnPlayerSizeLevelChanged;
+                bossBlackboard.OnPlayerPassedThroughPortal -= OnPlayerPassedThroughPortal;
             }
         }
 
@@ -402,7 +418,6 @@ namespace Invector.vCharacterController.AI
         {
             if (!_portalManager)
             {
-                Debug.LogWarning("[CastManager] PortalManager未找到");
                 return Quaternion.identity;
             }
             
@@ -416,7 +431,6 @@ namespace Invector.vCharacterController.AI
                 return rotation;
             }
             
-            Debug.LogWarning("[CastManager] 无法获取传送门数据");
             return Quaternion.identity;
         }
         
@@ -446,7 +460,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning($"[CastManager] {attackName} VFX预制体未设置");
             }
         }
         
@@ -478,7 +491,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning($"[CastManager] {attackName} Feel播放器未设置");
             }
         }
         
@@ -521,7 +533,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[CastManager] BossPartManager未找到");
             }
         }
         
@@ -534,7 +545,6 @@ namespace Invector.vCharacterController.AI
         {
             if (!damageObject)
             {
-                Debug.LogWarning("[CastManager] 伤害对象未设置");
                 return;
             }
             
@@ -543,6 +553,8 @@ namespace Invector.vCharacterController.AI
             
             // 根据攻击类型和玩家体型决定是否激活
             bool shouldActivate = true;
+            string attackType = isBombard ? "Bombard" : "Flood";
+            
             if (isBombard)
             {
                 // 轰炸：玩家体型为1级时禁用
@@ -554,15 +566,14 @@ namespace Invector.vCharacterController.AI
                 shouldActivate = (playerSizeLevel < 3);
             }
             
+            
             if (shouldActivate)
             {
                 damageObject.SetActive(true);
-                
             }
             else
             {
                 damageObject.SetActive(false);
-                
             }
         }
 
@@ -589,9 +600,22 @@ namespace Invector.vCharacterController.AI
             }
             
             // 备用方案：返回默认等级
-            Debug.LogWarning("[CastManager] 无法获取玩家体型等级，使用默认值");
             return 2; // 默认中等体型
         }
+        
+        /// <summary>
+        /// 打印CastManager中的体型信息
+        /// </summary>
+        private void PrintSizeInfo()
+        {
+            if (!bossBlackboard)
+            {
+                return;
+            }
+            
+            int sizeLevel = GetPlayerSizeLevel();
+        }
+        
         
         /// <summary>
         /// 处理洪水水面对象动画
@@ -822,6 +846,44 @@ namespace Invector.vCharacterController.AI
         public void DebugShowStatus()
         {
             
+        }
+        
+        /// <summary>
+        /// 从BossBlackboard获取Bombard Casting状态（确保状态正确）
+        /// </summary>
+        private bool GetBombardCastingStatusFromBlackboard()
+        {
+            if (!bossBlackboard) return false;
+            
+            // 检查当前技能是否为bombard
+            if (bossBlackboard.lastUsedSkill != null && 
+                bossBlackboard.lastUsedSkill.Value == "bombard")
+            {
+                // 直接使用CastManager内部的_isBombardCasting状态
+                // 因为这个状态是在ExecuteBombardCast()中设置的，应该是正确的
+                return _isBombardCasting;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// 从BossBlackboard获取Flood Casting状态（确保状态正确）
+        /// </summary>
+        private bool GetFloodCastingStatusFromBlackboard()
+        {
+            if (!bossBlackboard) return false;
+            
+            // 检查当前技能是否为flood
+            if (bossBlackboard.lastUsedSkill != null && 
+                bossBlackboard.lastUsedSkill.Value == "flood")
+            {
+                // 直接使用CastManager内部的_isFloodCasting状态
+                // 因为这个状态是在ExecuteFloodCast()中设置的，应该是正确的
+                return _isFloodCasting;
+            }
+            
+            return false;
         }
         
         #endregion

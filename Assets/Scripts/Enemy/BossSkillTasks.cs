@@ -86,7 +86,6 @@ namespace Invector.vCharacterController.AI
                 _initialBossPartPosition = _bossBlackboard.bossPartManager.bossPart.transform.position;
                 _initialBossPartRotation = _bossBlackboard.bossPartManager.bossPart.transform.rotation;
                 _hasStoredInitialTransform = true;
-                Debug.Log($"[BossSkillTask] 已保存BossPart初始transform: 位置{_initialBossPartPosition}, 旋转{_initialBossPartRotation.eulerAngles}");
             }
             
             _skillStartTime = Time.time;
@@ -143,7 +142,6 @@ namespace Invector.vCharacterController.AI
             
             if (!_portalManager)
             {
-                Debug.LogError($"[{skillName}] 传送门管理器未找到");
                 return TaskStatus.Failure;
             }
             
@@ -154,7 +152,6 @@ namespace Invector.vCharacterController.AI
                 PortalSlot selectedSlot = SelectSlotForSkill();
                 if (selectedSlot == null)
                 {
-                    Debug.LogError($"[{skillName}] 没有可用的插槽生成传送门");
                     return TaskStatus.Failure;
                 }
                 
@@ -162,7 +159,6 @@ namespace Invector.vCharacterController.AI
                 _currentPortal = _portalManager.GeneratePortal(portalType, portalColor, selectedSlot);
             if (_currentPortal == null)
             {
-                Debug.LogError($"[{skillName}] 传送门生成失败");
                 return TaskStatus.Failure;
             }
             
@@ -264,11 +260,9 @@ namespace Invector.vCharacterController.AI
                 // 只停用攻击，保持部件激活
                 _bossBlackboard.bossPartManager.DeactivatePartAttack();
                 
-                Debug.Log($"[BossSkillTask] BossPart已重置到初始transform: 位置{_initialBossPartPosition}, 旋转{_initialBossPartRotation.eulerAngles}");
             }
             else
             {
-                Debug.LogWarning("[BossSkillTask] 无法重置BossPart，组件未找到");
             }
         }
         
@@ -293,6 +287,18 @@ namespace Invector.vCharacterController.AI
                     if (_currentPortal != null && _currentPortal.portalSlot != null)
                     {
                         _currentPortal.portalSlot.ResetSlot();
+                    }
+                    
+                    // 重置黑板数据到技能发生前状态
+                    if (_bossBlackboard)
+                    {
+                        // 回滚传送门数量
+                        _bossBlackboard.UpdatePortalCount(_portalManager.GetActivePortalCount());
+                        
+                        // 清空最后使用的插槽和技能记录
+                        _bossBlackboard.SetLastPortalSlot("");
+                        _bossBlackboard.SetLastUsedSkill("");
+                        _bossBlackboard.SetLastPortalType("");
                     }
                 }
                 
@@ -444,7 +450,6 @@ namespace Invector.vCharacterController.AI
         {
             if (!_portalManager || !_bossBlackboard) 
             {
-                Debug.LogError($"[{skillName}] PortalManager或BossBlackboard为空 - PortalManager: {(_portalManager != null ? "✓" : "✗")}, BossBlackboard: {(_bossBlackboard != null ? "✓" : "✗")}");
                 return null;
             }
             
@@ -469,7 +474,6 @@ namespace Invector.vCharacterController.AI
             
             if (allAvailableSlots.Count == 0)
             {
-                Debug.LogError($"[{skillName}] 没有找到可用的插槽");
                 return null;
             }
             
@@ -486,23 +490,19 @@ namespace Invector.vCharacterController.AI
                 if (validSlots.Count == 0)
                 {
                     validSlots = allAvailableSlots;
-                    Debug.LogWarning($"[{skillName}] SmartSkill: 没有可用插槽，使用所有插槽");
                 }
             }
             else
             {
                 // 独立Task调用：允许重复使用插槽
                 validSlots = allAvailableSlots;
-                Debug.Log($"[{skillName}] 独立Task: 允许重复使用插槽，使用所有插槽");
             }
             
-            Debug.Log($"[{skillName}] 可用插槽数量: {validSlots.Count}, 总插槽数量: {allAvailableSlots.Count}");
             
             // 随机选择一个插槽
             int randomIndex = Random.Range(0, validSlots.Count);
             PortalSlot selectedSlot = validSlots[randomIndex];
             
-            Debug.Log($"[{skillName}] 选择插槽: {selectedSlot.name}, 上次使用插槽: {_bossBlackboard.GetLastPortalSlot()}, 上次使用技能: {_bossBlackboard.GetLastUsedSkill()}");
             
             return selectedSlot;
         }
@@ -564,7 +564,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[CeilingEnergyBombard] CastManager未找到，使用备用方案");
             }
         }
         
@@ -575,6 +574,26 @@ namespace Invector.vCharacterController.AI
             {
                 _bossBlackboard.castManager.ResetAllDamageObjects();
             }
+        }
+        
+        public override TaskStatus OnUpdate()
+        {
+            
+            // 调用父类的OnUpdate并返回其状态
+            return base.OnUpdate();
+        }
+        
+        /// <summary>
+        /// 获取Bombard Casting状态（通过反射获取私有字段）
+        /// </summary>
+        private bool GetBombardCastingStatus(CastManager castManager)
+        {
+            var field = typeof(CastManager).GetField("_isBombardCasting", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (field != null)
+            {
+                return (bool)field.GetValue(castManager);
+            }
+            return false;
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -729,7 +748,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[GroundFlood] CastManager未找到，使用备用方案");
             }
         }
         
@@ -976,11 +994,9 @@ namespace Invector.vCharacterController.AI
             // 如果还没有选择技能，先选择技能
             if (_currentSkillTask == null && !_isExecutingSkill)
             {
-                Debug.Log("------");
                 
                 if (!_bossBlackboard)
                 {
-                    Debug.LogError("[BossSmartSkillSelection] BossBlackboard未找到");
                     LogBTFailure("BossBlackboard is null");
                     return TaskStatus.Failure;
                 }
@@ -1009,7 +1025,6 @@ namespace Invector.vCharacterController.AI
                 _currentSkillTask = CreateSkillTask(selectedSkillName);
                 if (_currentSkillTask == null)
                 {
-                    Debug.LogError($"[BossSmartSkillSelection] 未找到技能类: {selectedSkillName}");
                     LogBTFailure($"CreateSkillTask returned null for {selectedSkillName}");
                     return TaskStatus.Failure;
                 }
@@ -1043,13 +1058,9 @@ namespace Invector.vCharacterController.AI
         {
             if (_bossBlackboard)
             {
-                Debug.LogWarning(
-                    $"[BossSmartSkillSelection] Failure: {reason} | phase={_bossBlackboard.phase.Value}, hpPct={_bossBlackboard.hpPct.Value:F2}, angerOn={_bossBlackboard.angerOn.Value}, fearOn={_bossBlackboard.fearOn.Value}, lastSkill={_bossBlackboard.GetLastUsedSkill()}, portals={_bossBlackboard.numPortals.Value}"
-                );
             }
             else
             {
-                Debug.LogWarning($"[BossSmartSkillSelection] Failure: {reason} | bossBlackboard=null");
             }
         }
         
@@ -1208,7 +1219,6 @@ namespace Invector.vCharacterController.AI
             var portalManager = UnityEngine.Object.FindObjectOfType<PortalManager>();
             if (portalManager == null)
             {
-                Debug.LogError("[BossSmartSkillSelection] 未找到PortalManager");
                 return false;
             }
             
@@ -1318,7 +1328,6 @@ namespace Invector.vCharacterController.AI
                     task = new BossRoar();
                     break;
                 default:
-                    Debug.LogError($"[BossSmartSkillSelection] 未知的技能名称: {skillName}");
                     return null;
             }
             
@@ -1331,7 +1340,6 @@ namespace Invector.vCharacterController.AI
                 // 根据技能配置设置颜色
                 ConfigureSkillColor(task, skillName);
                 
-                Debug.Log($"[BossSmartSkillSelection] 为技能Task设置Owner: {(task.Owner != null ? task.Owner.name : "null")}");
             }
             
             return task;
@@ -1357,7 +1365,6 @@ namespace Invector.vCharacterController.AI
             
             if (config == null)
             {
-                Debug.LogWarning($"[BossSmartSkillSelection] 未找到技能 {skillName} 的颜色配置，使用默认颜色");
                 return;
             }
             
@@ -1368,13 +1375,11 @@ namespace Invector.vCharacterController.AI
                 PortalColor[] randomColors = { PortalColor.Blue, PortalColor.Orange };
                 var chosen = randomColors[Random.Range(0, randomColors.Length)];
                 task.SetCustomPortalColor(chosen);
-                Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 使用随机颜色: {chosen}");
             }
             else
             {
                 // 使用指定的首选颜色
                 task.SetCustomPortalColor(config.preferredColor);
-                Debug.Log($"[BossSmartSkillSelection] 技能 {skillName} 使用指定颜色: {config.preferredColor}");
             }
         }
     }
@@ -1429,7 +1434,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[TentacleUpAttack] CastManager未找到，使用备用方案");
                 // 备用方案：直接激活BossPart攻击
                 if (_bossBlackboard && _bossBlackboard.bossPartManager)
                 {
@@ -1488,7 +1492,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[TentacleDownAttack] CastManager未找到，使用备用方案");
                 // 备用方案：直接激活BossPart攻击
                 if (_bossBlackboard && _bossBlackboard.bossPartManager)
                 {
@@ -1547,7 +1550,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[TentacleLeftAttack] CastManager未找到，使用备用方案");
                 // 备用方案：直接激活BossPart攻击
                 if (_bossBlackboard && _bossBlackboard.bossPartManager)
                 {
@@ -1606,7 +1608,6 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
-                Debug.LogWarning("[TentacleRightAttack] CastManager未找到，使用备用方案");
                 // 备用方案：直接激活BossPart攻击
                 if (_bossBlackboard && _bossBlackboard.bossPartManager)
                 {

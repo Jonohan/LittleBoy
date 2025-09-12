@@ -2530,6 +2530,22 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 9076150663978166040, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
   m_PrefabInstance: {fileID: 4289640506656741687}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &682760575 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6626417666751777278, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
+  m_PrefabInstance: {fileID: 4289640506656741687}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &682760576 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3529364514659743628, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
+  m_PrefabInstance: {fileID: 4289640506656741687}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 682760575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a7d8c47ca23ce4eb96bf17bb9a3212, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &693702520
 GameObject:
   m_ObjectHideFlags: 0
@@ -8647,6 +8663,22 @@ PrefabInstance:
       propertyPath: bossInterruptSystem
       value: 
       objectReference: {fileID: 2095128419}
+    - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: castManager
+      value: 
+      objectReference: {fileID: 2095128438}
+    - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: playerObject
+      value: 
+      objectReference: {fileID: 682760575}
+    - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bossPartManager
+      value: 
+      objectReference: {fileID: 2095128429}
+    - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: playerSizeController
+      value: 
+      objectReference: {fileID: 682760576}
     - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: portal1
       value: 

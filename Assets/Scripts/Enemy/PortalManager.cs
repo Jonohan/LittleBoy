@@ -268,9 +268,7 @@ namespace Invector.vCharacterController.AI
             
             // 触发事件
             OnPortalSpawned?.Invoke(portalData);
-            
-            Debug.Log($"[PortalManager] 开始生成传送门: {type} {color} 编号{portalNumber} 在 {slot.name}");
-            
+     
             return portalData;
         }
         
@@ -332,7 +330,6 @@ namespace Invector.vCharacterController.AI
             UpdatePortalColor(portalData, portalData.color);
             
             // 开始前摇阶段（第二阶段：Telegraphing）
-            Debug.Log($"[PortalManager] 开始前摇阶段: 传送门{portalNumber}({portalData.portalObject.name}) -> 插槽({portalData.portalSlot.name})");
             portalData.portalSlot.StartTelegraphing(telegraphDuration, vfxConfig.telegraphingVfxPrefab, portalData.portalObject);
             
             // 确保传送门状态为激活
@@ -743,8 +740,7 @@ namespace Invector.vCharacterController.AI
             
             // 更新下一个传送门编号（1和2之间切换）
             _nextPortalToGenerate = (_nextPortalToGenerate == 1) ? 2 : 1;
-            
-            Debug.Log($"[PortalManager] 轮换选择: {selectedPortal}号传送门，下次将使用{_nextPortalToGenerate}号");
+
             return selectedPortal;
         }
         

@@ -77,6 +77,10 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("Cast阶段管理器")]
         public CastManager castManager;
         
+        [Header("玩家配置")]
+        [UnityEngine.Tooltip("玩家对象（手动配置，将自动获取所有玩家相关组件）")]
+        public GameObject playerObject;
+        
         [Header("阶段阈值")]
         [UnityEngine.Tooltip("愤怒阶段血量阈值")]
         [Range(0f, 1f)]
@@ -111,6 +115,9 @@ namespace Invector.vCharacterController.AI
         // 事件：玩家体型等级变化（1-4）
         public event Action<int> OnPlayerSizeLevelChanged;
         
+        // 事件：玩家穿过传送门
+        public event Action OnPlayerPassedThroughPortal;
+        
         #region Unity生命周期
         
         private void Awake()
@@ -136,6 +143,9 @@ namespace Invector.vCharacterController.AI
         private void Start()
         {
             InitializeBlackboard();
+            
+            // 打印BossBlackboard中的体型信息
+            PrintSizeInfo();
         }
         
         private void Update()
@@ -174,7 +184,6 @@ namespace Invector.vCharacterController.AI
             fearOn.Value = false;
             disabledOn.Value = false;
             
-            Debug.Log("[BossBlackboard] 黑板变量初始化完成");
         }
         
         /// <summary>
@@ -182,16 +191,38 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void FindPlayer()
         {
-            var player = GameObject.FindGameObjectWithTag("Player");
-            if (player)
+            GameObject player = null;
+            
+            // 优先使用手动配置的玩家对象
+            if (playerObject)
             {
-                target.Value = player;
-                _playerSizeController = player.GetComponent<CharacterSizeController>();
-                Debug.Log($"[BossBlackboard] 找到玩家: {player.name}");
+                player = playerObject;
             }
             else
             {
-                Debug.LogWarning("[BossBlackboard] 未找到玩家对象");
+                // 备用方案：自动查找玩家
+                player = GameObject.FindGameObjectWithTag("Player");
+                if (player)
+                {
+                }
+                else
+                {
+                    Debug.LogWarning("[BossBlackboard] 未找到玩家对象，请手动配置playerObject");
+                    return;
+                }
+            }
+            
+            // 设置目标引用
+            target.Value = player;
+            
+            // 从玩家对象上获取所有需要的组件
+            _playerSizeController = player.GetComponent<CharacterSizeController>();
+            if (!_playerSizeController)
+            {
+                Debug.LogWarning($"[BossBlackboard] 玩家对象 {player.name} 上未找到CharacterSizeController组件");
+            }
+            else
+            {
             }
         }
         
@@ -211,7 +242,6 @@ namespace Invector.vCharacterController.AI
             
             if (bossPartManager)
             {
-                Debug.Log($"[BossBlackboard] 找到Boss部件管理器: {bossPartManager.name}");
             }
             else
             {
@@ -235,7 +265,6 @@ namespace Invector.vCharacterController.AI
             
             if (castManager)
             {
-                Debug.Log($"[BossBlackboard] 找到Cast管理器: {castManager.name}");
             }
             else
             {
@@ -284,6 +313,14 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
+        /// 触发玩家穿过传送门事件
+        /// </summary>
+        public void TriggerPlayerPassedThroughPortal()
+        {
+            OnPlayerPassedThroughPortal?.Invoke();
+        }
+        
+        /// <summary>
         /// 更新阶段状态
         /// </summary>
         private void UpdatePhaseStatus()
@@ -311,7 +348,6 @@ namespace Invector.vCharacterController.AI
             if (phase.Value != newPhase)
             {
                 phase.Value = newPhase;
-                Debug.Log($"[BossBlackboard] 阶段切换: {newPhase}");
             }
             
             angerOn.Value = newAngerOn;
@@ -323,7 +359,11 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         private void UpdateDisabledStatus()
         {
-            if (!_playerSizeController) return;
+            if (!_playerSizeController) 
+            {
+                Debug.LogWarning("[BossBlackboard] 未找到玩家体型控制器");
+                return;
+            }
             
             // 检查玩家是否达到4.5倍体型且落地
             float playerSize = _playerSizeController.GetCurrentSize();
@@ -332,7 +372,6 @@ namespace Invector.vCharacterController.AI
             if (playerSize >= 4.5f && isGrounded && !disabledOn.Value)
             {
                 disabledOn.Value = true;
-                Debug.Log("[BossBlackboard] Boss进入失能状态 - 玩家巨大化落地");
             }
         }
         
@@ -344,13 +383,38 @@ namespace Invector.vCharacterController.AI
         {
             if (!_playerSizeController) return 2; // 默认中等体型
             
-            float playerSize = _playerSizeController.GetCurrentSize();
+            // 直接使用CharacterSizeLevel枚举来获取等级
+            var sizeLevel = _playerSizeController.GetCurrentSizeLevel();
             
-            // 根据体型大小返回等级
-            if (playerSize < 1.5f) return 1;      // 小体型
-            else if (playerSize < 2.5f) return 2; // 中等体型
-            else if (playerSize < 3.5f) return 3; // 大体型
-            else return 4;                        // 巨大体型
+            // 将CharacterSizeLevel枚举转换为数字等级
+            switch (sizeLevel)
+            {
+                case CharacterSizeLevel.Mini:
+                    return 1;      // 小体型
+                case CharacterSizeLevel.Standard:
+                    return 2;      // 中等体型
+                case CharacterSizeLevel.Giant:
+                    return 3;      // 大体型
+                case CharacterSizeLevel.LimitBreaker:
+                    return 4;      // 巨大体型（限制器突破）
+                default:
+                    return 2;      // 默认中等体型
+            }
+        }
+        
+        /// <summary>
+        /// 打印BossBlackboard中的体型信息
+        /// </summary>
+        private void PrintSizeInfo()
+        {
+            if (!_playerSizeController)
+            {
+                return;
+            }
+            
+            var characterSizeLevel = _playerSizeController.GetCurrentSizeLevel();
+            int sizeLevel = GetPlayerSizeLevel();
+            
         }
         
         /// <summary>
