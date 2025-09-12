@@ -1866,4 +1866,120 @@ namespace Invector.vCharacterController.AI
     
     #endregion
     
+    #region 死亡处理任务
+    
+    /// <summary>
+    /// Boss死亡处理任务
+    /// 播放死亡动画并禁用Behavior Tree组件
+    /// </summary>
+    [TaskDescription("Boss死亡处理 - 播放死亡动画并禁用BT")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class BossDeathTask : Action
+    {
+        [Header("死亡配置")]
+        [UnityEngine.Tooltip("死亡动画触发参数")]
+        public string deathAnimationTrigger = "Death";
+        
+        [UnityEngine.Tooltip("死亡动画播放时间")]
+        public float deathAnimationDuration = 3f;
+        
+        [UnityEngine.Tooltip("是否禁用Behavior Tree组件")]
+        public bool disableBehaviorTree = true;
+        
+        [UnityEngine.Tooltip("是否禁用Boss AI组件")]
+        public bool disableBossAI = true;
+        
+        private Animator _animator;
+        private BehaviorTree _behaviorTree;
+        private NonHumanoidBossAI _bossAI;
+        private float _deathStartTime;
+        private bool _hasTriggeredDeath = false;
+        
+        public override void OnStart()
+        {
+            // 获取组件引用
+            _animator = Owner.GetComponent<Animator>();
+            _behaviorTree = Owner.GetComponent<BehaviorTree>();
+            _bossAI = Owner.GetComponent<NonHumanoidBossAI>();
+            
+            _deathStartTime = Time.time;
+            _hasTriggeredDeath = false;
+            
+            Debug.LogWarning($"[BossDeathTask] 开始死亡处理 - 对象: {Owner.name}");
+        }
+        
+        public override TaskStatus OnUpdate()
+        {
+            // 触发死亡动画（只触发一次）
+            if (!_hasTriggeredDeath)
+            {
+                TriggerDeathAnimation();
+                _hasTriggeredDeath = true;
+            }
+            
+            // 等待死亡动画播放完毕
+            if (Time.time - _deathStartTime >= deathAnimationDuration)
+            {
+                // 禁用组件
+                DisableComponents();
+                
+                Debug.LogWarning($"[BossDeathTask] 死亡处理完成 - 对象: {Owner.name}");
+                return TaskStatus.Success;
+            }
+            
+            return TaskStatus.Running;
+        }
+        
+        public override void OnEnd()
+        {
+            // 确保组件被禁用
+            DisableComponents();
+        }
+        
+        /// <summary>
+        /// 触发死亡动画
+        /// </summary>
+        private void TriggerDeathAnimation()
+        {
+            if (_animator != null && !string.IsNullOrEmpty(deathAnimationTrigger))
+            {
+                _animator.SetTrigger(deathAnimationTrigger);
+                Debug.LogWarning($"[BossDeathTask] 触发死亡动画: {deathAnimationTrigger}");
+            }
+            else
+            {
+                Debug.LogWarning($"[BossDeathTask] 无法触发死亡动画 - Animator: {_animator != null}, Trigger: {deathAnimationTrigger}");
+            }
+        }
+        
+        /// <summary>
+        /// 禁用相关组件
+        /// </summary>
+        private void DisableComponents()
+        {
+            // 禁用Animator组件（停止所有动画）
+            if (_animator != null)
+            {
+                _animator.enabled = false;
+                Debug.LogWarning($"[BossDeathTask] 已禁用Animator组件");
+            }
+            
+            // 禁用Behavior Tree组件
+            if (disableBehaviorTree && _behaviorTree != null)
+            {
+                _behaviorTree.enabled = false;
+                Debug.LogWarning($"[BossDeathTask] 已禁用Behavior Tree组件");
+            }
+            
+            // 禁用Boss AI组件
+            if (disableBossAI && _bossAI != null)
+            {
+                _bossAI.enabled = false;
+                Debug.LogWarning($"[BossDeathTask] 已禁用Boss AI组件");
+            }
+        }
+    }
+    
+    #endregion
+    
 }
