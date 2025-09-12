@@ -34,6 +34,12 @@ namespace Invector.vCharacterController.AI
         [Tooltip("洪水攻击VFX")]
         public GameObject floodVfx;
         
+        [Tooltip("左墙投掷攻击VFX")]
+        public GameObject wallThrowLeftVfx;
+        
+        [Tooltip("右墙投掷攻击VFX")]
+        public GameObject wallThrowRightVfx;
+        
         [Header("Feel效果配置")]
         [Tooltip("上方触手攻击Feel效果")]
         public MMF_Player tentacleUpFeel;
@@ -52,6 +58,12 @@ namespace Invector.vCharacterController.AI
         
         [Tooltip("洪水攻击Feel效果")]
         public MMF_Player floodFeel;
+        
+        [Tooltip("左墙投掷攻击Feel效果")]
+        public MMF_Player wallThrowLeftFeel;
+        
+        [Tooltip("右墙投掷攻击Feel效果")]
+        public MMF_Player wallThrowRightFeel;
         
         [Header("伤害对象配置")]
         [Tooltip("轰炸伤害对象")]
@@ -198,6 +210,26 @@ namespace Invector.vCharacterController.AI
                 StartCoroutine(HandleFloodWaterSurface());
             }
             _isFloodCasting = true;
+        }
+        
+        /// <summary>
+        /// 执行左墙投掷攻击Cast阶段
+        /// </summary>
+        public void ExecuteWallThrowLeftCast()
+        {
+            ExecuteOtherAttackCast("wallthrow_left", wallThrowLeftVfx, wallThrowLeftFeel, null, false);
+            _lastExecutedAttack = "wallthrow_left";
+            _lastCastPosition = GetCurrentPortalPosition();
+        }
+        
+        /// <summary>
+        /// 执行右墙投掷攻击Cast阶段
+        /// </summary>
+        public void ExecuteWallThrowRightCast()
+        {
+            ExecuteOtherAttackCast("wallthrow_right", wallThrowRightVfx, wallThrowRightFeel, null, false);
+            _lastExecutedAttack = "wallthrow_right";
+            _lastCastPosition = GetCurrentPortalPosition();
         }
         
         /// <summary>

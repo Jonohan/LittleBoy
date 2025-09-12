@@ -1637,7 +1637,6 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("伤害值")]
         public float damage = 40f;
         
-        
         public override void OnStart()
         {
             // 自动设置技能参数
@@ -1646,6 +1645,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 4f;
             spawnPortalTime = 5f;
             telegraphTime = 1.5f;
+            castTime = 4f;
             postAttackTime = 0.5f;
             
             base.OnStart();
@@ -1657,6 +1657,11 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
+            // 执行Cast阶段
+            if (_bossBlackboard && _bossBlackboard.castManager)
+            {
+                _bossBlackboard.castManager.ExecuteWallThrowLeftCast();
+            }
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
@@ -1687,7 +1692,6 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("伤害值")]
         public float damage = 40f;
         
-        
         public override void OnStart()
         {
             // 自动设置技能参数
@@ -1696,6 +1700,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 4f;
             spawnPortalTime = 5f;
             telegraphTime = 1.5f;
+            castTime = 4f;
             postAttackTime = 0.5f;
             
             base.OnStart();
@@ -1707,6 +1712,11 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
+            // 执行Cast阶段
+            if (_bossBlackboard && _bossBlackboard.castManager)
+            {
+                _bossBlackboard.castManager.ExecuteWallThrowRightCast();
+            }
             
             // 激活BossPart攻击
             if (_bossBlackboard && _bossBlackboard.bossPartManager)
