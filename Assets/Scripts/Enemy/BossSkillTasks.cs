@@ -42,6 +42,16 @@ namespace Invector.vCharacterController.AI
         protected SharedGameObject bossBlackboard = new SharedGameObject();
         protected SharedGameObject bossAI = new SharedGameObject();
         
+        [Header("动画配置")]
+        [UnityEngine.Tooltip("传送门生成动画触发参数")]
+        public string portalSpawnAnimationTrigger = "PortalSpawn";
+
+        [UnityEngine.Tooltip("触手攻击动画触发参数")]
+        public string tentacleAnimationTrigger = "TentacleAttack";
+        
+        [UnityEngine.Tooltip("其他攻击动画触发参数")]
+        public string specialAttackAnimationTrigger = "SpecialAttack";
+        
         // 私有变量
         protected PortalManager _portalManager;
         protected BossBlackboard _bossBlackboard;
@@ -50,6 +60,12 @@ namespace Invector.vCharacterController.AI
         protected float _skillStartTime;
         protected SkillPhase _currentPhase;
         protected bool _hasExecutedSkill = false;
+        protected bool _hasTriggeredPortalSpawnAnimation = false;
+        protected bool _hasTriggeredAttackAnimation = false;
+        protected bool _hasTriggeredTelegraphEffects = false;
+        protected bool _hasStartedPortalTelegraphing = false;
+        protected bool _hasUpdatedBlackboard = false;
+        protected bool _hasTriggeredPostAttackEffects = false;
         
         // BossPart初始transform
         protected Vector3 _initialBossPartPosition;
@@ -91,6 +107,12 @@ namespace Invector.vCharacterController.AI
             _skillStartTime = Time.time;
             _currentPhase = SkillPhase.SpawnPortal;
             _hasExecutedSkill = false;
+            _hasTriggeredPortalSpawnAnimation = false;
+            _hasTriggeredAttackAnimation = false;
+            _hasTriggeredTelegraphEffects = false;
+            _hasStartedPortalTelegraphing = false;
+            _hasUpdatedBlackboard = false;
+            _hasTriggeredPostAttackEffects = false;
             
         }
         
@@ -128,6 +150,12 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected virtual TaskStatus HandleSpawnPortal()
         {
+            // 触发传送门生成动画（只触发一次）
+            if (!_hasTriggeredPortalSpawnAnimation)
+            {
+                TriggerPortalSpawnAnimation();
+                _hasTriggeredPortalSpawnAnimation = true;
+            }
             
             // 检查技能是否需要传送门
             if (_bossBlackboard)
@@ -162,13 +190,14 @@ namespace Invector.vCharacterController.AI
                 return TaskStatus.Failure;
             }
             
-            // 更新黑板变量
-            if (_bossBlackboard)
+            // 更新黑板变量（只更新一次）
+            if (_bossBlackboard && !_hasUpdatedBlackboard)
             {
                 _bossBlackboard.UpdatePortalCount(_portalManager.GetActivePortalCount());
                 _bossBlackboard.SetLastPortalType(portalType.ToString());
-                    _bossBlackboard.SetLastPortalSlot(selectedSlot.name); // 记录最后使用的插槽
-                    _bossBlackboard.SetLastUsedSkill(skillName); // 记录最后使用的技能
+                _bossBlackboard.SetLastPortalSlot(selectedSlot.name); // 记录最后使用的插槽
+                _bossBlackboard.SetLastUsedSkill(skillName); // 记录最后使用的技能
+                _hasUpdatedBlackboard = true;
             }
             
             }
@@ -187,20 +216,32 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected virtual TaskStatus HandleTelegraph()
         {
+            // 在前摇阶段开始时触发攻击动画（只触发一次）
+            if (!_hasTriggeredAttackAnimation)
+            {
+                TriggerAttackAnimation();
+                _hasTriggeredAttackAnimation = true;
+            }
+            
             // 开始传送门前摇阶段（自动选择已完成生成阶段的传送门）
-            if (_currentPortal?.portalSlot != null)
+            if (_currentPortal?.portalSlot != null && !_hasStartedPortalTelegraphing)
             {
                 int selectedPortal = _portalManager.StartPortalTelegraphing(telegraphTime);
+                _hasStartedPortalTelegraphing = true;
                 if (selectedPortal == 0)
                 {
                 }
             }
             
-            // 播放前摇动画和特效
-            PlayTelegraphEffects();
+            // 播放前摇动画和特效（只触发一次）
+            if (!_hasTriggeredTelegraphEffects)
+            {
+                PlayTelegraphEffects();
+                _hasTriggeredTelegraphEffects = true;
+            }
             
             // 检查前摇时间
-            if (Time.time - _skillStartTime >= telegraphTime)
+            if (Time.time - _skillStartTime >= spawnPortalTime + telegraphTime)
             {
                 _currentPhase = SkillPhase.Cast;
             }
@@ -221,7 +262,7 @@ namespace Invector.vCharacterController.AI
             }
             
             // 检查Cast阶段时间
-            if (Time.time - _skillStartTime >= telegraphTime + castTime)
+            if (Time.time - _skillStartTime >= spawnPortalTime + telegraphTime + castTime)
             {
                 _currentPhase = SkillPhase.PostAttack;
             }
@@ -234,11 +275,15 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected virtual TaskStatus HandlePostAttack()
         {
-            // 播放后摇动画
-            PlayPostAttackEffects();
+            // 播放后摇动画（只触发一次）
+            if (!_hasTriggeredPostAttackEffects)
+            {
+                PlayPostAttackEffects();
+                _hasTriggeredPostAttackEffects = true;
+            }
             
             // 检查后摇时间
-            if (Time.time - _skillStartTime >= telegraphTime + castTime + postAttackTime)
+            if (Time.time - _skillStartTime >= spawnPortalTime + telegraphTime + castTime + postAttackTime)
             {
                 _currentPhase = SkillPhase.Cleanup;
             }
@@ -341,7 +386,11 @@ namespace Invector.vCharacterController.AI
         /// <summary>
         /// 播放前摇特效
         /// </summary>
-        protected abstract void PlayTelegraphEffects();
+        protected virtual void PlayTelegraphEffects()
+        {
+            // 打印VFX创建日志
+
+        }
         
         /// <summary>
         /// 执行技能效果
@@ -358,6 +407,90 @@ namespace Invector.vCharacterController.AI
         #endregion
         
         #region 辅助方法
+        
+        /// <summary>
+        /// 触发传送门生成动画
+        /// </summary>
+        protected virtual void TriggerPortalSpawnAnimation()
+        {
+            if (!Owner)
+            {
+                return;
+            }
+            
+            // 获取Boss本体的Animator组件
+            Animator animator = Owner.GetComponent<Animator>();
+            if (animator == null)
+            {
+                Debug.LogWarning($"[BossSkillTasks] Boss本体没有Animator组件");
+                return;
+            }
+            
+            // 触发传送门生成动画
+            if (!string.IsNullOrEmpty(portalSpawnAnimationTrigger))
+            {
+                animator.SetTrigger(portalSpawnAnimationTrigger);
+
+            }
+        }
+        
+        /// <summary>
+        /// 触发前摇阶段的攻击动画
+        /// </summary>
+        protected virtual void TriggerAttackAnimation()
+        {
+            if (!Owner)
+            {
+                return;
+            }
+            
+            // 获取Boss本体的Animator组件
+            Animator animator = Owner.GetComponent<Animator>();
+            if (animator == null)
+            {
+                Debug.LogWarning($"[BossSkillTasks] Boss本体没有Animator组件");
+                return;
+            }
+            
+            // 根据技能类型选择动画触发参数
+            string animationTrigger = GetAnimationTriggerForSkill();
+            
+            // 触发动画
+            if (!string.IsNullOrEmpty(animationTrigger))
+            {
+                animator.SetTrigger(animationTrigger);
+    
+            }
+        }
+        
+        /// <summary>
+        /// 根据技能类型获取对应的动画触发参数
+        /// </summary>
+        /// <returns>动画触发参数名称</returns>
+        protected virtual string GetAnimationTriggerForSkill()
+        {
+            // 检查是否为触手攻击
+            if (IsTentacleAttack())
+            {
+                return tentacleAnimationTrigger;
+            }
+            else
+            {
+                return specialAttackAnimationTrigger;
+            }
+        }
+        
+        /// <summary>
+        /// 判断是否为触手攻击
+        /// </summary>
+        /// <returns>是否为触手攻击</returns>
+        protected virtual bool IsTentacleAttack()
+        {
+            return skillName == "tentacle_up" || 
+                   skillName == "tentacle_down" || 
+                   skillName == "tentacle_left" || 
+                   skillName == "tentacle_right";
+        }
         
         /// <summary>
         /// 从外部设置自定义传送门颜色（会禁用动态颜色选择）
