@@ -27,6 +27,13 @@ namespace Invector.vCharacterController.AI
         [Tooltip("右方触手攻击VFX")]
         public GameObject tentacleRightVfx;
         
+        [Header("其他攻击配置")]
+        [Tooltip("轰炸攻击VFX（场景内多个对象）")]
+        public GameObject[] bombardVfxObjects;
+        
+        [Tooltip("洪水攻击VFX")]
+        public GameObject floodVfx;
+        
         [Header("Feel效果配置")]
         [Tooltip("上方触手攻击Feel效果")]
         public MMF_Player tentacleUpFeel;
@@ -39,6 +46,22 @@ namespace Invector.vCharacterController.AI
         
         [Tooltip("右方触手攻击Feel效果")]
         public MMF_Player tentacleRightFeel;
+        
+        [Tooltip("轰炸攻击Feel效果")]
+        public MMF_Player bombardFeel;
+        
+        [Tooltip("洪水攻击Feel效果")]
+        public MMF_Player floodFeel;
+        
+        [Header("伤害对象配置")]
+        [Tooltip("轰炸伤害对象")]
+        public GameObject bombardDamageObject;
+        
+        [Tooltip("洪水伤害对象")]
+        public GameObject floodDamageObject;
+        
+        [Tooltip("洪水水面对象")]
+        public GameObject floodWaterSurfaceObject;
         
         [Header("动画配置")]
         [Tooltip("左右触手旋转动画持续时间")]
@@ -63,6 +86,10 @@ namespace Invector.vCharacterController.AI
         // 私有变量
         private PortalManager _portalManager;
         private bool _initialized = false;
+        
+        // 轰炸VFX无需实例化，使用场景对象数组启停
+        private bool _isBombardCasting = false;
+        private bool _isFloodCasting = false;
         
         #region Unity生命周期
         
@@ -91,8 +118,14 @@ namespace Invector.vCharacterController.AI
                 _portalManager = GetComponent<PortalManager>();
             }
             
+            // 订阅玩家体型变化事件
+            if (bossBlackboard)
+            {
+                bossBlackboard.OnPlayerSizeLevelChanged += OnPlayerSizeLevelChanged;
+            }
+            
             _initialized = true;
-            Debug.Log("[CastManager] 初始化完成");
+            
         }
         
         #endregion
@@ -132,6 +165,42 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
+        /// 执行轰炸攻击Cast阶段
+        /// </summary>
+        public void ExecuteBombardCast()
+        {
+            // 激活场景中的轰炸VFX（不改变位置与旋转）
+            ActivateBombardVfx();
+            
+            // 触发Feel
+            var castPosition = GetCurrentPortalPosition();
+            PlayCastFeel(castPosition, bombardFeel, "bombard");
+            
+            // 伤害对象启停（按体型规则）
+            ActivateDamageObject(bombardDamageObject, true);
+            
+            _isBombardCasting = true;
+            _lastExecutedAttack = "bombard";
+            _lastCastPosition = castPosition;
+            
+        }
+        
+        /// <summary>
+        /// 执行洪水攻击Cast阶段
+        /// </summary>
+        public void ExecuteFloodCast()
+        {
+            ExecuteOtherAttackCast("flood", floodVfx, floodFeel, floodDamageObject, false);
+            
+            // 处理洪水水面对象
+            if (floodWaterSurfaceObject)
+            {
+                StartCoroutine(HandleFloodWaterSurface());
+            }
+            _isFloodCasting = true;
+        }
+        
+        /// <summary>
         /// 通用触手攻击Cast阶段执行
         /// </summary>
         /// <param name="attackName">攻击名称</param>
@@ -167,7 +236,49 @@ namespace Invector.vCharacterController.AI
             _lastExecutedAttack = attackName;
             _lastCastPosition = castPosition;
             
-            Debug.Log($"[CastManager] 执行 {attackName} cast阶段，位置: {castPosition}");
+            
+        }
+        
+        // 删除专用实例化式的轰炸执行逻辑（改为启停场景对象）
+        
+        /// <summary>
+        /// 通用其他攻击Cast阶段执行
+        /// </summary>
+        /// <param name="attackName">攻击名称</param>
+        /// <param name="vfxPrefab">VFX预制体</param>
+        /// <param name="feelPlayer">Feel播放器</param>
+        /// <param name="damageObject">伤害对象</param>
+        /// <param name="isBombard">是否为轰炸攻击</param>
+        private void ExecuteOtherAttackCast(string attackName, GameObject vfxPrefab, MMF_Player feelPlayer, GameObject damageObject, bool isBombard)
+        {
+            if (!_initialized)
+            {
+                Debug.LogWarning("[CastManager] 管理器未初始化");
+                return;
+            }
+            
+            // 获取传送门位置
+            Vector3 castPosition = GetCurrentPortalPosition();
+            if (castPosition == Vector3.zero)
+            {
+                Debug.LogWarning($"[CastManager] 无法获取传送门位置，跳过 {attackName} cast阶段");
+                return;
+            }
+            
+            // 播放VFX
+            PlayCastVfx(castPosition, vfxPrefab, attackName);
+            
+            // 播放Feel效果
+            PlayCastFeel(castPosition, feelPlayer, attackName);
+            
+            // 激活伤害对象（根据玩家体型条件）
+            ActivateDamageObject(damageObject, isBombard);
+            
+            // 更新调试信息
+            _lastExecutedAttack = attackName;
+            _lastCastPosition = castPosition;
+            
+            
         }
         
         #endregion
@@ -199,6 +310,59 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
+        /// 批量激活轰炸VFX（场景对象，不改变位置与旋转）
+        /// </summary>
+        private void ActivateBombardVfx()
+        {
+            if (bombardVfxObjects == null || bombardVfxObjects.Length == 0) return;
+            for (int i = 0; i < bombardVfxObjects.Length; i++)
+            {
+                var go = bombardVfxObjects[i];
+                if (go) go.SetActive(true);
+            }
+            
+        }
+
+        /// <summary>
+        /// 批量关闭轰炸VFX（场景对象）
+        /// </summary>
+        private void DeactivateBombardVfx()
+        {
+            if (bombardVfxObjects == null || bombardVfxObjects.Length == 0) return;
+            for (int i = 0; i < bombardVfxObjects.Length; i++)
+            {
+                var go = bombardVfxObjects[i];
+                if (go) go.SetActive(false);
+            }
+            
+        }
+
+        /// <summary>
+        /// 玩家体型等级变化回调
+        /// </summary>
+        /// <param name="newLevel">新的体型等级</param>
+        private void OnPlayerSizeLevelChanged(int newLevel)
+        {
+            if (!_initialized) return;
+            if (_isBombardCasting)
+            {
+                ActivateDamageObjectWithLevel(bombardDamageObject, true, newLevel);
+            }
+            if (_isFloodCasting)
+            {
+                ActivateDamageObjectWithLevel(floodDamageObject, false, newLevel);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (bossBlackboard)
+            {
+                bossBlackboard.OnPlayerSizeLevelChanged -= OnPlayerSizeLevelChanged;
+            }
+        }
+
+        /// <summary>
         /// 获取当前传送门旋转
         /// </summary>
         /// <returns>传送门世界坐标旋转</returns>
@@ -216,7 +380,7 @@ namespace Invector.vCharacterController.AI
             {
                 // 获取传送门的世界坐标旋转
                 Quaternion rotation = portalData.portalSlot.GetPortalWorldRotation();
-                Debug.Log($"[CastManager] 获取传送门旋转: {rotation.eulerAngles}");
+                
                 return rotation;
             }
             
@@ -246,13 +410,15 @@ namespace Invector.vCharacterController.AI
                 // 5秒后销毁VFX实例
                 Destroy(vfxInstance, 5f);
                 
-                Debug.Log($"[CastManager] 播放 {attackName} VFX，位置: {position}, VFX旋转: {vfxRotation.eulerAngles}");
+                
             }
             else
             {
                 Debug.LogWarning($"[CastManager] {attackName} VFX预制体未设置");
             }
         }
+        
+        // 删除实例化式的轰炸VFX播放，改为启停场景对象
         
         /// <summary>
         /// 播放Cast阶段Feel效果
@@ -276,7 +442,7 @@ namespace Invector.vCharacterController.AI
                 feelPlayer.transform.rotation = feelRotation;
                 feelPlayer.PlayFeedbacks();
                 
-                Debug.Log($"[CastManager] 播放 {attackName} Feel效果，位置: {position}, Feel旋转: {feelRotation.eulerAngles}");
+                
             }
             else
             {
@@ -319,12 +485,180 @@ namespace Invector.vCharacterController.AI
                 
                 // 激活攻击
                 bossBlackboard.bossPartManager.ActivatePartAttack();
-                Debug.Log($"[CastManager] 移动BossPart到位置: {adjustedPosition}, 旋转: {portalRotation.eulerAngles}");
+                
             }
             else
             {
                 Debug.LogWarning("[CastManager] BossPartManager未找到");
             }
+        }
+        
+        /// <summary>
+        /// 激活伤害对象（根据玩家体型条件）
+        /// </summary>
+        /// <param name="damageObject">伤害对象</param>
+        /// <param name="isBombard">是否为轰炸攻击</param>
+        private void ActivateDamageObject(GameObject damageObject, bool isBombard)
+        {
+            if (!damageObject)
+            {
+                Debug.LogWarning("[CastManager] 伤害对象未设置");
+                return;
+            }
+            
+            // 获取玩家体型等级
+            int playerSizeLevel = GetPlayerSizeLevel();
+            
+            // 根据攻击类型和玩家体型决定是否激活
+            bool shouldActivate = true;
+            if (isBombard)
+            {
+                // 轰炸：玩家体型为1级时禁用
+                shouldActivate = (playerSizeLevel != 1);
+            }
+            else
+            {
+                // 洪水：玩家体型>=3级时禁用
+                shouldActivate = (playerSizeLevel < 3);
+            }
+            
+            if (shouldActivate)
+            {
+                damageObject.SetActive(true);
+                
+            }
+            else
+            {
+                damageObject.SetActive(false);
+                
+            }
+        }
+
+        /// <summary>
+        /// 根据给定体型等级执行启停（供事件回调使用）
+        /// </summary>
+        private void ActivateDamageObjectWithLevel(GameObject damageObject, bool isBombard, int playerSizeLevel)
+        {
+            if (!damageObject) return;
+            bool shouldActivate = isBombard ? (playerSizeLevel != 1) : (playerSizeLevel < 3);
+            damageObject.SetActive(shouldActivate);
+        }
+        
+        /// <summary>
+        /// 获取玩家体型等级
+        /// </summary>
+        /// <returns>玩家体型等级</returns>
+        private int GetPlayerSizeLevel()
+        {
+            // 通过BossBlackboard获取玩家体型等级
+            if (bossBlackboard)
+            {
+                return bossBlackboard.GetPlayerSizeLevel();
+            }
+            
+            // 备用方案：返回默认等级
+            Debug.LogWarning("[CastManager] 无法获取玩家体型等级，使用默认值");
+            return 2; // 默认中等体型
+        }
+        
+        /// <summary>
+        /// 处理洪水水面对象动画
+        /// </summary>
+        private System.Collections.IEnumerator HandleFloodWaterSurface()
+        {
+            if (!floodWaterSurfaceObject) yield break;
+            
+            // 激活水面对象
+            floodWaterSurfaceObject.SetActive(true);
+            
+            // 获取初始位置
+            Vector3 initialPosition = floodWaterSurfaceObject.transform.position;
+            Vector3 targetPosition = new Vector3(initialPosition.x, 1.5f, initialPosition.z);
+            
+            float elapsedTime = 0f;
+            float riseDuration = 1f; // 1秒上升时间
+            
+            // 水面上升动画
+            while (elapsedTime < riseDuration)
+            {
+                elapsedTime += Time.deltaTime;
+                float t = elapsedTime / riseDuration;
+                
+                // 使用平滑插值
+                floodWaterSurfaceObject.transform.position = Vector3.Lerp(initialPosition, targetPosition, t);
+                
+                yield return null;
+            }
+            
+            // 确保最终位置准确
+            floodWaterSurfaceObject.transform.position = targetPosition;
+            
+        }
+        
+        /// <summary>
+        /// 重置洪水水面对象
+        /// </summary>
+        public void ResetFloodWaterSurface()
+        {
+            if (floodWaterSurfaceObject)
+            {
+                // 重置到初始位置 (0,0,0)
+                floodWaterSurfaceObject.transform.position = Vector3.zero;
+                floodWaterSurfaceObject.SetActive(false);
+                
+            }
+        }
+        
+        /// <summary>
+        /// 平滑将洪水水面对象移回原点并禁用
+        /// </summary>
+        public void SmoothResetFloodWaterSurface()
+        {
+            if (!floodWaterSurfaceObject) return;
+            StartCoroutine(SmoothResetFloodWaterSurfaceCoroutine());
+        }
+        
+        private System.Collections.IEnumerator SmoothResetFloodWaterSurfaceCoroutine()
+        {
+            Vector3 start = floodWaterSurfaceObject.transform.position;
+            Vector3 target = Vector3.zero;
+            float duration = 1f;
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float k = t / duration;
+                floodWaterSurfaceObject.transform.position = Vector3.Lerp(start, target, k);
+                yield return null;
+            }
+            floodWaterSurfaceObject.transform.position = target;
+            floodWaterSurfaceObject.SetActive(false);
+            
+        }
+        
+        /// <summary>
+        /// 重置所有伤害对象
+        /// </summary>
+        public void ResetAllDamageObjects()
+        {
+            // 关闭轰炸VFX（场景对象数组）
+            DeactivateBombardVfx();
+            
+            // 重置轰炸伤害对象
+            if (bombardDamageObject)
+            {
+                bombardDamageObject.SetActive(false);
+                
+            }
+            
+            // 重置洪水伤害对象
+            if (floodDamageObject)
+            {
+                floodDamageObject.SetActive(false);
+                
+            }
+            _isBombardCasting = false;
+            _isFloodCasting = false;
         }
         
         #endregion
@@ -351,7 +685,7 @@ namespace Invector.vCharacterController.AI
             Vector3 minus60Euler = new Vector3(startEuler.x, startEuler.y + (-60f * rotationDirection), startEuler.z);
             Quaternion minus60Rotation = Quaternion.Euler(minus60Euler);
             bossPartTransform.rotation = minus60Rotation;
-            Debug.Log($"[CastManager] 瞬移到-60度位置: {minus60Euler}");
+            
             
             // 第二阶段：从-60度旋转到+60度
             Vector3 plus60Euler = new Vector3(startEuler.x, startEuler.y + (60f * rotationDirection), startEuler.z);
@@ -373,7 +707,7 @@ namespace Invector.vCharacterController.AI
             
             // 确保最终旋转准确
             bossPartTransform.rotation = plus60Rotation;
-            Debug.Log($"[CastManager] 左右触手旋转动画完成，最终角度: {plus60Euler}");
+            
         }
         
         /// <summary>
@@ -389,7 +723,7 @@ namespace Invector.vCharacterController.AI
             // 第一阶段：瞬移向上5
             Vector3 upwardPosition = startPosition + Vector3.up * upwardMoveDistance;
             bossPartTransform.position = upwardPosition;
-            Debug.Log($"[CastManager] 瞬移向上到: {upwardPosition}");
+            
             
             // 第二阶段：弹跳向下4
             Vector3 finalPosition = upwardPosition - Vector3.up * downwardBounceDistance;
@@ -411,7 +745,7 @@ namespace Invector.vCharacterController.AI
             
             // 确保最终位置准确
             bossPartTransform.position = finalPosition;
-            Debug.Log($"[CastManager] 上下触手弹跳动画完成，最终位置: {finalPosition}");
+            
         }
         
         /// <summary>
@@ -455,11 +789,7 @@ namespace Invector.vCharacterController.AI
         [Button("显示当前状态")]
         public void DebugShowStatus()
         {
-            Debug.Log($"[CastManager] 状态报告:");
-            Debug.Log($"最后执行的攻击: {_lastExecutedAttack}");
-            Debug.Log($"最后Cast位置: {_lastCastPosition}");
-            Debug.Log($"PortalManager状态: {(_portalManager ? "已连接" : "未连接")}");
-            Debug.Log($"BossBlackboard状态: {(bossBlackboard ? "已连接" : "未连接")}");
+            
         }
         
         #endregion

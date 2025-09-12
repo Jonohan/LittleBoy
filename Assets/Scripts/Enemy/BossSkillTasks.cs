@@ -299,7 +299,19 @@ namespace Invector.vCharacterController.AI
                 // 2) 重置BossPart到初始位置
                 ResetBossPartToInitialPosition();
                 
-                // 3) 关闭可能仍在激活的Boss攻击（与传送门是否复位无关）
+                // 3) 重置洪水水面对象（如果是洪水技能）
+                if (skillName == "flood" && _bossBlackboard && _bossBlackboard.castManager)
+                {
+                    _bossBlackboard.castManager.ResetFloodWaterSurface();
+                }
+                
+                // 4) 重置所有伤害对象
+                if (_bossBlackboard && _bossBlackboard.castManager)
+                {
+                    _bossBlackboard.castManager.ResetAllDamageObjects();
+                }
+                
+                // 5) 关闭可能仍在激活的Boss攻击（与传送门是否复位无关）
                 if (_bossBlackboard && _bossBlackboard.bossPartManager)
                 {
                     _bossBlackboard.bossPartManager.DeactivatePartAttack();
@@ -533,6 +545,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 8f;
             spawnPortalTime = 5f;
             telegraphTime = 3f;
+            castTime = 15f; // Cast阶段持续15秒
             postAttackTime = 2f;
             
             base.OnStart();
@@ -544,10 +557,24 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
+            // 调用CastManager执行轰炸Cast阶段
+            if (_bossBlackboard && _bossBlackboard.castManager)
+            {
+                _bossBlackboard.castManager.ExecuteBombardCast();
+            }
+            else
+            {
+                Debug.LogWarning("[CeilingEnergyBombard] CastManager未找到，使用备用方案");
+            }
         }
         
         protected override void PlayPostAttackEffects()
         {
+            // 后摇阶段清理轰炸相关伤害与特效
+            if (_bossBlackboard && _bossBlackboard.castManager)
+            {
+                _bossBlackboard.castManager.ResetAllDamageObjects();
+            }
         }
         
         // 传送门不需要关闭，它们一直存在
@@ -683,6 +710,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 10f;
             spawnPortalTime = 5f;
             telegraphTime = 3f;
+            castTime = 15f; // Cast阶段持续15秒
             postAttackTime = 1f;
             
             base.OnStart();
@@ -694,10 +722,25 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
+            // 调用CastManager执行洪水Cast阶段
+            if (_bossBlackboard && _bossBlackboard.castManager)
+            {
+                _bossBlackboard.castManager.ExecuteFloodCast();
+            }
+            else
+            {
+                Debug.LogWarning("[GroundFlood] CastManager未找到，使用备用方案");
+            }
         }
         
         protected override void PlayPostAttackEffects()
         {
+            // 后摇阶段清理洪水相关伤害与特效，并平滑回收水面
+            if (_bossBlackboard && _bossBlackboard.castManager)
+            {
+                _bossBlackboard.castManager.ResetAllDamageObjects();
+                _bossBlackboard.castManager.SmoothResetFloodWaterSurface();
+            }
         }
     }
     

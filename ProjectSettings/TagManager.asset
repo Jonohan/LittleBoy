@@ -44,14 +44,14 @@ TagManager:
   - CompanionAI
   - Triggers
   - StopMove
-  - 
+  - Suimono_Water
   - HeadTrack
   - BodyPart
   - BlockAIRayCast
   - Pushable
   - CoverPoint
-  - 
-  - 
+  - Suimono_Depth
+  - Suimono_Screen
   - 
   - 
   - 

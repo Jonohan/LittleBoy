@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using BehaviorDesigner.Runtime;
 using Sirenix.OdinInspector;
 using System.Linq;
@@ -105,6 +106,10 @@ namespace Invector.vCharacterController.AI
         // 私有变量
         private NonHumanoidBossAI _bossAI;
         private CharacterSizeController _playerSizeController;
+        private int _lastPlayerSizeLevel = -1;
+
+        // 事件：玩家体型等级变化（1-4）
+        public event Action<int> OnPlayerSizeLevelChanged;
         
         #region Unity生命周期
         
@@ -260,6 +265,22 @@ namespace Invector.vCharacterController.AI
             
             // 更新冷却时间
             UpdateCooldowns();
+
+            // 监听玩家体型等级变化
+            CheckPlayerSizeLevelChange();
+        }
+
+        /// <summary>
+        /// 检查并分发玩家体型等级变化事件
+        /// </summary>
+        private void CheckPlayerSizeLevelChange()
+        {
+            int level = GetPlayerSizeLevel();
+            if (level != _lastPlayerSizeLevel)
+            {
+                _lastPlayerSizeLevel = level;
+                OnPlayerSizeLevelChanged?.Invoke(level);
+            }
         }
         
         /// <summary>
@@ -313,6 +334,23 @@ namespace Invector.vCharacterController.AI
                 disabledOn.Value = true;
                 Debug.Log("[BossBlackboard] Boss进入失能状态 - 玩家巨大化落地");
             }
+        }
+        
+        /// <summary>
+        /// 获取玩家体型等级
+        /// </summary>
+        /// <returns>玩家体型等级 (1-4)</returns>
+        public int GetPlayerSizeLevel()
+        {
+            if (!_playerSizeController) return 2; // 默认中等体型
+            
+            float playerSize = _playerSizeController.GetCurrentSize();
+            
+            // 根据体型大小返回等级
+            if (playerSize < 1.5f) return 1;      // 小体型
+            else if (playerSize < 2.5f) return 2; // 中等体型
+            else if (playerSize < 3.5f) return 3; // 大体型
+            else return 4;                        // 巨大体型
         }
         
         /// <summary>
@@ -590,7 +628,7 @@ namespace Invector.vCharacterController.AI
             
             if (availableSlots.Count > 0)
             {
-                return availableSlots[Random.Range(0, availableSlots.Count)];
+                return availableSlots[UnityEngine.Random.Range(0, availableSlots.Count)];
             }
             
             return null;
