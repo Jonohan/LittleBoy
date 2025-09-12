@@ -27,7 +27,7 @@ namespace Invector.vCharacterController.AI
         protected string skillName = "Unknown";
         protected float cooldownTime = 5f;
         protected float spawnPortalTime = 5f;
-        protected float telegraphTime = 2f;
+        protected float telegraphTime = 2.5f;
         protected float castTime = 6f; // Cast阶段持续时间
         protected float postAttackTime = 1f;
         protected PortalType portalType = PortalType.Ceiling;
@@ -677,7 +677,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ceiling;
             cooldownTime = 8f;
             spawnPortalTime = 5f;
-            telegraphTime = 3f;
+            telegraphTime = 2.5f;
             castTime = 15f; // Cast阶段持续15秒
             postAttackTime = 2f;
             
@@ -759,7 +759,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.WallLeft; // 默认左墙
             cooldownTime = 6f;
             spawnPortalTime = 5f;
-            telegraphTime = 2f;
+            telegraphTime = 2.5f;
             postAttackTime = 1f;
             
             base.OnStart();
@@ -861,7 +861,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ground;
             cooldownTime = 10f;
             spawnPortalTime = 5f;
-            telegraphTime = 3f;
+            telegraphTime = 2.5f;
             castTime = 15f; // Cast阶段持续15秒
             postAttackTime = 1f;
             
@@ -928,7 +928,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ground;
             cooldownTime = 12f;
             spawnPortalTime = 5f;
-            telegraphTime = 2f;
+            telegraphTime = 2.5f;
             postAttackTime = 3f;
             
             base.OnStart();
@@ -976,7 +976,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.None; // 吼叫不需要传送门
             cooldownTime = 15f;
             spawnPortalTime = 5f;
-            telegraphTime = 1f;
+            telegraphTime = 2.5f;
             postAttackTime = 2f;
             
             base.OnStart();
@@ -1546,7 +1546,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ceiling;
             cooldownTime = 5f;
             spawnPortalTime = 5f;
-            telegraphTime = 2f;
+            telegraphTime = 2.5f;
             castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
@@ -1605,7 +1605,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.Ground;
             cooldownTime = 5f;
             spawnPortalTime = 5f;
-            telegraphTime = 2f;
+            telegraphTime = 2.5f;
             castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
@@ -1663,7 +1663,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.WallLeft;
             cooldownTime = 5f;
             spawnPortalTime = 5f;
-            telegraphTime = 2f;
+            telegraphTime = 2.5f;
             castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
@@ -1721,7 +1721,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.WallRight;
             cooldownTime = 5f;
             spawnPortalTime = 5f;
-            telegraphTime = 2f;
+            telegraphTime = 2.5f;
             castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
@@ -1778,7 +1778,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.WallLeft;
             cooldownTime = 4f;
             spawnPortalTime = 5f;
-            telegraphTime = 1.5f;
+            telegraphTime = 2.5f;
             castTime = 4f;
             postAttackTime = 0.5f;
             
@@ -1833,7 +1833,7 @@ namespace Invector.vCharacterController.AI
             portalType = PortalType.WallRight;
             cooldownTime = 4f;
             spawnPortalTime = 5f;
-            telegraphTime = 1.5f;
+            telegraphTime = 2.5f;
             castTime = 4f;
             postAttackTime = 0.5f;
             

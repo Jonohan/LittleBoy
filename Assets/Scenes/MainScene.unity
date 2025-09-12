@@ -1558,7 +1558,7 @@ GameObject:
   - component: {fileID: 574484568}
   - component: {fileID: 574484570}
   - component: {fileID: 574484569}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: PortalSystem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1606,7 +1606,7 @@ Camera:
   m_GameObject: {fileID: 574484567}
   m_Enabled: 0
   serializedVersion: 2
-  m_ClearFlags: 1
+  m_ClearFlags: 2
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -1629,16 +1629,16 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
-  field of view: 60
+  far clip plane: 250
+  field of view: 30
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 260
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 0}
+  m_TargetTexture: {fileID: 8400000, guid: 1df163d71bd836c4ba422c06e628d62b, type: 2}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 1
@@ -2535,17 +2535,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 6626417666751777278, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
   m_PrefabInstance: {fileID: 4289640506656741687}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &682760576 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3529364514659743628, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
-  m_PrefabInstance: {fileID: 4289640506656741687}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 682760575}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 81a7d8c47ca23ce4eb96bf17bb9a3212, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &693702520
 GameObject:
   m_ObjectHideFlags: 0
@@ -8248,94 +8237,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
   m_PrefabInstance: {fileID: 5598279245230779517}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2095128414
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  startWhenEnabled: 1
-  asynchronousLoad: 0
-  pauseWhenDisabled: 0
-  restartWhenComplete: 0
-  logTaskChanges: 0
-  group: 0
-  resetValuesOnRestart: 0
-  externalBehavior: {fileID: 11400000, guid: 91c99aa77da2cdf428cfc2a658d6b0e3, type: 2}
-  mBehaviorSource:
-    behaviorName: BossMainBehaviorTree
-    behaviorDescription: 
-    mTaskData:
-      types: []
-      parentIndex: 
-      startIndex: 
-      variableStartIndex: 
-      JSONSerialization: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(174.37233,-3.49856567)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(-0.3085537,116.6691)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Invector.vCharacterController.AI.IsBossDead","NodeData":{"Offset":"(-226.210068,112.975555)"},"ID":2,"Name":"Is
-        Boss Dead","Instant":true,"SharedFloathpPct":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":0}},{"Type":"Invector.vCharacterController.AI.IsBossDisabled","NodeData":{"Offset":"(-100.799957,109.477859)"},"ID":3,"Name":"Is
-        Boss Disabled","Instant":true,"SharedBooldisabledOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossFearful","NodeData":{"Offset":"(38.6024475,110.543335)"},"ID":4,"Name":"Is
-        Boss Fearful","Instant":true,"SharedBoolfearOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossAngry","NodeData":{"Offset":"(179.556946,105.218674)"},"ID":5,"Name":"Is
-        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(536.04895,109.299286)"},"ID":6,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(-113.416138,130.899872)"},"ID":7,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}},{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(76.23625,131.481934)"},"ID":8,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Helllllo"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}}]}]},"Variables":[{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeAngry","IsShared":true,"BooleanmValue":true},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeFear","IsShared":true,"BooleanmValue":true}]}'
-      fieldSerializationData:
-        typeName: []
-        fieldNameHash: 
-        startIndex: 
-        dataPosition: 
-        unityObjects: []
-        byteData: 
-        byteDataArray: 
-      Version: 1.7.12
-  gizmoViewMode: 2
-  showBehaviorDesignerGizmo: 1
---- !u!114 &2095128419 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6590991413904736608, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-  m_PrefabInstance: {fileID: 5598279245230779517}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ee2e69835c46bd488b73bdf532a650f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &2095128420 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2931909310673818217, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-  m_PrefabInstance: {fileID: 5598279245230779517}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 42f6cb911f0b3d04fb0a63d5e18571fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &2095128421 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-  m_PrefabInstance: {fileID: 5598279245230779517}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27d5b4cd44ec1014788ff7ded5ae031b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &2095128422 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8608237882947892111, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-  m_PrefabInstance: {fileID: 5598279245230779517}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 962d9ab11d4f7bc4ab762ae03638c281, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &2095128423 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
@@ -8347,79 +8248,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9637da7e70f47e642b27ff154a5eae7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &2095128426 stripped
+--- !u!114 &2095128447 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1073876455590800401, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+  m_CorrespondingSourceObject: {fileID: 5754882053108030017, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
   m_PrefabInstance: {fileID: 5598279245230779517}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29b167b8ba6d0e4459e0c3935d8a5656, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &2095128429
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d2bcebbb7f5eaf4b893b0170b91c557, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  bossPart: {fileID: 1433855745}
-  autoFindPart: 1
-  bossPartTag: BossPart
-  useInstantMovement: 1
-  portalManager: {fileID: 2095128421}
-  defaultActiveState: 1
---- !u!114 &2095128438
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2095128399}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: df477e3762877cd40907e88e9b7fff38, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  bossBlackboard: {fileID: 2095128423}
-  tentacleUpVfx: {fileID: 1705755711278829983, guid: 44d76f64a7887b34d97c1daf8a120d6f, type: 3}
-  tentacleDownVfx: {fileID: 1705755711278829983, guid: 44d76f64a7887b34d97c1daf8a120d6f, type: 3}
-  tentacleLeftVfx: {fileID: 1705755711278829983, guid: 44d76f64a7887b34d97c1daf8a120d6f, type: 3}
-  tentacleRightVfx: {fileID: 1705755711278829983, guid: 44d76f64a7887b34d97c1daf8a120d6f, type: 3}
-  bombardVfxObjects:
-  - {fileID: 1328835342}
-  - {fileID: 881083024}
-  - {fileID: 995894386}
-  floodVfx: {fileID: 4734401468729239151, guid: 0a17d8f0500d5fc47ae641e231af2241, type: 3}
-  wallThrowLeftVfx: {fileID: 3795619694864961905, guid: 92af98b78222006449d30e45f83ba713, type: 3}
-  wallThrowRightVfx: {fileID: 3795619694864961905, guid: 92af98b78222006449d30e45f83ba713, type: 3}
-  tentacleUpFeel: {fileID: 693702522}
-  tentacleDownFeel: {fileID: 1403682416}
-  tentacleLeftFeel: {fileID: 1202176991}
-  tentacleRightFeel: {fileID: 268564524}
-  bombardFeel: {fileID: 908865288}
-  floodFeel: {fileID: 1618282167}
-  wallThrowLeftFeel: {fileID: 1586399201}
-  wallThrowRightFeel: {fileID: 2108497379}
-  bombardDamageObject: {fileID: 1160167407}
-  floodDamageObject: {fileID: 907687298}
-  floodWaterSurfaceObject: {fileID: 1502564570}
-  horizontalRotationDuration: 1
-  verticalBounceDuration: 0.8
-  upwardMoveDistance: 5
-  downwardBounceDistance: 4
---- !u!114 &2095128447
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2095128399}
   m_Enabled: 1
@@ -8427,72 +8259,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0a82a086afdc494db67a8b50f091d1e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ChannelMode: 0
-  Channel: 0
-  MMChannelDefinition: {fileID: 0}
-  ShakeDuration: 0.5
-  PlayOnAwake: 0
-  PermanentShake: 0
-  Interruptible: 1
-  AlwaysResetTargetValuesAfterShake: 0
-  OnlyUseShakerValues: 0
-  CooldownBetweenShakes: 0
-  Shaking: 0
-  ForwardDirection: 1
-  TimescaleMode: 0
-  Mode: 0
-  TargetTransform: {fileID: 0}
-  TargetRectTransform: {fileID: 0}
-  ShakeSpeed: 20
-  ShakeRange: 0.5
-  OscillationOffset: 0
-  ShakeMainDirection: {x: 0, y: 1, z: 0}
-  RandomizeDirection: 0
-  ShakeAltDirection: {x: 0, y: 1, z: 0}
-  RandomizeDirectionOnPlay: 0
-  RandomizeDirectionX: 1
-  RandomizeDirectionY: 1
-  RandomizeDirectionZ: 1
-  AddDirectionalNoise: 1
-  DirectionalNoiseStrengthMin: {x: 0.25, y: 0.25, z: 0.25}
-  DirectionalNoiseStrengthMax: {x: 0.25, y: 0.25, z: 0.25}
-  RandomnessSeed: {x: 0, y: 0, z: 0}
-  RandomizeSeedOnShake: 1
-  UseAttenuation: 1
-  AttenuationCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 0.5
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  StartShakingButton: 0
 --- !u!1 &2107277085
 GameObject:
   m_ObjectHideFlags: 0
@@ -9272,62 +9038,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1073876455590800401, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: _maxHealth
-      value: 200
-      objectReference: {fileID: 0}
-    - target: {fileID: 1073876455590800401, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: selectedToolbar
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: m_Name
       value: KingSpawn
       objectReference: {fileID: 0}
-    - target: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2177362421536497379, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossAI
-      value: 
-      objectReference: {fileID: 2095128426}
-    - target: {fileID: 2177362421536497379, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: portalManager
-      value: 
-      objectReference: {fileID: 2095128421}
-    - target: {fileID: 2177362421536497379, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossBlackboard
-      value: 
-      objectReference: {fileID: 2095128423}
-    - target: {fileID: 2177362421536497379, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossBehaviorTree
-      value: 
-      objectReference: {fileID: 2095128422}
-    - target: {fileID: 2177362421536497379, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossPhaseWeights
-      value: 
-      objectReference: {fileID: 2095128420}
-    - target: {fileID: 2177362421536497379, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossInterruptSystem
-      value: 
-      objectReference: {fileID: 2095128419}
-    - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: castManager
-      value: 
-      objectReference: {fileID: 2095128438}
     - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: playerObject
       value: 
       objectReference: {fileID: 682760575}
-    - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossPartManager
-      value: 
-      objectReference: {fileID: 2095128429}
-    - target: {fileID: 2729231711214343837, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: playerSizeController
-      value: 
-      objectReference: {fileID: 682760576}
     - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: portal1
       value: 
@@ -9352,18 +9070,6 @@ PrefabInstance:
       propertyPath: wallRightSlots.Array.data[0]
       value: 
       objectReference: {fileID: 1654706625}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: giantOrangePortalVfx.frameColor.b
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: giantOrangePortalVfx.frameColor.g
-      value: 0.76477265
-      objectReference: {fileID: 0}
-    - target: {fileID: 2810686315380664140, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: giantOrangePortalVfx.frameColor.r
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 6482422768991068590, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.5102825
@@ -9404,106 +9110,78 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6590991413904736608, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossAI
-      value: 
-      objectReference: {fileID: 2095128426}
-    - target: {fileID: 6590991413904736608, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossBlackboard
-      value: 
-      objectReference: {fileID: 2095128423}
-    - target: {fileID: 6590991413904736608, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: bossBehaviorTree
-      value: 
-      objectReference: {fileID: 2095128422}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: defaultDamageEffects.Array.data[0]
-      value: 
-      objectReference: {fileID: 3894621978031112059, guid: 25ce43fcc25c42b4d8757add3d55ad13, type: 3}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].attachInReceiver
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].rotateToHitDirection
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].customDamageEffect.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].customDamageEffect.Array.data[0]
-      value: 
-      objectReference: {fileID: 3894621978031112059, guid: 25ce43fcc25c42b4d8757add3d55ad13, type: 3}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].onTriggerEffect.m_PersistentCalls.m_Calls.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].onTriggerEffect.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: customDamageEffects.Array.data[0].onTriggerEffect.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 1903777427}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].onTriggerEffect.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].onTriggerEffect.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: PlayFeedbacks
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].onTriggerEffect.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: MoreMountains.Feedbacks.MMF_Player, MoreMountains.Tools
-      objectReference: {fileID: 0}
-    - target: {fileID: 7594815332962434063, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: customDamageEffects.Array.data[0].onTriggerEffect.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
-      value: UnityEngine.Object, UnityEngine
-      objectReference: {fileID: 0}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: floodFeel
+      value: 
+      objectReference: {fileID: 1618282167}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bombardFeel
+      value: 
+      objectReference: {fileID: 908865288}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: tentacleUpFeel
+      value: 
+      objectReference: {fileID: 693702522}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: tentacleDownFeel
+      value: 
+      objectReference: {fileID: 1403682416}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: tentacleLeftFeel
+      value: 
+      objectReference: {fileID: 1202176991}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: floodDamageObject
+      value: 
+      objectReference: {fileID: 907687298}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: tentacleRightFeel
+      value: 
+      objectReference: {fileID: 268564524}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: wallThrowLeftFeel
+      value: 
+      objectReference: {fileID: 1586399201}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: wallThrowRightFeel
+      value: 
+      objectReference: {fileID: 2108497379}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bombardDamageObject
+      value: 
+      objectReference: {fileID: 1160167407}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: floodWaterSurfaceObject
+      value: 
+      objectReference: {fileID: 1502564570}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bombardVfxObjects.Array.data[0]
+      value: 
+      objectReference: {fileID: 1328835342}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bombardVfxObjects.Array.data[1]
+      value: 
+      objectReference: {fileID: 881083024}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bombardVfxObjects.Array.data[2]
+      value: 
+      objectReference: {fileID: 995894386}
     - target: {fileID: 7818576057428344513, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: OnDead.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 2074480771}
-    - target: {fileID: 8608237882947892111, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: mBehaviorSource.mTaskData.JSONSerialization
-      value: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(505.515167,-65.4985046)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(2.8972168,126.377243)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Invector.vCharacterController.AI.IsBossDead","NodeData":{"Offset":"(-261.439545,105.324585)"},"ID":2,"Name":"Is
-        Boss Dead","Instant":true,"SharedFloathpPct":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":0}},{"Type":"Invector.vCharacterController.AI.IsBossDisabled","NodeData":{"Offset":"(-104.997131,105.324585)"},"ID":3,"Name":"Is
-        Boss Disabled","Instant":true,"SharedBooldisabledOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossFearful","NodeData":{"Offset":"(35.00287,105.324585)"},"ID":4,"Name":"Is
-        Boss Fearful","Instant":true,"SharedBoolfearOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossAngry","NodeData":{"Offset":"(175.002869,105.324585)"},"ID":5,"Name":"Is
-        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(535.0029,105.324585)"},"ID":6,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(101.669586,125.324585)"},"ID":7,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}}]}]}}'
-      objectReference: {fileID: 0}
-    - target: {fileID: 8608237882947892111, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: mBehaviorSource.mTaskData.fieldSerializationData.unityObjects.Array.size
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8608237882947892111, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      propertyPath: mBehaviorSource.mTaskData.fieldSerializationData.unityObjects.Array.data[0]
+    - target: {fileID: 9039941723105850992, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: bossPart
       value: 
-      objectReference: {fileID: 2095128399}
+      objectReference: {fileID: 1433855745}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2095128414}
-    - targetCorrespondingSourceObject: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2095128429}
-    - targetCorrespondingSourceObject: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2095128438}
-    - targetCorrespondingSourceObject: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2095128447}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
 --- !u!1001 &6160107781306634656
 PrefabInstance:
