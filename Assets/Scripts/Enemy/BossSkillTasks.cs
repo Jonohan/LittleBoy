@@ -261,8 +261,8 @@ namespace Invector.vCharacterController.AI
                 _bossBlackboard.bossPartManager.bossPart.transform.position = _initialBossPartPosition;
                 _bossBlackboard.bossPartManager.bossPart.transform.rotation = _initialBossPartRotation;
                 
-                // 停用攻击
-                _bossBlackboard.bossPartManager.DeactivatePart();
+                // 只停用攻击，保持部件激活
+                _bossBlackboard.bossPartManager.DeactivatePartAttack();
                 
                 Debug.Log($"[BossSkillTask] BossPart已重置到初始transform: 位置{_initialBossPartPosition}, 旋转{_initialBossPartRotation.eulerAngles}");
             }
@@ -299,11 +299,10 @@ namespace Invector.vCharacterController.AI
                 // 2) 重置BossPart到初始位置
                 ResetBossPartToInitialPosition();
                 
-                // 3) 关闭可能仍在激活的Boss部件与攻击（与传送门是否复位无关）
+                // 3) 关闭可能仍在激活的Boss攻击（与传送门是否复位无关）
                 if (_bossBlackboard && _bossBlackboard.bossPartManager)
                 {
                     _bossBlackboard.bossPartManager.DeactivatePartAttack();
-                    _bossBlackboard.bossPartManager.DeactivatePart();
                 }
             }
             finally

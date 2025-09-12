@@ -237,12 +237,16 @@ namespace Invector.vCharacterController.AI
                 // 获取传送门的旋转
                 Quaternion portalRotation = GetCurrentPortalRotation();
                 
-                GameObject vfxInstance = Instantiate(vfxPrefab, position, portalRotation);
+                // 计算VFX旋转：让VFX的Y轴对齐传送门的Z轴
+                Vector3 portalZDirection = portalRotation * Vector3.forward; // 传送门的Z轴方向
+                Quaternion vfxRotation = Quaternion.FromToRotation(Vector3.up, portalZDirection);
+                
+                GameObject vfxInstance = Instantiate(vfxPrefab, position, vfxRotation);
                 
                 // 5秒后销毁VFX实例
                 Destroy(vfxInstance, 5f);
                 
-                Debug.Log($"[CastManager] 播放 {attackName} VFX，位置: {position}, 旋转: {portalRotation.eulerAngles}");
+                Debug.Log($"[CastManager] 播放 {attackName} VFX，位置: {position}, VFX旋转: {vfxRotation.eulerAngles}");
             }
             else
             {
@@ -263,12 +267,16 @@ namespace Invector.vCharacterController.AI
                 // 获取传送门的旋转
                 Quaternion portalRotation = GetCurrentPortalRotation();
                 
+                // 计算Feel旋转：让Feel的Y轴对齐传送门的Z轴
+                Vector3 portalZDirection = portalRotation * Vector3.forward; // 传送门的Z轴方向
+                Quaternion feelRotation = Quaternion.FromToRotation(Vector3.up, portalZDirection);
+                
                 // 设置Feel播放器位置和旋转并播放
                 feelPlayer.transform.position = position;
-                feelPlayer.transform.rotation = portalRotation;
+                feelPlayer.transform.rotation = feelRotation;
                 feelPlayer.PlayFeedbacks();
                 
-                Debug.Log($"[CastManager] 播放 {attackName} Feel效果，位置: {position}, 旋转: {portalRotation.eulerAngles}");
+                Debug.Log($"[CastManager] 播放 {attackName} Feel效果，位置: {position}, Feel旋转: {feelRotation.eulerAngles}");
             }
             else
             {

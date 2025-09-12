@@ -497,30 +497,26 @@ namespace Xuwu.Character
         /// </summary>
         private void ApplyCameraMultiplierToSystem(Invector.vCamera.vThirdPersonCamera tpCam, float distanceScale, float heightScale)
         {
-            // 计算当前distance（基于原始值）
-            float currentDistance = _originalTPCameraDistance * distanceScale;
+            // 使用固定基准值2.8 * multiplier
+            float currentDistance = 2.8f * distanceScale;
             
-            // 设置当前distance（这是唯一需要修改的地方）
+            // 设置当前distance
             tpCam.distance = currentDistance;
             
-            // 对于相机状态，我们通过动态计算而不是修改原始值
+            // 对于相机状态，使用固定基准值
             if (tpCam.CameraStateList != null && tpCam.CameraStateList.tpCameraStates != null)
             {
                 foreach (var state in tpCam.CameraStateList.tpCameraStates)
                 {
-                    if (_cameraStateBase.ContainsKey(state))
+                    // 使用固定基准值2.8 * multiplier
+                    state.defaultDistance = 2.8f * distanceScale;
+                    state.minDistance = 2.8f * distanceScale;
+                    state.maxDistance = 2.8f * distanceScale;
+                    
+                    if (scaleCameraStateHeight)
                     {
-                        var originalValues = _cameraStateBase[state];
-                        
-                        // 动态计算并设置值（基于原始值）
-                        state.defaultDistance = originalValues.def * distanceScale;
-                        state.minDistance = originalValues.min * distanceScale;
-                        state.maxDistance = originalValues.max * distanceScale;
-                        
-                        if (scaleCameraStateHeight)
-                        {
-                            state.height = originalValues.height * heightScale;
-                        }
+                        // 使用固定基准值2.3 * multiplier
+                        state.height = 2.3f * heightScale;
                     }
                 }
             }
@@ -534,24 +530,21 @@ namespace Xuwu.Character
             var tpCam = Invector.vCamera.vThirdPersonCamera.instance ?? FindObjectOfType<Invector.vCamera.vThirdPersonCamera>();
             if (!tpCam) return;
             
-            // 重置到原始值
-            if (_cameraStateBase.Count > 0)
+            // 重置到固定基准值
+            if (tpCam.CameraStateList != null && tpCam.CameraStateList.tpCameraStates != null)
             {
                 foreach (var state in tpCam.CameraStateList.tpCameraStates)
                 {
-                    if (_cameraStateBase.ContainsKey(state))
-                    {
-                        var originalValues = _cameraStateBase[state];
-                        state.defaultDistance = originalValues.def;
-                        state.minDistance = originalValues.min;
-                        state.maxDistance = originalValues.max;
-                        state.height = originalValues.height;
-                    }
+                    // 使用固定基准值
+                    state.defaultDistance = 2.8f;
+                    state.minDistance = 2.8f;
+                    state.maxDistance = 2.8f;
+                    state.height = 2.3f;
                 }
             }
             
-            // 重置当前distance
-            tpCam.distance = _originalTPCameraDistance;
+            // 重置当前distance到固定基准值
+            tpCam.distance = 2.8f;
             
             _currentCameraMultiplier = 1.0f;
             _cameraMultiplierApplied = false;
@@ -586,33 +579,23 @@ namespace Xuwu.Character
             
             int resetCount = 0;
             
-            // 重置相机状态（如果有缓存的原始值）
+            // 重置相机状态到固定基准值
             if (tp.CameraStateList != null && tp.CameraStateList.tpCameraStates != null)
             {
                 foreach (var state in tp.CameraStateList.tpCameraStates)
                 {
-                    if (_cameraStateBase.ContainsKey(state))
-                    {
-                        var originalValues = _cameraStateBase[state];
-                        state.defaultDistance = originalValues.def;
-                        state.minDistance = originalValues.min;
-                        state.maxDistance = originalValues.max;
-                        state.height = originalValues.height;
-                        resetCount++;
-                    }
+                    // 使用固定基准值
+                    state.defaultDistance = 2.8f;
+                    state.minDistance = 2.8f;
+                    state.maxDistance = 2.8f;
+                    state.height = 2.3f;
+                    resetCount++;
                 }
             }
             
-            // 重置相机距离到原始值
-            if (_cachedTPCamera)
-            {
-                tp.distance = _originalTPCameraDistance;
-                _hasAppliedInitialCameraScale = false; // 重置标志，允许下次启动时重新应用
-            }
-            else
-            {
-                Debug.LogWarning("[CharacterSizeController] 无法重置相机距离，原始值未缓存");
-            }
+            // 重置相机距离到固定基准值
+            tp.distance = 2.8f;
+            _hasAppliedInitialCameraScale = false; // 重置标志，允许下次启动时重新应用
         }
         
         /// <summary>
@@ -1084,7 +1067,6 @@ namespace Xuwu.Character
                     }
                 }
                 
-                Debug.Log($"[CharacterSizeController] 相机原始值已缓存 - 距离: {_originalTPCameraDistance:F2}, 状态数量: {_cameraStateBase.Count}");
             }
             
             return true;
