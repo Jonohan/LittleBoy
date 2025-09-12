@@ -92,6 +92,9 @@ namespace Invector.vCharacterController.AI
         [ShowInInspector, ReadOnly]
         public Vector3 portalWorldPosition;
         
+        [ShowInInspector, ReadOnly]
+        public Quaternion portalWorldRotation;
+        
         // 私有变量
         private Coroutine _vfxTrackingCoroutine;
         private Coroutine _portalMoveCoroutine;
@@ -110,6 +113,8 @@ namespace Invector.vCharacterController.AI
             {
                 TrackPlayer();
             }
+            
+
         }
         
         #endregion
@@ -297,6 +302,24 @@ namespace Invector.vCharacterController.AI
         public bool IsInUse()
         {
             return _isInUse;
+        }
+        
+        /// <summary>
+        /// 获取传送门世界坐标位置
+        /// </summary>
+        /// <returns>传送门世界坐标位置</returns>
+        public Vector3 GetPortalWorldPosition()
+        {
+            return portalWorldPosition;
+        }
+        
+        /// <summary>
+        /// 获取传送门世界坐标旋转
+        /// </summary>
+        /// <returns>传送门世界坐标旋转</returns>
+        public Quaternion GetPortalWorldRotation()
+        {
+            return portalWorldRotation;
         }
         
         #endregion
@@ -573,17 +596,21 @@ namespace Invector.vCharacterController.AI
             scenePortal.transform.rotation = endRot;
             scenePortal.transform.position = endPos;
             
-            // 获取传送门瞬移后的世界坐标（考虑一级父对象）
+            // 获取传送门瞬移后的世界坐标和旋转（考虑一级父对象）
             if (scenePortal.transform.parent)
             {
-                // 如果有父对象，计算世界坐标
+                // 如果有父对象，计算世界坐标和旋转
                 portalWorldPosition = scenePortal.transform.parent.TransformPoint(scenePortal.transform.position);
+                portalWorldRotation = scenePortal.transform.parent.rotation * scenePortal.transform.rotation;
             }
             else
             {
-                // 如果没有父对象，直接使用本地坐标
+                // 如果没有父对象，直接使用本地坐标和旋转
                 portalWorldPosition = scenePortal.transform.position;
+                portalWorldRotation = scenePortal.transform.rotation;
             }
+            
+            Debug.Log($"[PortalSlot] {gameObject.name} - 设置portalWorldRotation: {portalWorldRotation.eulerAngles}");
             
             
             // 传送门移动完成后，播放前摇VFX

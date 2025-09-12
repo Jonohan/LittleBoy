@@ -238,6 +238,26 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
+        /// 获取最新传送门Transform信息
+        /// </summary>
+        /// <returns>传送门的位置和旋转</returns>
+        public (Vector3 position, Quaternion rotation) GetLatestPortalTransform()
+        {
+            if (!portalManager)
+                return (Vector3.zero, Quaternion.identity);
+            
+            // 获取最后生成的传送门数据
+            var portalData = portalManager.GetLastGeneratedPortalData();
+            if (portalData?.portalSlot != null)
+            {
+                return (portalData.portalSlot.GetPortalWorldPosition(), 
+                        portalData.portalSlot.GetPortalWorldRotation());
+            }
+            
+            return (Vector3.zero, Quaternion.identity);
+        }
+        
+        /// <summary>
         /// 移动到指定位置
         /// </summary>
         /// <param name="targetPosition">目标位置</param>
@@ -258,6 +278,39 @@ namespace Invector.vCharacterController.AI
             {
                 // 平滑移动（保留选项）
                 StartCoroutine(SmoothMoveToPosition(targetPosition));
+            }
+        }
+        
+        /// <summary>
+        /// 移动到指定位置和旋转
+        /// </summary>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="targetRotation">目标旋转</param>
+        public void MoveToTransform(Vector3 targetPosition, Quaternion targetRotation)
+        {
+            if (!bossPart)
+                return;
+            
+            _targetPosition = targetPosition;
+            
+            if (useInstantMovement)
+            {
+                // 瞬间移动
+                bossPart.transform.position = targetPosition;
+                
+                // 计算BossPart的旋转：让BossPart的local Z轴指向传送门的local Z轴方向
+                Vector3 portalZDirection = targetRotation * Vector3.forward; // 传送门的Z轴方向
+                Quaternion bossPartRotation = Quaternion.FromToRotation(Vector3.forward, portalZDirection);
+                bossPart.transform.rotation = bossPartRotation;
+                
+                // 打印最终方向对比
+                Vector3 bossPartZDirection = bossPart.transform.forward;
+                Debug.Log($"[BossPartManager] 传送门Z轴方向: {portalZDirection}, BossPart Z轴方向: {bossPartZDirection}");
+            }
+            else
+            {
+                // 平滑移动和旋转（保留选项）
+                StartCoroutine(SmoothMoveToTransform(targetPosition, targetRotation));
             }
         }
         
@@ -284,6 +337,35 @@ namespace Invector.vCharacterController.AI
             
             // 确保最终位置准确
             bossPart.transform.position = targetPosition;
+        }
+        
+        /// <summary>
+        /// 平滑移动到目标位置和旋转（备用选项）
+        /// </summary>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="targetRotation">目标旋转</param>
+        private System.Collections.IEnumerator SmoothMoveToTransform(Vector3 targetPosition, Quaternion targetRotation)
+        {
+            Vector3 startPosition = bossPart.transform.position;
+            Quaternion startRotation = bossPart.transform.rotation;
+            float moveTime = 1f; // 固定移动时间
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < moveTime)
+            {
+                elapsedTime += Time.deltaTime;
+                float t = elapsedTime / moveTime;
+                
+                // 使用平滑插值
+                bossPart.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                bossPart.transform.rotation = Quaternion.Lerp(startRotation, targetRotation, t);
+                
+                yield return null;
+            }
+            
+            // 确保最终位置和旋转准确
+            bossPart.transform.position = targetPosition;
+            bossPart.transform.rotation = targetRotation;
         }
         
         /// <summary>

@@ -566,6 +566,18 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
+        /// 获取最后生成的传送门数据
+        /// </summary>
+        /// <returns>最后生成的传送门数据，如果没有则返回null</returns>
+        public PortalData GetLastGeneratedPortalData()
+        {
+            if (_lastGeneratedPortal <= 0)
+                return null;
+                
+            return GetPortalData(_lastGeneratedPortal);
+        }
+        
+        /// <summary>
         /// 检查是否有传送门连接
         /// </summary>
         /// <returns>是否有连接</returns>

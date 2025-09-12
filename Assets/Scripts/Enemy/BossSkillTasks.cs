@@ -28,6 +28,7 @@ namespace Invector.vCharacterController.AI
         protected float cooldownTime = 5f;
         protected float spawnPortalTime = 5f;
         protected float telegraphTime = 2f;
+        protected float castTime = 6f; // Cast阶段持续时间
         protected float postAttackTime = 1f;
         protected PortalType portalType = PortalType.Ceiling;
         protected PortalColor portalColor = PortalColor.Blue;
@@ -49,6 +50,11 @@ namespace Invector.vCharacterController.AI
         protected float _skillStartTime;
         protected SkillPhase _currentPhase;
         protected bool _hasExecutedSkill = false;
+        
+        // BossPart初始transform
+        protected Vector3 _initialBossPartPosition;
+        protected Quaternion _initialBossPartRotation;
+        protected bool _hasStoredInitialTransform = false;
         
         protected enum SkillPhase
         {
@@ -72,6 +78,15 @@ namespace Invector.vCharacterController.AI
             else if (useDynamicPortalColor)
             {
                 SelectPortalColorByBossPhase();
+            }
+            
+            // 保存BossPart的初始transform（只在第一次时保存）
+            if (!_hasStoredInitialTransform && _bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            {
+                _initialBossPartPosition = _bossBlackboard.bossPartManager.bossPart.transform.position;
+                _initialBossPartRotation = _bossBlackboard.bossPartManager.bossPart.transform.rotation;
+                _hasStoredInitialTransform = true;
+                Debug.Log($"[BossSkillTask] 已保存BossPart初始transform: 位置{_initialBossPartPosition}, 旋转{_initialBossPartRotation.eulerAngles}");
             }
             
             _skillStartTime = Time.time;
@@ -205,14 +220,14 @@ namespace Invector.vCharacterController.AI
             // 执行技能效果（只在第一次进入时执行）
             if (!_hasExecutedSkill)
             {
-            ExecuteSkillEffect();
+                ExecuteSkillEffect();
                 _hasExecutedSkill = true;
             }
             
-            // 检查施放时间（给技能效果一些执行时间）
-            if (Time.time - _skillStartTime >= telegraphTime + 0.1f) // 给0.1秒的执行时间
+            // 检查Cast阶段时间
+            if (Time.time - _skillStartTime >= telegraphTime + castTime)
             {
-            _currentPhase = SkillPhase.PostAttack;
+                _currentPhase = SkillPhase.PostAttack;
             }
             
             return TaskStatus.Running;
@@ -227,12 +242,34 @@ namespace Invector.vCharacterController.AI
             PlayPostAttackEffects();
             
             // 检查后摇时间
-            if (Time.time - _skillStartTime >= telegraphTime + postAttackTime)
+            if (Time.time - _skillStartTime >= telegraphTime + castTime + postAttackTime)
             {
                 _currentPhase = SkillPhase.Cleanup;
             }
             
             return TaskStatus.Running;
+        }
+        
+        /// <summary>
+        /// 重置BossPart到初始位置
+        /// </summary>
+        protected virtual void ResetBossPartToInitialPosition()
+        {
+            if (_bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            {
+                // 重置到游戏开始时的transform
+                _bossBlackboard.bossPartManager.bossPart.transform.position = _initialBossPartPosition;
+                _bossBlackboard.bossPartManager.bossPart.transform.rotation = _initialBossPartRotation;
+                
+                // 停用攻击
+                _bossBlackboard.bossPartManager.DeactivatePart();
+                
+                Debug.Log($"[BossSkillTask] BossPart已重置到初始transform: 位置{_initialBossPartPosition}, 旋转{_initialBossPartRotation.eulerAngles}");
+            }
+            else
+            {
+                Debug.LogWarning("[BossSkillTask] 无法重置BossPart，组件未找到");
+            }
         }
         
         /// <summary>
@@ -250,7 +287,7 @@ namespace Invector.vCharacterController.AI
             try
             {
                 // 1) 仅在 Spawn 阶段被中止时回收VFX并复原插槽数据
-                //    其余阶段视为“传送门已成功创建且流程完成”，不复位传送门
+                //    其余阶段视为"传送门已成功创建且流程完成"，不复位传送门
                 if (_currentPhase == SkillPhase.SpawnPortal)
                 {
                     if (_currentPortal != null && _currentPortal.portalSlot != null)
@@ -259,7 +296,10 @@ namespace Invector.vCharacterController.AI
                     }
                 }
                 
-                // 2) 关闭可能仍在激活的Boss部件与攻击（与传送门是否复位无关）
+                // 2) 重置BossPart到初始位置
+                ResetBossPartToInitialPosition();
+                
+                // 3) 关闭可能仍在激活的Boss部件与攻击（与传送门是否复位无关）
                 if (_bossBlackboard && _bossBlackboard.bossPartManager)
                 {
                     _bossBlackboard.bossPartManager.DeactivatePartAttack();
@@ -268,7 +308,7 @@ namespace Invector.vCharacterController.AI
             }
             finally
             {
-                // 3) 复位本地状态机标志
+                // 4) 复位本地状态机标志
                 _currentPortal = null;
                 _hasExecutedSkill = false;
                 _currentPhase = SkillPhase.None;
@@ -1327,6 +1367,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
+            castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
             base.OnStart();
@@ -1339,11 +1380,19 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
-            
-            // 激活BossPart攻击
-            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            // 调用CastManager执行上方触手攻击
+            if (_bossBlackboard && _bossBlackboard.castManager)
             {
-                _bossBlackboard.bossPartManager.ActivatePartAttack();
+                _bossBlackboard.castManager.ExecuteTentacleUpCast();
+            }
+            else
+            {
+                Debug.LogWarning("[TentacleUpAttack] CastManager未找到，使用备用方案");
+                // 备用方案：直接激活BossPart攻击
+                if (_bossBlackboard && _bossBlackboard.bossPartManager)
+                {
+                    _bossBlackboard.bossPartManager.ActivatePartAttack();
+                }
             }
         }
         
@@ -1378,6 +1427,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
+            castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
             base.OnStart();
@@ -1389,11 +1439,19 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
-            
-            // 激活BossPart攻击
-            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            // 调用CastManager执行下方触手攻击
+            if (_bossBlackboard && _bossBlackboard.castManager)
             {
-                _bossBlackboard.bossPartManager.ActivatePartAttack();
+                _bossBlackboard.castManager.ExecuteTentacleDownCast();
+            }
+            else
+            {
+                Debug.LogWarning("[TentacleDownAttack] CastManager未找到，使用备用方案");
+                // 备用方案：直接激活BossPart攻击
+                if (_bossBlackboard && _bossBlackboard.bossPartManager)
+                {
+                    _bossBlackboard.bossPartManager.ActivatePartAttack();
+                }
             }
         }
         
@@ -1428,6 +1486,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
+            castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
             base.OnStart();
@@ -1439,11 +1498,19 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
-            
-            // 激活BossPart攻击
-            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            // 调用CastManager执行左方触手攻击
+            if (_bossBlackboard && _bossBlackboard.castManager)
             {
-                _bossBlackboard.bossPartManager.ActivatePartAttack();
+                _bossBlackboard.castManager.ExecuteTentacleLeftCast();
+            }
+            else
+            {
+                Debug.LogWarning("[TentacleLeftAttack] CastManager未找到，使用备用方案");
+                // 备用方案：直接激活BossPart攻击
+                if (_bossBlackboard && _bossBlackboard.bossPartManager)
+                {
+                    _bossBlackboard.bossPartManager.ActivatePartAttack();
+                }
             }
         }
         
@@ -1478,6 +1545,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2f;
+            castTime = 6f; // Cast阶段持续6秒
             postAttackTime = 1f;
             
             base.OnStart();
@@ -1489,11 +1557,19 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
-            
-            // 激活BossPart攻击
-            if (_bossBlackboard && _bossBlackboard.bossPartManager)
+            // 调用CastManager执行右方触手攻击
+            if (_bossBlackboard && _bossBlackboard.castManager)
             {
-                _bossBlackboard.bossPartManager.ActivatePartAttack();
+                _bossBlackboard.castManager.ExecuteTentacleRightCast();
+            }
+            else
+            {
+                Debug.LogWarning("[TentacleRightAttack] CastManager未找到，使用备用方案");
+                // 备用方案：直接激活BossPart攻击
+                if (_bossBlackboard && _bossBlackboard.bossPartManager)
+                {
+                    _bossBlackboard.bossPartManager.ActivatePartAttack();
+                }
             }
         }
         

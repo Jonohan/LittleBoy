@@ -73,6 +73,9 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("Boss部件管理器")]
         public BossPartManager bossPartManager;
         
+        [UnityEngine.Tooltip("Cast阶段管理器")]
+        public CastManager castManager;
+        
         [Header("阶段阈值")]
         [UnityEngine.Tooltip("愤怒阶段血量阈值")]
         [Range(0f, 1f)]
@@ -120,6 +123,9 @@ namespace Invector.vCharacterController.AI
             
             // 查找Boss部件管理器
             FindBossPartManager();
+            
+            // 查找Cast管理器
+            FindCastManager();
         }
         
         private void Start()
@@ -205,6 +211,30 @@ namespace Invector.vCharacterController.AI
             else
             {
                 Debug.LogWarning("[BossBlackboard] 未找到Boss部件管理器");
+            }
+        }
+        
+        /// <summary>
+        /// 查找Cast管理器
+        /// </summary>
+        private void FindCastManager()
+        {
+            if (!castManager)
+            {
+                castManager = GetComponent<CastManager>();
+                if (!castManager)
+                {
+                    castManager = GetComponentInChildren<CastManager>();
+                }
+            }
+            
+            if (castManager)
+            {
+                Debug.Log($"[BossBlackboard] 找到Cast管理器: {castManager.name}");
+            }
+            else
+            {
+                Debug.LogWarning("[BossBlackboard] 未找到Cast管理器");
             }
         }
         
