@@ -448,15 +448,13 @@ namespace Invector.vCharacterController.AI
                 switch (color)
                 {
                     case PortalColor.Blue:
-                        renderer.material.color = Color.blue;
+                        //变1倍
                         break;
                     case PortalColor.Orange:
-                        renderer.material.color = new Color(1f, 0.5f, 0f); // 橙色
+                        //变1倍
                         break;
                     case PortalColor.GiantOrange:
-                        renderer.material.color = Color.red;
-                        // 巨型传送门可以调整大小
-                        vfx.transform.localScale *= 1.5f;
+                        //变2，2，2
                         break;
                 }
             }

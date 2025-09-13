@@ -1221,6 +1221,13 @@ namespace Invector.vCharacterController.AI
                     return TaskStatus.Failure;
                 }
                 
+                // 验证权重配置
+                if (!ValidateWeightConfiguration())
+                {
+                    LogBTFailure("权重配置验证失败");
+                    return TaskStatus.Failure;
+                }
+                
                 // 获取可用的技能
                 var validSkills = GetAvailableSkills();
                
@@ -1292,7 +1299,63 @@ namespace Invector.vCharacterController.AI
                 _currentSkillTask = null;
             }
             _isExecutingSkill = false;
-    }
+        }
+        
+        /// <summary>
+        /// 调试方法：显示当前权重配置
+        /// </summary>
+        [Button("显示权重配置")]
+        public void ShowWeightConfiguration()
+        {
+            Debug.Log("=== Boss技能权重配置 ===");
+            Debug.Log($"可用技能数量: {availableSkills.Length}");
+            Debug.Log($"权重配置数量: {skillWeights.Length}");
+            
+            for (int i = 0; i < availableSkills.Length; i++)
+            {
+                string skillName = i < availableSkills.Length ? availableSkills[i] : "未知";
+                float weight = i < skillWeights.Length ? skillWeights[i] : 0f;
+                Debug.Log($"技能 {i}: {skillName} - 权重: {weight}");
+            }
+            
+            float totalWeight = 0f;
+            foreach (float w in skillWeights)
+            {
+                totalWeight += w;
+            }
+            Debug.Log($"总权重: {totalWeight}");
+        }
+        
+        /// <summary>
+        /// 验证权重配置是否正确
+        /// </summary>
+        /// <returns>配置是否正确</returns>
+        private bool ValidateWeightConfiguration()
+        {
+            if (availableSkills.Length != skillWeights.Length)
+            {
+                Debug.LogError($"[BossSmartSkillSelection] 权重配置错误：技能数组长度({availableSkills.Length})与权重数组长度({skillWeights.Length})不匹配！");
+                return false;
+            }
+            
+            bool hasValidWeight = false;
+            for (int i = 0; i < skillWeights.Length; i++)
+            {
+                if (skillWeights[i] > 0f)
+                {
+                    hasValidWeight = true;
+                    break;
+                }
+            }
+            
+            if (!hasValidWeight)
+            {
+                Debug.LogError("[BossSmartSkillSelection] 权重配置错误：所有技能权重都为0！");
+                return false;
+            }
+            
+            return true;
+        }
     
     /// <summary>
         /// 获取当前可用的技能列表
@@ -1474,6 +1537,12 @@ namespace Invector.vCharacterController.AI
             if (availableSkills.Count == 1)
                 return availableSkills[0];
                 
+            // 验证权重配置
+            if (skillWeights.Length != availableSkills.Count)
+            {
+                Debug.LogWarning($"[BossSmartSkillSelection] 权重数组长度({skillWeights.Length})与可用技能数组长度({availableSkills.Count})不匹配！");
+            }
+            
             // 计算总权重
             float totalWeight = 0f;
             foreach (string skill in availableSkills)
@@ -1483,6 +1552,17 @@ namespace Invector.vCharacterController.AI
                 {
                     totalWeight += skillWeights[index];
                 }
+                else
+                {
+                    Debug.LogWarning($"[BossSmartSkillSelection] 技能 '{skill}' 在权重配置中未找到对应索引！");
+                }
+            }
+            
+            // 如果总权重为0，随机选择一个
+            if (totalWeight <= 0f)
+            {
+                Debug.LogWarning("[BossSmartSkillSelection] 总权重为0，随机选择技能");
+                return availableSkills[Random.Range(0, availableSkills.Count)];
             }
             
             // 随机选择

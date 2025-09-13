@@ -176,6 +176,7 @@ namespace Invector.vCharacterController.AI
                 _portal1Data.isActive = true; // 传送门永远激活
                 _portal1Data.spawnTime = 0f; // 初始无生成时间
                 _activePortals.Add(_portal1Data);
+
             }
             else
             {
@@ -187,6 +188,7 @@ namespace Invector.vCharacterController.AI
             {
                 _portal2Data = new PortalData(portal2, PortalType.Ceiling, PortalColor.Blue, null);
                 _portal2Data.isActive = true; // 传送门永远激活
+                
                 _portal2Data.spawnTime = 0f; // 初始无生成时间
                 _activePortals.Add(_portal2Data);
             }
@@ -915,6 +917,12 @@ namespace Invector.vCharacterController.AI
             if (portalObject)
             {
                 portalData.portalObject = portalObject;
+                
+                // 设置GiantOrange传送门的scale为2,2,2
+                if (portalData.color == PortalColor.GiantOrange)
+                {
+                    portalObject.transform.localScale = new Vector3(2f, 2f, 2f);
+                }
             }
         }
         
@@ -946,25 +954,6 @@ namespace Invector.vCharacterController.AI
             }
         }
         
-        /// <summary>
-        /// 从PortalColor获取Unity Color
-        /// </summary>
-        /// <param name="portalColor">传送门颜色</param>
-        /// <returns>Unity Color</returns>
-        private Color GetColorFromPortalColor(PortalColor portalColor)
-        {
-            switch (portalColor)
-            {
-                case PortalColor.Blue:
-                    return Color.blue;
-                case PortalColor.Orange:
-                    return new Color(1f, 0.5f, 0f);
-                case PortalColor.GiantOrange:
-                    return Color.red;
-                default:
-                    return Color.white;
-            }
-        }
         
         /// <summary>
         /// 获取传送门数据
