@@ -2139,4 +2139,114 @@ namespace Invector.vCharacterController.AI
     
     #endregion
     
+    #region 独立击退任务
+    
+    /// <summary>
+    /// 独立击退任务
+    /// 检测玩家是否在碰撞箱内，如果在则进行抛物线击退
+    /// </summary>
+    [TaskDescription("独立击退任务 - 检测玩家并执行抛物线击退")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class KnockbackTask : Action
+    {
+        [Header("组件引用")]
+        [UnityEngine.Tooltip("Boss黑板引用")]
+        public SharedGameObject bossBlackboard;
+        
+        [Header("调试")]
+        [UnityEngine.Tooltip("是否显示调试信息")]
+        public bool showDebugInfo = true;
+        
+        // 私有变量
+        private BossBlackboard _bossBlackboard;
+        private bool _hasTriggeredKnockback = false;
+        
+        public override void OnStart()
+        {
+            InitializeComponents();
+            
+            _hasTriggeredKnockback = false;
+            
+            if (showDebugInfo)
+            {
+                Debug.Log("[KnockbackTask] 击退任务开始");
+            }
+        }
+        
+        public override TaskStatus OnUpdate()
+        {
+            // 如果还没有触发击退，执行击退逻辑
+            if (!_hasTriggeredKnockback)
+            {
+                if (_bossBlackboard && _bossBlackboard.castManager)
+                {
+                    // 执行击退（动画和FEEL效果会一直触发，击退逻辑只在玩家在碰撞箱内时执行）
+                    bool success = _bossBlackboard.castManager.ExecuteKnockback();
+                    
+                    _hasTriggeredKnockback = true;
+                    
+                    if (showDebugInfo)
+                    {
+                        if (success)
+                        {
+                            Debug.Log("[KnockbackTask] 玩家在碰撞箱内，开始击退");
+                        }
+                        else
+                        {
+                            Debug.Log("[KnockbackTask] 玩家不在碰撞箱内，但已触发动画和FEEL效果");
+                        }
+                    }
+                    
+                    return TaskStatus.Success;
+                }
+                else
+                {
+                    Debug.LogError("[KnockbackTask] BossBlackboard或CastManager未找到！");
+                    return TaskStatus.Failure;
+                }
+            }
+            
+            return TaskStatus.Success;
+        }
+        
+        public override void OnEnd()
+        {
+            // 清理状态
+            _hasTriggeredKnockback = false;
+            
+            if (showDebugInfo)
+            {
+                Debug.Log("[KnockbackTask] 击退任务结束");
+            }
+        }
+        
+        /// <summary>
+        /// 初始化组件引用
+        /// </summary>
+        private void InitializeComponents()
+        {
+            // 自动配置BossBlackboard
+            if (!_bossBlackboard)
+            {
+                if (bossBlackboard.Value != null)
+                {
+                    _bossBlackboard = bossBlackboard.Value.GetComponent<BossBlackboard>();
+                }
+                else
+                {
+                    _bossBlackboard = Owner.GetComponent<BossBlackboard>();
+                }
+            }
+            
+            // 自动配置SharedGameObject引用
+            if (bossBlackboard.Value == null && _bossBlackboard)
+            {
+                bossBlackboard.Value = _bossBlackboard.gameObject;
+            }
+        }
+        
+    }
+    
+    #endregion
+    
 }

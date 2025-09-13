@@ -75,6 +75,28 @@ namespace Invector.vCharacterController.AI
         [Tooltip("右墙投掷攻击Feel效果")]
         public MMF_Player wallThrowRightFeel;
         
+        [Tooltip("击退攻击Feel效果")]
+        public MMF_Player knockbackFeel;
+        
+        [Header("击退配置")]
+        [Tooltip("击退碰撞箱对象")]
+        public GameObject knockbackCollisionBox;
+        
+        [Tooltip("玩家对象")]
+        public GameObject playerObject;
+        
+        [Tooltip("击退力度")]
+        public float knockbackForce = 15f;
+        
+        [Tooltip("击退高度")]
+        public float knockbackHeight = 3f;
+        
+        [Tooltip("击退持续时间")]
+        public float knockbackDuration = 1.5f;
+        
+        [Tooltip("击退动画触发参数")]
+        public string knockbackAnimationTrigger = "Knockback";
+        
         [Header("伤害对象配置")]
         [Tooltip("轰炸伤害对象")]
         public GameObject bombardDamageObject;
@@ -243,6 +265,181 @@ namespace Invector.vCharacterController.AI
             ExecuteOtherAttackCast("wallthrow_right", wallThrowRightVfx, wallThrowRightFeel, null, false);
             _lastExecutedAttack = "wallthrow_right";
             _lastCastPosition = GetCurrentPortalPosition();
+        }
+        
+        /// <summary>
+        /// 执行击退攻击Cast阶段
+        /// </summary>
+        /// <param name="position">击退位置</param>
+        /// <param name="rotation">击退方向</param>
+        public void ExecuteKnockbackCast(Vector3 position, Quaternion rotation)
+        {
+            if (!_initialized)
+            {
+                return;
+            }
+            
+            // 播放Feel效果
+            PlayKnockbackFeel(position, rotation);
+            
+            // 更新调试信息
+            _lastExecutedAttack = "knockback";
+            _lastCastPosition = position;
+            
+            Debug.Log($"[CastManager] 执行击退攻击Cast阶段，位置: {position}, 旋转: {rotation}");
+        }
+        
+        /// <summary>
+        /// 检查玩家是否在击退碰撞箱内
+        /// </summary>
+        /// <returns>玩家是否在碰撞箱内</returns>
+        public bool IsPlayerInKnockbackCollisionBox()
+        {
+            if (!knockbackCollisionBox)
+            {
+                Debug.LogWarning("[CastManager] 击退碰撞箱未设置");
+                return false;
+            }
+            
+            if (!playerObject)
+            {
+                Debug.LogWarning("[CastManager] 玩家对象未设置");
+                return false;
+            }
+            
+            Collider collisionBoxCollider = knockbackCollisionBox.GetComponent<Collider>();
+            if (!collisionBoxCollider)
+            {
+                Debug.LogError("[CastManager] 击退碰撞箱对象没有Collider组件！");
+                return false;
+            }
+            
+            // 使用Bounds.Contains检查玩家位置是否在碰撞箱内
+            Bounds bounds = collisionBoxCollider.bounds;
+            bool isInside = bounds.Contains(playerObject.transform.position);
+            
+            Debug.Log($"[CastManager] 玩家位置: {playerObject.transform.position}, 碰撞箱边界: {bounds}, 是否在内: {isInside}");
+            
+            return isInside;
+        }
+        
+        /// <summary>
+        /// 执行击退逻辑
+        /// </summary>
+        /// <returns>击退是否成功开始</returns>
+        public bool ExecuteKnockback()
+        {
+            if (!knockbackCollisionBox)
+            {
+                Debug.LogError("[CastManager] 击退碰撞箱未设置！");
+                return false;
+            }
+            
+            if (!playerObject)
+            {
+                Debug.LogError("[CastManager] 玩家对象未设置！");
+                return false;
+            }
+            
+            // 检查玩家是否在碰撞箱内
+            if (!IsPlayerInKnockbackCollisionBox())
+            {
+                // 即使玩家不在碰撞箱内，也要触发动画和FEEL效果
+                TriggerKnockbackAnimation();
+                PlayKnockbackFeel(knockbackCollisionBox.transform.position, knockbackCollisionBox.transform.rotation);
+                return false;
+            }
+            
+            // 开始击退协程
+            StartCoroutine(PerformKnockback(playerObject));
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// 执行击退协程
+        /// </summary>
+        /// <param name="player">玩家对象</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator PerformKnockback(GameObject player)
+        {
+            // 计算击退方向（碰撞箱的local Z方向）
+            Vector3 knockbackDirection = knockbackCollisionBox.transform.forward;
+            
+            // 记录击退开始位置
+            Vector3 knockbackStartPosition = player.transform.position;
+            
+            // 计算击退终点位置
+            Vector3 knockbackEndPosition = knockbackStartPosition + knockbackDirection * knockbackForce;
+            
+            // 触发动画
+            TriggerKnockbackAnimation();
+            
+            // 播放Feel效果
+            PlayKnockbackFeel(knockbackCollisionBox.transform.position, knockbackCollisionBox.transform.rotation);
+            
+            Debug.Log($"[CastManager] 开始击退，方向: {knockbackDirection}, 开始位置: {knockbackStartPosition}, 终点位置: {knockbackEndPosition}");
+            
+            // 执行击退动画
+            float elapsedTime = 0f;
+            while (elapsedTime < knockbackDuration)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / knockbackDuration;
+                
+                // 计算抛物线位置
+                Vector3 currentPosition = CalculateParabolicPosition(knockbackStartPosition, knockbackEndPosition, progress);
+                player.transform.position = currentPosition;
+                
+                yield return null;
+            }
+            
+            // 确保最终位置准确
+            player.transform.position = knockbackEndPosition;
+            
+            Debug.Log("[CastManager] 击退完成");
+        }
+        
+        /// <summary>
+        /// 计算抛物线位置
+        /// </summary>
+        /// <param name="startPosition">开始位置</param>
+        /// <param name="endPosition">终点位置</param>
+        /// <param name="progress">进度 (0-1)</param>
+        /// <returns>当前位置</returns>
+        private Vector3 CalculateParabolicPosition(Vector3 startPosition, Vector3 endPosition, float progress)
+        {
+            // 水平位置：从开始位置线性移动到终点位置
+            Vector3 horizontalPosition = Vector3.Lerp(startPosition, endPosition, progress);
+            
+            // 垂直位置：抛物线轨迹
+            float height = knockbackHeight * Mathf.Sin(progress * Mathf.PI);
+            
+            return new Vector3(horizontalPosition.x, startPosition.y + height, horizontalPosition.z);
+        }
+        
+        /// <summary>
+        /// 触发击退动画
+        /// </summary>
+        private void TriggerKnockbackAnimation()
+        {
+            if (!bossBlackboard)
+            {
+                Debug.LogWarning("[CastManager] BossBlackboard未设置，无法触发动画");
+                return;
+            }
+            
+            // 获取Boss的Animator组件
+            Animator animator = bossBlackboard.GetComponent<Animator>();
+            if (animator && !string.IsNullOrEmpty(knockbackAnimationTrigger))
+            {
+                animator.SetTrigger(knockbackAnimationTrigger);
+                Debug.Log($"[CastManager] 触发击退动画: {knockbackAnimationTrigger}");
+            }
+            else
+            {
+                Debug.LogWarning("[CastManager] Boss动画器未找到或动画触发参数为空");
+            }
         }
         
         /// <summary>
@@ -501,6 +698,28 @@ namespace Invector.vCharacterController.AI
             }
             else
             {
+            }
+        }
+        
+        /// <summary>
+        /// 播放击退Feel效果
+        /// </summary>
+        /// <param name="position">播放位置</param>
+        /// <param name="rotation">播放旋转</param>
+        private void PlayKnockbackFeel(Vector3 position, Quaternion rotation)
+        {
+            if (knockbackFeel)
+            {
+                // 设置Feel播放器位置和旋转并播放
+                knockbackFeel.transform.position = position;
+                knockbackFeel.transform.rotation = rotation;
+                knockbackFeel.PlayFeedbacks();
+                
+                Debug.Log($"[CastManager] 播放击退Feel效果，位置: {position}, 旋转: {rotation}");
+            }
+            else
+            {
+                Debug.LogWarning("[CastManager] 击退Feel效果未设置");
             }
         }
         
