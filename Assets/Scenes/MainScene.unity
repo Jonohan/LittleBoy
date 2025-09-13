@@ -1415,7 +1415,7 @@ MonoBehaviour:
   lowHealthThreshold: 0.2
   showHealthNumbers: 1
   hideOnDeath: 0
-  bossDeathUIGameObject: {fileID: 0}
+  bossDeathUIGameObject: {fileID: 499820996}
 --- !u!1 &285041824
 GameObject:
   m_ObjectHideFlags: 0
@@ -2470,11 +2470,11 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 9.197956
-  far clip plane: 1839591.2
-  field of view: 60
-  orthographic: 1
-  orthographic size: 919.79565
+  near clip plane: 0.015585916
+  far clip plane: 3117.1833
+  field of view: 60.000004
+  orthographic: 0
+  orthographic size: 5
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -3132,6 +3132,11 @@ MonoBehaviour:
   m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
   m_AfterStackBundles: []
+--- !u!20 &603935952 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 6038633546248889107, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
+  m_PrefabInstance: {fileID: 4289640506656741687}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &625582501
 Mesh:
   m_ObjectHideFlags: 0
@@ -9437,6 +9442,11 @@ MonoBehaviour:
           AmplitudeX: 0
           AmplitudeY: 0
           AmplitudeZ: 0
+--- !u!223 &1620846347 stripped
+Canvas:
+  m_CorrespondingSourceObject: {fileID: 1614896267678234260, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
+  m_PrefabInstance: {fileID: 4289640506656741687}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1645212101
 GameObject:
   m_ObjectHideFlags: 0
@@ -10233,6 +10243,66 @@ Mesh:
     offset: 0
     size: 0
     path: 
+--- !u!1 &1770185175
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1770185176}
+  - component: {fileID: 1770185177}
+  m_Layer: 8
+  m_Name: PortalIndicatorUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1770185176
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1770185175}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1558887043}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1770185177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1770185175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bafe1a1b22f9ad4a82b90ed370008e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  canvas: {fileID: 1620846347}
+  playerCamera: {fileID: 603935952}
+  playerTransform: {fileID: 676714697}
+  indicatorPrefab: {fileID: 0}
+  screenEdgeOffset: 20
+  indicatorSize: 20
+  visibilityMargin: 130
+  bluePortalColor: {r: 0, g: 0.70583177, b: 1, a: 0.42745098}
+  orangePortalColor: {r: 1, g: 0.77162164, b: 0, a: 0.42745098}
+  giantOrangePortalColor: {r: 1, g: 0.8087484, b: 0, a: 0.44705883}
+  pulseSpeed: 2
+  pulseScale: 1.2
 --- !u!1 &1804950453
 GameObject:
   m_ObjectHideFlags: 0
@@ -12087,6 +12157,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8361320195993445446, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 283189140}
+    - targetCorrespondingSourceObject: {fileID: 8361320195993445446, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1770185176}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 5336964728140338899, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
       insertIndex: -1

@@ -574,6 +574,23 @@ namespace Invector.vCharacterController.AI
         }
         
         /// <summary>
+        /// 获取所有活跃传送门
+        /// </summary>
+        /// <returns>所有活跃传送门列表</returns>
+        public List<PortalData> GetAllActivePortals()
+        {
+            var result = new List<PortalData>();
+            foreach (var portal in _activePortals)
+            {
+                if (portal.isActive)
+                {
+                    result.Add(portal);
+                }
+            }
+            return result;
+        }
+        
+        /// <summary>
         /// 获取最新的传送门
         /// </summary>
         /// <returns>最新的传送门数据，如果没有则返回null</returns>
