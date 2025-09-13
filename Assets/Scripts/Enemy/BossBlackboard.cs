@@ -34,6 +34,9 @@ namespace Invector.vCharacterController.AI
         [UnityEngine.Tooltip("上一个使用的技能名称")]
         public SharedString lastUsedSkill = new SharedString();
         
+        [UnityEngine.Tooltip("当前技能的telegraph阶段传送门颜色")]
+        public SharedString currentTelegraphColor = new SharedString();
+        
         [Header("技能冷却")]
         [UnityEngine.Tooltip("异能轰炸冷却时间")]
         public SharedFloat cooldown_bombard = new SharedFloat();
@@ -814,6 +817,34 @@ namespace Invector.vCharacterController.AI
             hpPct.Value = 1.0f;
             disabledOn.Value = false;
             Debug.Log("[BossBlackboard] 重置到正常状态");
+        }
+        
+        /// <summary>
+        /// 设置当前技能的telegraph阶段传送门颜色
+        /// </summary>
+        /// <param name="color">传送门颜色</param>
+        public void SetCurrentTelegraphColor(PortalColor color)
+        {
+            currentTelegraphColor.Value = color.ToString();
+        }
+        
+        /// <summary>
+        /// 获取当前技能的telegraph阶段传送门颜色
+        /// </summary>
+        /// <returns>传送门颜色，如果未设置返回Blue</returns>
+        public PortalColor GetCurrentTelegraphColor()
+        {
+            if (string.IsNullOrEmpty(currentTelegraphColor.Value))
+            {
+                return PortalColor.Blue;
+            }
+            
+            if (System.Enum.TryParse<PortalColor>(currentTelegraphColor.Value, out PortalColor color))
+            {
+                return color;
+            }
+            
+            return PortalColor.Blue;
         }
         
         #endregion

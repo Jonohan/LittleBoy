@@ -32,6 +32,7 @@ namespace Invector.vCharacterController.AI
         protected float postAttackTime = 1f;
         protected PortalType portalType = PortalType.Ceiling;
         protected PortalColor portalColor = PortalColor.Blue;
+        protected PortalColor portalTeleColor = PortalColor.Blue; // Telegraph阶段的传送门颜色
         protected bool useDynamicPortalColor = true;
         
         // 标记是否由SmartSkill调用（用于插槽选择逻辑）
@@ -99,6 +100,9 @@ namespace Invector.vCharacterController.AI
             {
                 SelectPortalColorByBossPhase();
             }
+            
+            // 初始化telegraph颜色（与初始颜色相同）
+            portalTeleColor = portalColor;
             
             // 获取BossPart的游戏开始位置（从BossPartManager获取）
             if (!_hasStoredInitialTransform && _bossBlackboard && _bossBlackboard.bossPartManager)
@@ -254,6 +258,9 @@ namespace Invector.vCharacterController.AI
                 if (selectedPortal == 0)
                 {
                 }
+                
+                // 在telegraph阶段更新传送门颜色（确保颜色数据已更新）
+                UpdatePortalTeleColor();
             }
             
             // 播放前摇动画和特效（只触发一次）
@@ -658,6 +665,35 @@ namespace Invector.vCharacterController.AI
                 PortalColor[] normalColors = { PortalColor.Blue, PortalColor.Orange };
                 portalColor = normalColors[Random.Range(0, normalColors.Length)];
             }
+        }
+        
+        /// <summary>
+        /// 在telegraph阶段更新传送门颜色（确保颜色数据已更新）
+        /// </summary>
+        private void UpdatePortalTeleColor()
+        {
+            if (_currentPortal != null)
+            {
+                // 从PortalData获取telegraph阶段更新后的颜色
+                portalTeleColor = _currentPortal.color;
+                
+                // 同时更新BossBlackboard中的颜色，供UI使用
+                if (_bossBlackboard != null)
+                {
+                    _bossBlackboard.SetCurrentTelegraphColor(portalTeleColor);
+                }
+                
+                Debug.Log($"[BossSkillTasks] Telegraph阶段更新传送门颜色: {portalTeleColor}");
+            }
+        }
+        
+        /// <summary>
+        /// 获取telegraph阶段的传送门颜色（供UI使用）
+        /// </summary>
+        /// <returns>telegraph阶段的传送门颜色</returns>
+        public PortalColor GetPortalTeleColor()
+        {
+            return portalTeleColor;
         }
         
         /// <summary>
@@ -1742,6 +1778,45 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
+            // 上方触手：沿着自身Z轴负方向移动5
+            if (_bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            {
+                Transform bossPartTransform = _bossBlackboard.bossPartManager.bossPart.transform;
+                Vector3 moveDirection = -bossPartTransform.forward; // Z轴负方向
+                Vector3 targetPosition = bossPartTransform.position + moveDirection * 5f;
+                
+                // 开始移动协程（移动时间*0.9以防万一）
+                StartCoroutine(MoveBossPartToPosition(bossPartTransform, targetPosition, postAttackTime * 0.9f));
+                
+                Debug.Log($"[TentacleUpAttack] 后摇阶段：沿Z轴负方向移动5，目标位置: {targetPosition}");
+            }
+        }
+        
+        /// <summary>
+        /// 移动BossPart到指定位置的协程
+        /// </summary>
+        /// <param name="bossPartTransform">BossPart的Transform</param>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="duration">移动持续时间</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator MoveBossPartToPosition(Transform bossPartTransform, Vector3 targetPosition, float duration)
+        {
+            Vector3 startPosition = bossPartTransform.position;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / duration;
+                
+                // 使用平滑插值
+                bossPartTransform.position = Vector3.Lerp(startPosition, targetPosition, progress);
+                
+                yield return null;
+            }
+            
+            // 确保最终位置准确
+            bossPartTransform.position = targetPosition;
         }
     }
     
@@ -1800,6 +1875,45 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
+            // 下方触手：沿着世界Y轴负方向移动5
+            if (_bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            {
+                Transform bossPartTransform = _bossBlackboard.bossPartManager.bossPart.transform;
+                Vector3 moveDirection = -Vector3.up; // 世界Y轴负方向
+                Vector3 targetPosition = bossPartTransform.position + moveDirection * 5f;
+                
+                // 开始移动协程（移动时间*0.9以防万一）
+                StartCoroutine(MoveBossPartToPosition(bossPartTransform, targetPosition, postAttackTime * 0.9f));
+                
+                Debug.Log($"[TentacleDownAttack] 后摇阶段：沿世界Y轴负方向移动5，目标位置: {targetPosition}");
+            }
+        }
+        
+        /// <summary>
+        /// 移动BossPart到指定位置的协程
+        /// </summary>
+        /// <param name="bossPartTransform">BossPart的Transform</param>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="duration">移动持续时间</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator MoveBossPartToPosition(Transform bossPartTransform, Vector3 targetPosition, float duration)
+        {
+            Vector3 startPosition = bossPartTransform.position;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / duration;
+                
+                // 使用平滑插值
+                bossPartTransform.position = Vector3.Lerp(startPosition, targetPosition, progress);
+                
+                yield return null;
+            }
+            
+            // 确保最终位置准确
+            bossPartTransform.position = targetPosition;
         }
     }
     
@@ -1858,6 +1972,45 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
+            // 左方触手：沿着自身Z轴负方向移动5
+            if (_bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            {
+                Transform bossPartTransform = _bossBlackboard.bossPartManager.bossPart.transform;
+                Vector3 moveDirection = -bossPartTransform.forward; // Z轴负方向
+                Vector3 targetPosition = bossPartTransform.position + moveDirection * 5f;
+                
+                // 开始移动协程（移动时间*0.9以防万一）
+                StartCoroutine(MoveBossPartToPosition(bossPartTransform, targetPosition, postAttackTime * 0.9f));
+                
+                Debug.Log($"[TentacleLeftAttack] 后摇阶段：沿Z轴负方向移动5，目标位置: {targetPosition}");
+            }
+        }
+        
+        /// <summary>
+        /// 移动BossPart到指定位置的协程
+        /// </summary>
+        /// <param name="bossPartTransform">BossPart的Transform</param>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="duration">移动持续时间</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator MoveBossPartToPosition(Transform bossPartTransform, Vector3 targetPosition, float duration)
+        {
+            Vector3 startPosition = bossPartTransform.position;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / duration;
+                
+                // 使用平滑插值
+                bossPartTransform.position = Vector3.Lerp(startPosition, targetPosition, progress);
+                
+                yield return null;
+            }
+            
+            // 确保最终位置准确
+            bossPartTransform.position = targetPosition;
         }
     }
     
@@ -1916,6 +2069,45 @@ namespace Invector.vCharacterController.AI
         
         protected override void PlayPostAttackEffects()
         {
+            // 右方触手：沿着自身Z轴负方向移动5
+            if (_bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            {
+                Transform bossPartTransform = _bossBlackboard.bossPartManager.bossPart.transform;
+                Vector3 moveDirection = -bossPartTransform.forward; // Z轴负方向
+                Vector3 targetPosition = bossPartTransform.position + moveDirection * 5f;
+                
+                // 开始移动协程（移动时间*0.9以防万一）
+                StartCoroutine(MoveBossPartToPosition(bossPartTransform, targetPosition, postAttackTime * 0.9f));
+                
+                Debug.Log($"[TentacleRightAttack] 后摇阶段：沿Z轴负方向移动5，目标位置: {targetPosition}");
+            }
+        }
+        
+        /// <summary>
+        /// 移动BossPart到指定位置的协程
+        /// </summary>
+        /// <param name="bossPartTransform">BossPart的Transform</param>
+        /// <param name="targetPosition">目标位置</param>
+        /// <param name="duration">移动持续时间</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator MoveBossPartToPosition(Transform bossPartTransform, Vector3 targetPosition, float duration)
+        {
+            Vector3 startPosition = bossPartTransform.position;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / duration;
+                
+                // 使用平滑插值
+                bossPartTransform.position = Vector3.Lerp(startPosition, targetPosition, progress);
+                
+                yield return null;
+            }
+            
+            // 确保最终位置准确
+            bossPartTransform.position = targetPosition;
         }
     }
     

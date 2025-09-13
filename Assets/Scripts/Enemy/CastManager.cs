@@ -97,6 +97,12 @@ namespace Invector.vCharacterController.AI
         [Tooltip("击退动画触发参数")]
         public string knockbackAnimationTrigger = "Knockback";
         
+        [Tooltip("动画触发延迟时间")]
+        public float animationDelay = 0f;
+        
+        [Tooltip("FEEL和击退效果触发延迟时间")]
+        public float feelAndKnockbackDelay = 0f;
+        
         [Header("伤害对象配置")]
         [Tooltip("轰炸伤害对象")]
         public GameObject bombardDamageObject;
@@ -344,14 +350,13 @@ namespace Invector.vCharacterController.AI
             // 检查玩家是否在碰撞箱内
             if (!IsPlayerInKnockbackCollisionBox())
             {
-                // 即使玩家不在碰撞箱内，也要触发动画和FEEL效果
-                TriggerKnockbackAnimation();
-                PlayKnockbackFeel(knockbackCollisionBox.transform.position, knockbackCollisionBox.transform.rotation);
+                // 即使玩家不在碰撞箱内，也要触发动画和FEEL效果（带延迟）
+                StartCoroutine(TriggerKnockbackWithDelay(false));
                 return false;
             }
             
-            // 开始击退协程
-            StartCoroutine(PerformKnockback(playerObject));
+            // 开始击退协程（带延迟）
+            StartCoroutine(TriggerKnockbackWithDelay(true));
             
             return true;
         }
@@ -371,12 +376,6 @@ namespace Invector.vCharacterController.AI
             
             // 计算击退终点位置
             Vector3 knockbackEndPosition = knockbackStartPosition + knockbackDirection * knockbackForce;
-            
-            // 触发动画
-            TriggerKnockbackAnimation();
-            
-            // 播放Feel效果
-            PlayKnockbackFeel(knockbackCollisionBox.transform.position, knockbackCollisionBox.transform.rotation);
             
             Debug.Log($"[CastManager] 开始击退，方向: {knockbackDirection}, 开始位置: {knockbackStartPosition}, 终点位置: {knockbackEndPosition}");
             
@@ -416,6 +415,38 @@ namespace Invector.vCharacterController.AI
             float height = knockbackHeight * Mathf.Sin(progress * Mathf.PI);
             
             return new Vector3(horizontalPosition.x, startPosition.y + height, horizontalPosition.z);
+        }
+        
+        /// <summary>
+        /// 带延迟的击退触发协程
+        /// </summary>
+        /// <param name="shouldPerformKnockback">是否执行击退逻辑</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator TriggerKnockbackWithDelay(bool shouldPerformKnockback)
+        {
+            // 等待动画延迟时间
+            if (animationDelay > 0f)
+            {
+                yield return new WaitForSeconds(animationDelay);
+            }
+            
+            // 触发动画
+            TriggerKnockbackAnimation();
+            
+            // 等待FEEL和击退延迟时间
+            if (feelAndKnockbackDelay > 0f)
+            {
+                yield return new WaitForSeconds(feelAndKnockbackDelay);
+            }
+            
+            // 同时触发FEEL效果和击退逻辑
+            PlayKnockbackFeel(knockbackCollisionBox.transform.position, knockbackCollisionBox.transform.rotation);
+            
+            // 如果需要执行击退逻辑，开始击退协程
+            if (shouldPerformKnockback)
+            {
+                StartCoroutine(PerformKnockback(playerObject));
+            }
         }
         
         /// <summary>
