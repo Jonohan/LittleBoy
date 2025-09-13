@@ -28,6 +28,16 @@ namespace Invector.vCharacterController.AI
         [Tooltip("传送门管理器引用")]
         public PortalManager portalManager;
         
+        [Header("初始位置")]
+        [Tooltip("游戏开始时的BossPart位置")]
+        public Vector3 initialPosition;
+        
+        [Tooltip("游戏开始时的BossPart旋转")]
+        public Quaternion initialRotation;
+        
+        [Tooltip("是否已保存初始位置")]
+        public bool hasStoredInitialTransform = false;
+        
         [Header("批量控制")]
         [Tooltip("默认激活状态")]
         public bool defaultActiveState = true;
@@ -59,6 +69,7 @@ namespace Invector.vCharacterController.AI
         private void Start()
         {
             SetupBossParts();
+            StoreInitialTransform();
         }
         
         private void Update()
@@ -69,6 +80,39 @@ namespace Invector.vCharacterController.AI
         #endregion
         
         #region 初始化
+        
+        /// <summary>
+        /// 保存BossPart的初始transform（游戏开始时的位置）
+        /// </summary>
+        private void StoreInitialTransform()
+        {
+            if (bossPart && !hasStoredInitialTransform)
+            {
+                initialPosition = bossPart.transform.position;
+                initialRotation = bossPart.transform.rotation;
+                hasStoredInitialTransform = true;
+                
+                Debug.Log($"[BossPartManager] 保存BossPart游戏开始位置: {initialPosition}, 旋转: {initialRotation}");
+            }
+        }
+        
+        /// <summary>
+        /// 获取BossPart的初始位置
+        /// </summary>
+        /// <returns>初始位置</returns>
+        public Vector3 GetInitialPosition()
+        {
+            return initialPosition;
+        }
+        
+        /// <summary>
+        /// 获取BossPart的初始旋转
+        /// </summary>
+        /// <returns>初始旋转</returns>
+        public Quaternion GetInitialRotation()
+        {
+            return initialRotation;
+        }
         
         /// <summary>
         /// 初始化管理器

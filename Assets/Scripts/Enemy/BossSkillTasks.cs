@@ -73,6 +73,9 @@ namespace Invector.vCharacterController.AI
         protected Quaternion _initialBossPartRotation;
         protected bool _hasStoredInitialTransform = false;
         
+        // 持续重置相关
+        protected bool _isContinuousResetting = false;
+        
         protected enum SkillPhase
         {
             None,
@@ -97,12 +100,14 @@ namespace Invector.vCharacterController.AI
                 SelectPortalColorByBossPhase();
             }
             
-            // 保存BossPart的初始transform（只在第一次时保存）
-            if (!_hasStoredInitialTransform && _bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            // 获取BossPart的游戏开始位置（从BossPartManager获取）
+            if (!_hasStoredInitialTransform && _bossBlackboard && _bossBlackboard.bossPartManager)
             {
-                _initialBossPartPosition = _bossBlackboard.bossPartManager.bossPart.transform.position;
-                _initialBossPartRotation = _bossBlackboard.bossPartManager.bossPart.transform.rotation;
+                _initialBossPartPosition = _bossBlackboard.bossPartManager.GetInitialPosition();
+                _initialBossPartRotation = _bossBlackboard.bossPartManager.GetInitialRotation();
                 _hasStoredInitialTransform = true;
+                
+                Debug.Log($"[BossSkillTasks] 获取BossPart游戏开始位置: {_initialBossPartPosition}, 旋转: {_initialBossPartRotation}");
             }
             
             _skillStartTime = Time.time;
@@ -115,10 +120,16 @@ namespace Invector.vCharacterController.AI
             _hasUpdatedBlackboard = false;
             _hasTriggeredPostAttackEffects = false;
             
+            // 重置持续重置状态
+            _isContinuousResetting = false;
+            
         }
         
         public override TaskStatus OnUpdate()
         {
+            // 持续重置BossPart位置到开局位置
+            ContinuousResetBossPart();
+            
             switch (_currentPhase)
             {
                 case SkillPhase.SpawnPortal:
@@ -151,6 +162,13 @@ namespace Invector.vCharacterController.AI
         /// </summary>
         protected virtual TaskStatus HandleSpawnPortal()
         {
+            // 停止持续重置（新技能开始）
+            if (_isContinuousResetting)
+            {
+                _isContinuousResetting = false;
+                Debug.Log("[BossSkillTasks] 新技能开始，停止持续重置");
+            }
+            
             // 触发传送门生成动画（只触发一次）
             if (!_hasTriggeredPortalSpawnAnimation)
             {
@@ -318,9 +336,14 @@ namespace Invector.vCharacterController.AI
                 // 只停用攻击，保持部件激活
                 _bossBlackboard.bossPartManager.DeactivatePartAttack();
                 
+                // 开始持续重置
+                _isContinuousResetting = true;
+                
+                Debug.Log("[BossSkillTasks] BossPart已重置到初始位置，开始持续重置");
             }
             else
             {
+                Debug.LogWarning("[BossSkillTasks] 无法重置BossPart：缺少必要组件");
             }
         }
         
@@ -437,6 +460,27 @@ namespace Invector.vCharacterController.AI
             
             // 除了tentacle攻击以外的都是特殊攻击
             return !isTentacleAttack;
+        }
+        
+        /// <summary>
+        /// 持续重置BossPart位置到开局位置
+        /// </summary>
+        protected virtual void ContinuousResetBossPart()
+        {
+            if (!_isContinuousResetting) return;
+            
+            if (_bossBlackboard && _bossBlackboard.bossPartManager && _bossBlackboard.bossPartManager.bossPart)
+            {
+                // 持续设置到开局位置
+                _bossBlackboard.bossPartManager.bossPart.transform.position = _initialBossPartPosition;
+                _bossBlackboard.bossPartManager.bossPart.transform.rotation = _initialBossPartRotation;
+                
+                // 每60帧打印一次信息（避免日志过多）
+                if (Time.frameCount % 60 == 0)
+                {
+                    Debug.Log($"[BossSkillTasks] 持续重置中 - 当前位置: {_bossBlackboard.bossPartManager.bossPart.transform.position}, 目标位置: {_initialBossPartPosition}");
+                }
+            }
         }
         
         // 传送门不需要关闭，它们一直存在
