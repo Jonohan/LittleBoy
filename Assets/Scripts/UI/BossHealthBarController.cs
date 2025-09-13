@@ -11,8 +11,20 @@ namespace UI
         [Header("Boss设置")]
         [Tooltip("Boss Transform引用")]
         public Transform bossTransform;
-        [Tooltip("Boss名称")]
+        [Tooltip("Boss基础名称")]
         public string bossName = "Boss";
+        
+        [Header("状态名称设置")]
+        [Tooltip("是否根据Boss状态动态更改名称")]
+        public bool useDynamicName = true;
+        [Tooltip("正常状态名称")]
+        public string normalStateName = "Boss";
+        [Tooltip("愤怒状态名称 (70%以下血量)")]
+        public string angerStateName = "愤怒的Boss";
+        [Tooltip("恐惧状态名称 (40%以下血量)")]
+        public string fearStateName = "恐惧的Boss";
+        [Tooltip("失能状态名称")]
+        public string disabledStateName = "失能的Boss";
         
         [Header("血条样式")]
         [Tooltip("血条颜色")]
@@ -38,11 +50,18 @@ namespace UI
         private Text bossNameText;
         private Text healthText;
         private Invector.vCharacterController.AI.NonHumanoidBossAI bossAI;
+        private Invector.vCharacterController.AI.BossBlackboard bossBlackboard;
         
         // 血量数据
         private float maxHealth = 100f;
         private float currentHealth = 100f;
         private bool isInitialized = false;
+        
+        // 状态跟踪
+        private string lastBossState = "";
+        private bool lastAngerState = false;
+        private bool lastFearState = false;
+        private bool lastDisabledState = false;
         
         void Start()
         {
@@ -54,6 +73,7 @@ namespace UI
             if (isInitialized && bossAI != null)
             {
                 UpdateHealthDisplay();
+                UpdateBossName();
             }
         }
         
@@ -101,17 +121,23 @@ namespace UI
             // 获取Boss AI控制器
             if (bossTransform != null)
             {
-            
                 bossAI = bossTransform.GetComponent<Invector.vCharacterController.AI.NonHumanoidBossAI>();
+                bossBlackboard = bossTransform.GetComponent<Invector.vCharacterController.AI.BossBlackboard>();
+                
                 if (bossAI != null)
-                {                                
-            
+                {
                     maxHealth = bossAI.maxHealth;
                     currentHealth = bossAI.currentHealth;
                     
                     // 初始化血条
                     healthSlider.maxValue = maxHealth;
                     healthSlider.value = currentHealth;
+                    
+                    // 初始化Boss名称
+                    if (useDynamicName && bossBlackboard != null)
+                    {
+                        InitializeBossName();
+                    }
                     
                     isInitialized = true;
                     Debug.Log($"Boss血条初始化完成: {bossName} (血量: {currentHealth}/{maxHealth})");
@@ -233,6 +259,93 @@ namespace UI
         }
         
         /// <summary>
+        /// 更新Boss名称（根据状态）
+        /// </summary>
+        private void UpdateBossName()
+        {
+            if (!useDynamicName || bossNameText == null || bossBlackboard == null) return;
+            
+            // 获取当前状态
+            bool currentAngerState = bossBlackboard.angerOn.Value;
+            bool currentFearState = bossBlackboard.fearOn.Value;
+            bool currentDisabledState = bossBlackboard.disabledOn.Value;
+            
+            // 检查状态是否发生变化
+            if (currentAngerState != lastAngerState || 
+                currentFearState != lastFearState || 
+                currentDisabledState != lastDisabledState)
+            {
+                string newBossName = GetBossNameByState(currentAngerState, currentFearState, currentDisabledState);
+                
+                if (newBossName != lastBossState)
+                {
+                    bossNameText.text = newBossName;
+                    lastBossState = newBossName;
+                    
+                    Debug.Log($"[BossHealthBarController] Boss名称更新为: {newBossName}");
+                }
+                
+                // 更新状态记录
+                lastAngerState = currentAngerState;
+                lastFearState = currentFearState;
+                lastDisabledState = currentDisabledState;
+            }
+        }
+        
+        /// <summary>
+        /// 初始化Boss名称
+        /// </summary>
+        private void InitializeBossName()
+        {
+            if (bossBlackboard == null || bossNameText == null) return;
+            
+            // 获取当前状态
+            bool currentAngerState = bossBlackboard.angerOn.Value;
+            bool currentFearState = bossBlackboard.fearOn.Value;
+            bool currentDisabledState = bossBlackboard.disabledOn.Value;
+            
+            // 设置初始名称
+            string initialBossName = GetBossNameByState(currentAngerState, currentFearState, currentDisabledState);
+            bossNameText.text = initialBossName;
+            lastBossState = initialBossName;
+            
+            // 记录初始状态
+            lastAngerState = currentAngerState;
+            lastFearState = currentFearState;
+            lastDisabledState = currentDisabledState;
+            
+            Debug.Log($"[BossHealthBarController] 初始化Boss名称: {initialBossName}");
+        }
+        
+        /// <summary>
+        /// 根据Boss状态获取对应的名称
+        /// </summary>
+        /// <param name="angerOn">愤怒状态</param>
+        /// <param name="fearOn">恐惧状态</param>
+        /// <param name="disabledOn">失能状态</param>
+        /// <returns>Boss名称</returns>
+        private string GetBossNameByState(bool angerOn, bool fearOn, bool disabledOn)
+        {
+            // 优先级：失能 > 恐惧 > 愤怒 > 正常
+            if (disabledOn)
+            {
+                return disabledStateName;
+            }
+            else if (fearOn)
+            {
+                return fearStateName;
+            }
+            else if (angerOn)
+            {
+                return angerStateName;
+            }
+            else
+            {
+                return normalStateName;
+            }
+        }
+        
+        /// <summary>
         /// 设置Boss引用
         /// </summary>
         /// <param name="boss">Boss Transform</param>
@@ -243,6 +356,8 @@ namespace UI
             if (boss != null)
             {
                 bossAI = boss.GetComponent<Invector.vCharacterController.AI.NonHumanoidBossAI>();
+                bossBlackboard = boss.GetComponent<Invector.vCharacterController.AI.BossBlackboard>();
+                
                 if (bossAI != null)
                 {
                     maxHealth = bossAI.maxHealth;
@@ -259,6 +374,12 @@ namespace UI
                         healthText.text = $"{currentHealth:F0} / {maxHealth:F0}";
                     }
                     
+                    // 初始化Boss名称
+                    if (useDynamicName && bossBlackboard != null)
+                    {
+                        InitializeBossName();
+                    }
+                    
                     isInitialized = true;
                     Debug.Log($"设置Boss: {boss.name}");
                 }
@@ -270,13 +391,30 @@ namespace UI
         }
         
         /// <summary>
-        /// 设置Boss名称（保持现有BossName对象不变）
+        /// 设置Boss名称（手动设置，会覆盖动态名称）
         /// </summary>
         /// <param name="name">Boss名称</param>
         public void SetBossName(string name)
         {
             bossName = name;
-            // 不修改现有的BossName文本对象
+            if (bossNameText != null)
+            {
+                bossNameText.text = name;
+                lastBossState = name;
+            }
+        }
+        
+        /// <summary>
+        /// 启用/禁用动态名称
+        /// </summary>
+        /// <param name="enable">是否启用</param>
+        public void SetDynamicName(bool enable)
+        {
+            useDynamicName = enable;
+            if (!enable && bossNameText != null)
+            {
+                bossNameText.text = bossName;
+            }
         }
         
         /// <summary>

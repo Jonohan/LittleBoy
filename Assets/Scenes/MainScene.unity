@@ -1141,13 +1141,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bossTransform: {fileID: 2095128439}
-  bossName: Boss
-  healthColor: {r: 1, g: 0, b: 0, a: 1}
+  bossName: "\u201C\u5C0F\u7537\u5B69\u201D \u2014\u2014 \u523B\u6258"
+  useDynamicName: 1
+  normalStateName: "\u201C\u5C0F\u7537\u5B69\u201D \u2014\u2014 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588"
+  angerStateName: "\u201C\u5C0F\u7537\u5B69\u201D \u2014\u2014  \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u5C45\u6C11"
+  fearStateName: "\u201C\u5C0F\u7537\u5B69\u201D \u2014\u2014 \u5DEE\u5206\u5B87\u5B99\u7684\u5C45\u6C11"
+  disabledStateName: "\u201C\u5C0F\u7537\u5B69\u201D \u2014\u2014 \u523B\u6258"
+  healthColor: {r: 0.6603774, g: 0, b: 0, a: 1}
   backgroundColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.8}
-  lowHealthColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  lowHealthThreshold: 0.3
+  lowHealthColor: {r: 0.93207544, g: 0, b: 0.0043675923, a: 1}
+  lowHealthThreshold: 0.2
   showHealthNumbers: 1
-  hideOnDeath: 1
+  hideOnDeath: 0
 --- !u!1 &373447730
 GameObject:
   m_ObjectHideFlags: 0
@@ -3991,7 +3996,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u201C\u5C0F\u7537\u5B69\u201D \u2014\u2014 \u5DEE\u5206\u5B87\u5B99\u7684\u5C45\u6C11"
+  m_Text: "\u201C\u5C0F\u7537\u5B69\u201D \u2014\u2014  \u523B\u6258"
 --- !u!222 &1028077653
 CanvasRenderer:
   m_ObjectHideFlags: 0
