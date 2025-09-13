@@ -448,6 +448,7 @@ namespace Invector.vCharacterController.AI
         
         #region 调试显示
         
+#if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
             // 在Scene视图中显示当前阶段信息
@@ -457,6 +458,7 @@ namespace Invector.vCharacterController.AI
                 UnityEditor.Handles.Label(position, GetPhaseInfo());
             }
         }
+#endif
         
         #endregion
     }
