@@ -605,7 +605,7 @@ namespace Invector.vCharacterController.AI
                 case "flood":
                     return new PortalType[] { PortalType.Ground };
                 case "vortex":
-                    return new PortalType[] { PortalType.Ceiling, PortalType.Ground };
+                    return new PortalType[] { PortalType.Ground };
                 case "roar":
                     return new PortalType[] { }; // 吼叫不需要传送门
                 default:

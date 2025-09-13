@@ -486,7 +486,9 @@ namespace Invector.vCharacterController.AI
         {
             if (spawnEffect)
             {
-                Instantiate(spawnEffect, position, Quaternion.identity);
+                GameObject vfxInstance = Instantiate(spawnEffect, position, Quaternion.identity);
+                // 10秒后自动销毁VFX
+                Destroy(vfxInstance, 10f);
             }
         }
         
@@ -498,8 +500,28 @@ namespace Invector.vCharacterController.AI
         {
             if (closeEffect)
             {
-                Instantiate(closeEffect, position, Quaternion.identity);
+                GameObject vfxInstance = Instantiate(closeEffect, position, Quaternion.identity);
+                // 10秒后自动销毁VFX
+                Destroy(vfxInstance, 10f);
             }
+        }
+        
+        /// <summary>
+        /// 创建VFX并设置10秒自动销毁
+        /// </summary>
+        /// <param name="vfxPrefab">VFX预制体</param>
+        /// <param name="position">生成位置</param>
+        /// <param name="rotation">生成旋转</param>
+        /// <returns>生成的VFX实例</returns>
+        private GameObject CreateVFXWithAutoDestroy(GameObject vfxPrefab, Vector3 position, Quaternion rotation)
+        {
+            if (vfxPrefab == null) return null;
+            
+            GameObject vfxInstance = Instantiate(vfxPrefab, position, rotation);
+            // 10秒后自动销毁VFX
+            Destroy(vfxInstance, 10f);
+            
+            return vfxInstance;
         }
         
         #endregion

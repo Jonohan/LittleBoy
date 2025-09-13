@@ -17,9 +17,9 @@ MonoBehaviour:
   - Name: Default
     forward: -1
     right: 0
-    defaultDistance: 4
-    maxDistance: 8.97
-    minDistance: 0.67275
+    defaultDistance: 2.8
+    maxDistance: 2.8
+    minDistance: 2.8
     height: 2.3
     smooth: 10
     smoothDamp: 4
@@ -44,9 +44,9 @@ MonoBehaviour:
   - Name: Strafing
     forward: -1
     right: 0
-    defaultDistance: 0.3125
-    maxDistance: 8.97
-    minDistance: 0.67275
+    defaultDistance: 2.8
+    maxDistance: 2.8
+    minDistance: 2.8
     height: 2.3
     smooth: 10
     smoothDamp: 4
@@ -71,9 +71,9 @@ MonoBehaviour:
   - Name: Crouch
     forward: -1
     right: 0.2
-    defaultDistance: 0.3125
-    maxDistance: 7.3441877
-    minDistance: 0.560625
+    defaultDistance: 2.8
+    maxDistance: 2.8
+    minDistance: 2.8
     height: 2.3
     smooth: 10
     smoothDamp: 4
@@ -94,9 +94,9 @@ MonoBehaviour:
   - Name: _
     forward: -1
     right: 0.82
-    defaultDistance: 1.5136875
-    maxDistance: 1.681875
-    minDistance: 0.2803125
+    defaultDistance: 2.8
+    maxDistance: 2.8
+    minDistance: 2.8
     height: 2.3
     smooth: 10
     smoothDamp: 6

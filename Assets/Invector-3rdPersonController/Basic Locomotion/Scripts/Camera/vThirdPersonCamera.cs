@@ -140,6 +140,9 @@ namespace Invector.vCamera
         protected Camera portalVirtualCamera;
         protected Portal activeFromPortal;
         protected Portal activeToPortal;
+        
+        [Header("体型检查配置")]
+        [SerializeField] private GameObject playerObject;
         protected Transform targetLookAt
         {
             get
@@ -996,6 +999,22 @@ namespace Invector.vCamera
             {
                 DeactivatePortalView();
                 return;
+            }
+            
+            // 检查玩家体型是否为4.5级，如果是则禁用传送门虚拟相机
+            if (playerObject)
+            {
+                var sizeController = playerObject.GetComponent<Xuwu.Character.CharacterSizeController>();
+                if (sizeController)
+                {
+                    bool isLimitBreakerLevel5 = (sizeController.GetCurrentSizeLevel() == Xuwu.Character.CharacterSizeLevel.LimitBreaker && 
+                                               sizeController.GetCurrentLimitBreakerLevel() == 5);
+                    if (isLimitBreakerLevel5)
+                    {
+                        DeactivatePortalView();
+                        return;
+                    }
+                }
             }
 
             activeFromPortal = fromPortal;

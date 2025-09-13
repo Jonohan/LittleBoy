@@ -140,7 +140,6 @@ namespace UI
                     }
                     
                     isInitialized = true;
-                    Debug.Log($"Boss血条初始化完成: {bossName} (血量: {currentHealth}/{maxHealth})");
                 }
                 else
                 {
@@ -281,8 +280,6 @@ namespace UI
                 {
                     bossNameText.text = newBossName;
                     lastBossState = newBossName;
-                    
-                    Debug.Log($"[BossHealthBarController] Boss名称更新为: {newBossName}");
                 }
                 
                 // 更新状态记录
@@ -313,8 +310,7 @@ namespace UI
             lastAngerState = currentAngerState;
             lastFearState = currentFearState;
             lastDisabledState = currentDisabledState;
-            
-            Debug.Log($"[BossHealthBarController] 初始化Boss名称: {initialBossName}");
+
         }
         
         /// <summary>
@@ -381,7 +377,6 @@ namespace UI
                     }
                     
                     isInitialized = true;
-                    Debug.Log($"设置Boss: {boss.name}");
                 }
                 else
                 {

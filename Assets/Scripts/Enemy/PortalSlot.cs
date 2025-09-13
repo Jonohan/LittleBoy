@@ -592,6 +592,13 @@ namespace Invector.vCharacterController.AI
             scenePortal.transform.rotation = endRot;
             scenePortal.transform.position = endPos;
             
+            // 如果是天花板类型的传送门，沿世界Y轴旋转180度
+            if (slotType == PortalSlotType.Ceiling)
+            {
+                scenePortal.transform.Rotate(0f, 180f, 0f, Space.World);
+                Debug.Log($"[PortalSlot] {gameObject.name} - Ceiling传送门沿世界Y轴旋转180度");
+            }
+            
             // 获取传送门瞬移后的世界坐标和旋转（考虑一级父对象）
             if (scenePortal.transform.parent)
             {

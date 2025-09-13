@@ -106,8 +106,6 @@ namespace Invector.vCharacterController.AI
                 _initialBossPartPosition = _bossBlackboard.bossPartManager.GetInitialPosition();
                 _initialBossPartRotation = _bossBlackboard.bossPartManager.GetInitialRotation();
                 _hasStoredInitialTransform = true;
-                
-                Debug.Log($"[BossSkillTasks] 获取BossPart游戏开始位置: {_initialBossPartPosition}, 旋转: {_initialBossPartRotation}");
             }
             
             _skillStartTime = Time.time;
@@ -2071,8 +2069,7 @@ namespace Invector.vCharacterController.AI
             
             _deathStartTime = Time.time;
             _hasTriggeredDeath = false;
-            
-            Debug.LogWarning($"[BossDeathTask] 开始死亡处理 - 对象: {Owner.name}");
+
         }
         
         public override TaskStatus OnUpdate()
@@ -2089,8 +2086,7 @@ namespace Invector.vCharacterController.AI
             {
                 // 禁用组件
                 DisableComponents();
-                
-                Debug.LogWarning($"[BossDeathTask] 死亡处理完成 - 对象: {Owner.name}");
+
                 return TaskStatus.Success;
             }
             
@@ -2111,12 +2107,9 @@ namespace Invector.vCharacterController.AI
             if (_animator != null && !string.IsNullOrEmpty(deathAnimationTrigger))
             {
                 _animator.SetTrigger(deathAnimationTrigger);
-                Debug.LogWarning($"[BossDeathTask] 触发死亡动画: {deathAnimationTrigger}");
+
             }
-            else
-            {
-                Debug.LogWarning($"[BossDeathTask] 无法触发死亡动画 - Animator: {_animator != null}, Trigger: {deathAnimationTrigger}");
-            }
+
         }
         
         /// <summary>
@@ -2128,21 +2121,18 @@ namespace Invector.vCharacterController.AI
             if (_animator != null)
             {
                 _animator.enabled = false;
-                Debug.LogWarning($"[BossDeathTask] 已禁用Animator组件");
             }
             
             // 禁用Behavior Tree组件
             if (disableBehaviorTree && _behaviorTree != null)
             {
                 _behaviorTree.enabled = false;
-                Debug.LogWarning($"[BossDeathTask] 已禁用Behavior Tree组件");
             }
             
             // 禁用Boss AI组件
             if (disableBossAI && _bossAI != null)
             {
                 _bossAI.enabled = false;
-                Debug.LogWarning($"[BossDeathTask] 已禁用Boss AI组件");
             }
         }
     }

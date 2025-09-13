@@ -70,7 +70,11 @@ namespace Xuwu.FourDimensionalPortals.Demo
             // 保存原始相机目标
             if (_cameraFollowTarget)
                 _originalCameraTarget = _cameraFollowTarget;
+                
+            // 检查初始体型状态
+            CheckSizeAndDisableComponent();
         }
+        
         
         private void OnTriggerEnter(Collider other)
         {
@@ -414,6 +418,12 @@ namespace Xuwu.FourDimensionalPortals.Demo
         {
             if (!portal) return;
             
+            // 检查组件是否被禁用
+            if (!enabled)
+            {
+                return;
+            }
+            
             // 获取传送门的前向向量（法向量）
             Vector3 portalForward = portal.transform.forward;
             
@@ -432,6 +442,12 @@ namespace Xuwu.FourDimensionalPortals.Demo
         /// </summary>
         private void TriggerRealJump()
         {
+            // 检查组件是否被禁用
+            if (!enabled)
+            {
+                return;
+            }
+            
             // 检查时间限制：每2秒最多触发一次
             float currentTime = Time.time;
             if (currentTime - _lastJumpTriggerTime < 2.0f)
@@ -473,6 +489,9 @@ namespace Xuwu.FourDimensionalPortals.Demo
         /// </summary>
         private void Update()
         {
+            // 检查体型并禁用组件
+            CheckSizeAndDisableComponent();
+            
             // 打印当前角色判定点坐标
             var transferPivot = transform.TransformPoint(TransferPivotOffset);
             //Debug.Log($"[InvectorPortalAdapter] 角色 {gameObject.name} 判定点坐标: {transferPivot} (偏移: {TransferPivotOffset})");
@@ -650,5 +669,45 @@ namespace Xuwu.FourDimensionalPortals.Demo
             }
         }
 #endif
+        
+        /// <summary>
+        /// 检查体型并禁用组件
+        /// </summary>
+        private void CheckSizeAndDisableComponent()
+        {
+            if (!_sizeController) return;
+            
+            // 检查是否为限制器突破等级的第5级（4.5体型）
+            bool isLimitBreakerLevel5 = (_sizeController.GetCurrentSizeLevel() == CharacterSizeLevel.LimitBreaker && 
+                                       _sizeController.GetCurrentLimitBreakerLevel() == 5);
+            
+            // 当体型为限制器突破等级第5级时禁用PortalAdapter组件
+            if (isLimitBreakerLevel5)
+            {
+                if (enabled)
+                {
+                    enabled = false;
+                    // 禁用相机系统
+                    if (_portalSystemCameraData)
+                    {
+                        _portalSystemCameraData.enabled = false;
+                    }
+                    Debug.Log($"[InvectorPortalAdapter] 玩家体型为限制器突破等级第5级，禁用PortalAdapter组件和相机系统");
+                }
+            }
+            else
+            {
+                if (!enabled)
+                {
+                    enabled = true;
+                    // 启用相机系统
+                    if (_portalSystemCameraData)
+                    {
+                        _portalSystemCameraData.enabled = true;
+                    }
+                    Debug.Log($"[InvectorPortalAdapter] 玩家体型不为限制器突破等级第5级，启用PortalAdapter组件和相机系统");
+                }
+            }
+        }
     }
 }
