@@ -41,6 +41,7 @@ namespace Invector.vCharacterController.AI
         protected SharedGameObject portalManager = new SharedGameObject();
         protected SharedGameObject bossBlackboard = new SharedGameObject();
         protected SharedGameObject bossAI = new SharedGameObject();
+        protected CastManager castManager;
         
         [Header("动画配置")]
         [UnityEngine.Tooltip("传送门生成动画触发参数")]
@@ -155,6 +156,12 @@ namespace Invector.vCharacterController.AI
             {
                 TriggerPortalSpawnAnimation();
                 _hasTriggeredPortalSpawnAnimation = true;
+                
+                // 开始特殊攻击材质效果（如果是特殊攻击）
+                if (IsSpecialAttack() && castManager != null)
+                {
+                    castManager.StartSpecialAttackEmission(spawnPortalTime);
+                }
             }
             
             // 检查技能是否需要传送门
@@ -280,6 +287,12 @@ namespace Invector.vCharacterController.AI
             {
                 PlayPostAttackEffects();
                 _hasTriggeredPostAttackEffects = true;
+                
+                // 结束特殊攻击材质效果（如果是特殊攻击）
+                if (IsSpecialAttack() && castManager != null)
+                {
+                    castManager.EndSpecialAttackEmission(postAttackTime);
+                }
             }
             
             // 检查后摇时间
@@ -350,6 +363,12 @@ namespace Invector.vCharacterController.AI
                 // 2) 重置BossPart到初始位置
                 ResetBossPartToInitialPosition();
                 
+                // 3) 重置特殊攻击材质效果
+                if (castManager != null)
+                {
+                    castManager.ResetSpecialAttackEmission();
+                }
+                
                 // 3) 重置洪水水面对象（如果是洪水技能）
                 if (skillName == "flood" && _bossBlackboard && _bossBlackboard.castManager)
                 {
@@ -401,6 +420,24 @@ namespace Invector.vCharacterController.AI
         /// 播放后摇特效
         /// </summary>
         protected abstract void PlayPostAttackEffects();
+        
+        /// <summary>
+        /// 判断是否为特殊攻击（需要材质效果）
+        /// 除了4个tentacle攻击以外的所有攻击都是特殊攻击
+        /// </summary>
+        /// <returns>是否为特殊攻击</returns>
+        protected virtual bool IsSpecialAttack()
+        {
+            // 4个tentacle攻击不是特殊攻击（使用下划线命名）
+            string[] tentacleSkills = { "tentacle_up", "tentacle_down", "tentacle_left", "tentacle_right" };
+            bool isTentacleAttack = System.Array.Exists(tentacleSkills, skill => skill.Equals(skillName, System.StringComparison.OrdinalIgnoreCase));
+            
+            // 调试信息
+            Debug.Log($"[BossSkillTasks] 技能名称: '{skillName}', 是否为Tentacle攻击: {isTentacleAttack}, 是否为特殊攻击: {!isTentacleAttack}");
+            
+            // 除了tentacle攻击以外的都是特殊攻击
+            return !isTentacleAttack;
+        }
         
         // 传送门不需要关闭，它们一直存在
         
@@ -535,6 +572,12 @@ namespace Invector.vCharacterController.AI
             if (!_bossAI)
             {
                 _bossAI = Owner.GetComponent<NonHumanoidBossAI>();
+            }
+            
+            // 自动配置CastManager
+            if (!castManager)
+            {
+                castManager = Owner.GetComponent<CastManager>();
             }
             
             // 自动配置SharedGameObject引用（避免在Inspector中手动配置）

@@ -40,6 +40,16 @@ namespace Invector.vCharacterController.AI
         [Tooltip("右墙投掷攻击VFX")]
         public GameObject wallThrowRightVfx;
         
+        [Header("特殊攻击材质效果配置")]
+        [Tooltip("特殊攻击时发光的材质")]
+        public Material specialAttackMaterial;
+        [Tooltip("原始emission强度")]
+        public float originalEmissionIntensity = 0f;
+        [Tooltip("最大emission强度")]
+        public float maxEmissionIntensity = 2f;
+        [Tooltip("emission颜色")]
+        public Color emissionColor = Color.white;
+        
         [Header("Feel效果配置")]
         [Tooltip("上方触手攻击Feel效果")]
         public MMF_Player tentacleUpFeel;
@@ -884,6 +894,183 @@ namespace Invector.vCharacterController.AI
             }
             
             return false;
+        }
+        
+        #endregion
+        
+        #region 特殊攻击材质效果
+        
+        // 材质效果相关变量
+        private bool _isSpecialAttackActive = false;
+        private float _currentEmissionIntensity = 0f;
+        private Coroutine _emissionCoroutine;
+        
+        /// <summary>
+        /// 开始特殊攻击材质效果（在spawnportal阶段调用）
+        /// </summary>
+        /// <param name="duration">spawnportal阶段持续时间</param>
+        public void StartSpecialAttackEmission(float duration)
+        {
+            if (specialAttackMaterial == null)
+            {
+                Debug.LogWarning("[CastManager] 特殊攻击材质未设置！");
+                return;
+            }
+            
+            _isSpecialAttackActive = true;
+            _currentEmissionIntensity = originalEmissionIntensity;
+            
+            // 停止之前的协程
+            if (_emissionCoroutine != null)
+            {
+                StopCoroutine(_emissionCoroutine);
+            }
+            
+            // 开始提升亮度
+            _emissionCoroutine = StartCoroutine(IncreaseEmissionIntensity(duration));
+            
+            Debug.Log($"[CastManager] 开始特殊攻击材质效果，持续时间: {duration}秒");
+        }
+        
+        /// <summary>
+        /// 结束特殊攻击材质效果（在后摇阶段调用）
+        /// </summary>
+        /// <param name="duration">后摇阶段持续时间</param>
+        public void EndSpecialAttackEmission(float duration)
+        {
+            if (!_isSpecialAttackActive || specialAttackMaterial == null)
+            {
+                return;
+            }
+            
+            // 停止之前的协程
+            if (_emissionCoroutine != null)
+            {
+                StopCoroutine(_emissionCoroutine);
+            }
+            
+            // 开始降低亮度
+            _emissionCoroutine = StartCoroutine(DecreaseEmissionIntensity(duration));
+            
+            Debug.Log($"[CastManager] 结束特殊攻击材质效果，回归时间: {duration}秒");
+        }
+        
+        /// <summary>
+        /// 重置特殊攻击材质效果（在重置阶段调用）
+        /// </summary>
+        public void ResetSpecialAttackEmission()
+        {
+            if (specialAttackMaterial == null) return;
+            
+            _isSpecialAttackActive = false;
+            _currentEmissionIntensity = originalEmissionIntensity;
+            
+            // 停止协程
+            if (_emissionCoroutine != null)
+            {
+                StopCoroutine(_emissionCoroutine);
+                _emissionCoroutine = null;
+            }
+            
+            // 立即设置为原始亮度
+            SetEmissionIntensity(originalEmissionIntensity);
+            
+            Debug.Log("[CastManager] 重置特殊攻击材质效果");
+        }
+        
+        /// <summary>
+        /// 提升emission强度协程
+        /// </summary>
+        /// <param name="duration">持续时间</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator IncreaseEmissionIntensity(float duration)
+        {
+            float startIntensity = _currentEmissionIntensity;
+            float targetIntensity = maxEmissionIntensity;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration && _isSpecialAttackActive)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / duration;
+                _currentEmissionIntensity = Mathf.Lerp(startIntensity, targetIntensity, progress);
+                
+                SetEmissionIntensity(_currentEmissionIntensity);
+                
+                yield return null;
+            }
+            
+            // 确保达到目标强度
+            if (_isSpecialAttackActive)
+            {
+                _currentEmissionIntensity = targetIntensity;
+                SetEmissionIntensity(_currentEmissionIntensity);
+            }
+        }
+        
+        /// <summary>
+        /// 降低emission强度协程
+        /// </summary>
+        /// <param name="duration">持续时间</param>
+        /// <returns></returns>
+        private System.Collections.IEnumerator DecreaseEmissionIntensity(float duration)
+        {
+            float startIntensity = _currentEmissionIntensity;
+            float targetIntensity = originalEmissionIntensity;
+            float elapsedTime = 0f;
+            
+            while (elapsedTime < duration)
+            {
+                elapsedTime += Time.deltaTime;
+                float progress = elapsedTime / duration;
+                _currentEmissionIntensity = Mathf.Lerp(startIntensity, targetIntensity, progress);
+                
+                SetEmissionIntensity(_currentEmissionIntensity);
+                
+                yield return null;
+            }
+            
+            // 确保达到目标强度
+            _currentEmissionIntensity = targetIntensity;
+            SetEmissionIntensity(_currentEmissionIntensity);
+            _isSpecialAttackActive = false;
+        }
+        
+        /// <summary>
+        /// 设置材质的emission强度
+        /// </summary>
+        /// <param name="intensity">强度值</param>
+        private void SetEmissionIntensity(float intensity)
+        {
+            if (specialAttackMaterial == null) return;
+            
+            // 设置emission强度
+            specialAttackMaterial.SetFloat("_EmissionIntensity", intensity);
+            
+            // 设置emission颜色
+            Color finalEmissionColor = emissionColor * intensity;
+            specialAttackMaterial.SetColor("_EmissionColor", finalEmissionColor);
+            
+            // 启用emission
+            specialAttackMaterial.EnableKeyword("_EMISSION");
+        }
+        
+        /// <summary>
+        /// 获取当前emission强度
+        /// </summary>
+        /// <returns>当前强度</returns>
+        public float GetCurrentEmissionIntensity()
+        {
+            return _currentEmissionIntensity;
+        }
+        
+        /// <summary>
+        /// 检查是否正在进行特殊攻击材质效果
+        /// </summary>
+        /// <returns>是否正在进行</returns>
+        public bool IsSpecialAttackEmissionActive()
+        {
+            return _isSpecialAttackActive;
         }
         
         #endregion

@@ -1834,7 +1834,7 @@ Camera:
   m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.278431, g: 0.278431, b: 0.278431, a: 1}
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -1855,9 +1855,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 4.813482
-  far clip plane: 962696.4
-  field of view: 60.000004
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -1872,7 +1872,7 @@ Camera:
   m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 0
+  m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!1001 &598696296
@@ -9625,9 +9625,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1160167407}
     - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: maxEmissionIntensity
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: specialAttackMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 80467486fb03e6a4ea82a52dfe511cd3, type: 2}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: floodWaterSurfaceObject
       value: 
       objectReference: {fileID: 1502564570}
+    - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: originalEmissionIntensity
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7771090094369150771, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: bombardVfxObjects.Array.data[0]
       value: 
