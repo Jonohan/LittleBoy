@@ -773,7 +773,6 @@ namespace Xuwu.Character
         /// </summary>
         private System.Collections.IEnumerator DelayedTriggerLevel45Effect()
         {
-            Debug.Log($"[CharacterSizeController] 4.5级效果将在 {level45EffectDelay} 秒后触发");
             yield return new WaitForSeconds(level45EffectDelay);
             TriggerLevel45Effect();
         }
@@ -793,7 +792,6 @@ namespace Xuwu.Character
                 GameObject vfxInstance = Instantiate(level45VfxPrefab, effectPosition, Quaternion.identity);
                 // 10秒后自动销毁VFX
                 Destroy(vfxInstance, 10f);
-                Debug.Log($"[CharacterSizeController] 在位置 {effectPosition} 播放4.5级VFX效果");
             }
             
             // 触发Feel效果
@@ -801,7 +799,6 @@ namespace Xuwu.Character
             {
                 level45Feel.transform.position = effectPosition;
                 level45Feel.PlayFeedbacks();
-                Debug.Log($"[CharacterSizeController] 在位置 {effectPosition} 触发4.5级Feel效果");
             }
         }
         

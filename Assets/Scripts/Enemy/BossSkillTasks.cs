@@ -1071,6 +1071,60 @@ namespace Invector.vCharacterController.AI
     }
     
     /// <summary>
+    /// 天花板漩涡发射技能
+    /// </summary>
+    [TaskDescription("天花板漩涡发射 - 天花板吸入到地面抛出")]
+    [TaskIcon("{SkinColor}ActionIcon.png")]
+    public class CeilingVortexLaunch : BossSkillTask
+    {
+        [Header("漩涡配置")]
+        [UnityEngine.Tooltip("漩涡预制体")]
+        public GameObject vortexPrefab;
+        
+        [UnityEngine.Tooltip("吸入力度")]
+        public float suckForce = 15f;
+        
+        [UnityEngine.Tooltip("吸入范围")]
+        public float suckRadius = 6f;
+        
+        [UnityEngine.Tooltip("抛出力度")]
+        public float launchForce = 20f;
+        
+        [UnityEngine.Tooltip("伤害值")]
+        public float damage = 45f;
+        
+        private GameObject _vortexObject;
+        private PortalData _groundPortal;
+        
+        public override void OnStart()
+        {
+            // 自动设置技能参数
+            skillName = "ceiling_vortex";
+            portalType = PortalType.Ceiling;
+            cooldownTime = 12f;
+            spawnPortalTime = 5f;
+            telegraphTime = 2.5f;
+            postAttackTime = 3f;
+            
+            base.OnStart();
+        }
+        
+        protected override void PlayTelegraphEffects()
+        {
+        }
+        
+        protected override void ExecuteSkillEffect()
+        {
+        }
+        
+        protected override void PlayPostAttackEffects()
+        {
+        }
+        
+        // 传送门不需要关闭，它们一直存在
+    }
+    
+    /// <summary>
     /// 吼叫技能
     /// </summary>
     [TaskDescription("Boss吼叫 - 嘲讽和喘息")]
@@ -1182,6 +1236,7 @@ namespace Invector.vCharacterController.AI
             [Range(0f,1f)] public float bombard; // 下一次触发"bombard"的绝对概率
             [Range(0f,1f)] public float flood;   // 下一次触发"flood"的绝对概率
             [Range(0f,1f)] public float vortex;  // 下一次触发"vortex"的绝对概率
+            [Range(0f,1f)] public float ceiling_vortex; // 下一次触发"ceiling_vortex"的绝对概率
         }
 
         [Header("触发型技能概率（根据上一次技能，在下一次中按绝对概率触发）")]
@@ -1205,6 +1260,7 @@ namespace Invector.vCharacterController.AI
             new SkillColorConfig("bombard", PortalColor.Blue, false),
             new SkillColorConfig("flood", PortalColor.Orange, false),
             new SkillColorConfig("vortex", PortalColor.Blue, true), // 随机选择
+            new SkillColorConfig("ceiling_vortex", PortalColor.Orange, true), // 随机选择
             new SkillColorConfig("roar", PortalColor.Blue, false) // roar不需要传送门，但保留配置
         };
         
@@ -1440,6 +1496,7 @@ namespace Invector.vCharacterController.AI
             if (cfg.bombard > 0f) candidates.Add(("bombard", Mathf.Clamp01(cfg.bombard)));
             if (cfg.flood > 0f) candidates.Add(("flood", Mathf.Clamp01(cfg.flood)));
             if (cfg.vortex > 0f) candidates.Add(("vortex", Mathf.Clamp01(cfg.vortex)));
+            if (cfg.ceiling_vortex > 0f) candidates.Add(("ceiling_vortex", Mathf.Clamp01(cfg.ceiling_vortex)));
             if (candidates.Count == 0) return string.Empty;
 
             var valid = new List<(string skill, float p)>();
@@ -1513,6 +1570,8 @@ namespace Invector.vCharacterController.AI
                     return _bossBlackboard.cooldown_flood.Value > 0;
                 case "vortex":
                     return _bossBlackboard.cooldown_vortex.Value > 0;
+                case "ceiling_vortex":
+                    return _bossBlackboard.cooldown_vortex.Value > 0; // 使用相同的冷却时间
                 case "roar":
                     return _bossBlackboard.cooldown_roar.Value > 0;
                 default:
@@ -1658,6 +1717,9 @@ namespace Invector.vCharacterController.AI
                 case "vortex":
                     task = new VortexLaunch();
                     break;
+                case "ceiling_vortex":
+                    task = new CeilingVortexLaunch();
+                    break;
                 case "roar":
                     task = new BossRoar();
                     break;
@@ -1748,7 +1810,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2.5f;
-            castTime = 6f; // Cast阶段持续6秒
+            castTime = 8f; // Cast阶段持续8秒（增加2秒）
             postAttackTime = 1f;
             
             base.OnStart();
@@ -1846,7 +1908,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2.5f;
-            castTime = 6f; // Cast阶段持续6秒
+            castTime = 8f; // Cast阶段持续8秒（增加2秒）
             postAttackTime = 1f;
             
             base.OnStart();
@@ -1943,7 +2005,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2.5f;
-            castTime = 6f; // Cast阶段持续6秒
+            castTime = 8f; // Cast阶段持续8秒（增加2秒）
             postAttackTime = 1f;
             
             base.OnStart();
@@ -2040,7 +2102,7 @@ namespace Invector.vCharacterController.AI
             cooldownTime = 5f;
             spawnPortalTime = 5f;
             telegraphTime = 2.5f;
-            castTime = 6f; // Cast阶段持续6秒
+            castTime = 8f; // Cast阶段持续8秒（增加2秒）
             postAttackTime = 1f;
             
             base.OnStart();

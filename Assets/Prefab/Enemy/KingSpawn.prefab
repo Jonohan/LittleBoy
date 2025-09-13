@@ -1237,6 +1237,15 @@ MonoBehaviour:
     mPropertyMapping: 
     mPropertyMappingOwner: {fileID: 0}
     mValue: 
+  currentTelegraphColor:
+    mIsShared: 0
+    mIsGlobal: 0
+    mIsDynamic: 0
+    mName: 
+    mToolTip: 
+    mPropertyMapping: 
+    mPropertyMappingOwner: {fileID: 0}
+    mValue: 
   cooldown_bombard:
     mIsShared: 0
     mIsGlobal: 0
@@ -1574,7 +1583,7 @@ MonoBehaviour:
         Boss Dead","Instant":true,"SharedFloathpPct":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":0}},{"Type":"Invector.vCharacterController.AI.IsBossDisabled","NodeData":{"Offset":"(-100.799957,109.477859)"},"ID":3,"Name":"Is
         Boss Disabled","Instant":true,"SharedBooldisabledOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossFearful","NodeData":{"Offset":"(38.6024475,110.543335)"},"ID":4,"Name":"Is
         Boss Fearful","Instant":true,"SharedBoolfearOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossAngry","NodeData":{"Offset":"(179.556946,105.218674)"},"ID":5,"Name":"Is
-        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(536.04895,109.299286)"},"ID":6,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(-113.416138,130.899872)"},"ID":7,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}},{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(76.23625,131.481934)"},"ID":8,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Helllllo"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}}]}]},"Variables":[{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeAngry","IsShared":true,"BooleanmValue":true},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeFear","IsShared":true,"BooleanmValue":true}]}'
+        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(536.04895,109.299286)"},"ID":6,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(-113.416138,130.899872)"},"ID":7,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}},{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(76.23625,131.481934)"},"ID":8,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Helllllo"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}}]}]},"Variables":[{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeAngry","IsShared":true,"BooleanmValue":true},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeFear","IsShared":true,"BooleanmValue":true},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeBattle","IsShared":true,"BooleanmValue":false}]}'
       fieldSerializationData:
         typeName: []
         fieldNameHash: 
@@ -1603,6 +1612,9 @@ MonoBehaviour:
   bossPartTag: BossPart
   useInstantMovement: 1
   portalManager: {fileID: 2810686315380664140}
+  initialPosition: {x: 0, y: 0, z: 0}
+  initialRotation: {x: 0, y: 0, z: 0, w: 0}
+  hasStoredInitialTransform: 0
   defaultActiveState: 1
 --- !u!114 &7771090094369150771
 MonoBehaviour:
@@ -1628,6 +1640,10 @@ MonoBehaviour:
   floodVfx: {fileID: 4734401468729239151, guid: 0a17d8f0500d5fc47ae641e231af2241, type: 3}
   wallThrowLeftVfx: {fileID: 3795619694864961905, guid: 92af98b78222006449d30e45f83ba713, type: 3}
   wallThrowRightVfx: {fileID: 3795619694864961905, guid: 92af98b78222006449d30e45f83ba713, type: 3}
+  specialAttackMaterial: {fileID: 0}
+  originalEmissionIntensity: 0
+  maxEmissionIntensity: 2
+  emissionColor: {r: 1, g: 1, b: 1, a: 1}
   tentacleUpFeel: {fileID: 0}
   tentacleDownFeel: {fileID: 0}
   tentacleLeftFeel: {fileID: 0}
@@ -1636,6 +1652,15 @@ MonoBehaviour:
   floodFeel: {fileID: 0}
   wallThrowLeftFeel: {fileID: 0}
   wallThrowRightFeel: {fileID: 0}
+  knockbackFeel: {fileID: 0}
+  knockbackCollisionBox: {fileID: 0}
+  playerObject: {fileID: 0}
+  knockbackForce: 15
+  knockbackHeight: 3
+  knockbackDuration: 1.5
+  knockbackAnimationTrigger: Knockback
+  animationDelay: 0
+  feelAndKnockbackDelay: 0
   bombardDamageObject: {fileID: 0}
   floodDamageObject: {fileID: 0}
   floodWaterSurfaceObject: {fileID: 0}
