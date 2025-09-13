@@ -3,6 +3,7 @@ using Invector.vCharacterController;
 using System.Collections.Generic;
 using Invector.vCamera;
 using Sirenix.OdinInspector;
+using System.Linq;
 
 namespace Xuwu.Character
 {
@@ -90,6 +91,15 @@ namespace Xuwu.Character
         [SerializeField] private Animator _animator;
         [SerializeField] private Transform _cameraTarget;
         
+        [Header("4.5级进入效果")]
+        [Tooltip("进入4.5级时播放的VFX预制体")]
+        public GameObject level45VfxPrefab;
+        [Tooltip("进入4.5级时触发的Feel效果")]
+        public MoreMountains.Feedbacks.MMF_Player level45Feel;
+        [Tooltip("4.5级效果触发延迟时间（秒）")]
+        [Range(0f, 10f)]
+        public float level45EffectDelay = 0f;
+        
         [Header("冷却设置")]
         [Tooltip("每次体型变化的冷却时间（秒）")]
         [Range(0f, 10f)]
@@ -156,6 +166,7 @@ namespace Xuwu.Character
         // 当前状态
         private bool _isInitialized = false;
         private float _currentSizeMultiplier = 1.0f;
+        private bool _hasTriggeredLevel45Effect = false;
         
         #region Unity生命周期
         
@@ -196,7 +207,19 @@ namespace Xuwu.Character
         /// </summary>
         private void InitializeComponents()
         {
+            // 尝试直接获取vThirdPersonMotor
             if (!_motor) _motor = GetComponent<vThirdPersonMotor>();
+            
+            // 如果直接获取失败，尝试通过vThirdPersonController获取（vThirdPersonController继承自vThirdPersonMotor）
+            if (!_motor)
+            {
+                var controller = GetComponent<vThirdPersonController>();
+                if (controller)
+                {
+                    _motor = controller; // vThirdPersonController本身就是vThirdPersonMotor
+                }
+            }
+            
             if (!_capsuleCollider) _capsuleCollider = GetComponent<CapsuleCollider>();
             if (!_animator) _animator = GetComponent<Animator>();
             
@@ -238,6 +261,25 @@ namespace Xuwu.Character
         private void SaveOriginalValues()
         {
             if (!_motor) return;
+
+            
+            // 检查是否有其他精力相关字段
+            var motorType = _motor.GetType();
+            var staminaFields = motorType.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .Where(f => f.Name.ToLower().Contains("stamina")).ToArray();
+
+            foreach (var field in staminaFields)
+            {
+                try
+                {
+                    var value = field.GetValue(_motor);
+                    Debug.Log($"    - {field.Name}: {value}");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.Log($"    - {field.Name}: 无法获取值 ({e.Message})");
+                }
+            }
             
             // 碰撞体参数
             _originalCapsuleHeight = _motor.capsuleHeight;
@@ -625,6 +667,14 @@ namespace Xuwu.Character
         }
         
         /// <summary>
+        /// 获取当前体型等级对应的缩放值
+        /// </summary>
+        public float GetCurrentSizeScale()
+        {
+            return sizeMultiplier;
+        }
+        
+        /// <summary>
         /// 获取当前限制器突破等级（1-5）
         /// </summary>
         public int GetCurrentLimitBreakerLevel()
@@ -673,11 +723,6 @@ namespace Xuwu.Character
         /// <param name="limitBreakerLevel">限制器突破等级（仅4级时有效）</param>
         public void SetSizeLevel(CharacterSizeLevel level, int limitBreakerLevel = 1)
         {
-            if (IsOnSizeChangeCooldown())
-            {
-                Debug.LogWarning($"[CharacterSizeController] 体型变化处于冷却中，剩余 {GetSizeChangeCooldownRemaining():F2}s");
-                return;
-            }
             currentSizeLevel = level;
             this.limitBreakerLevel = Mathf.Clamp(limitBreakerLevel, 1, 5);
             
@@ -692,7 +737,72 @@ namespace Xuwu.Character
             if (Application.isPlaying)
                 _lastSizeChangeTime = Time.time;
             
+            // 检查是否进入4.5级并触发效果
+            CheckAndTriggerLevel45Effect(level, this.limitBreakerLevel);
+            
             Debug.Log($"[CharacterSizeController] 切换到体型等级: {level} (倍数: {targetSize:F1})");
+        }
+        
+        /// <summary>
+        /// 检查并触发4.5级进入效果
+        /// </summary>
+        private void CheckAndTriggerLevel45Effect(CharacterSizeLevel level, int limitBreakerLevel)
+        {
+            // 检查是否达到4.5级（限制器突破等级第5级）
+            bool isLevel45 = (level == CharacterSizeLevel.LimitBreaker && limitBreakerLevel == 5);
+            
+            if (isLevel45 && !_hasTriggeredLevel45Effect)
+            {
+                _hasTriggeredLevel45Effect = true; // 立即标记为已触发，避免重复
+                
+                if (level45EffectDelay > 0f)
+                {
+                    // 延迟触发效果
+                    StartCoroutine(DelayedTriggerLevel45Effect());
+                }
+                else
+                {
+                    // 立即触发效果
+                    TriggerLevel45Effect();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 延迟触发4.5级进入效果
+        /// </summary>
+        private System.Collections.IEnumerator DelayedTriggerLevel45Effect()
+        {
+            Debug.Log($"[CharacterSizeController] 4.5级效果将在 {level45EffectDelay} 秒后触发");
+            yield return new WaitForSeconds(level45EffectDelay);
+            TriggerLevel45Effect();
+        }
+        
+        /// <summary>
+        /// 触发4.5级进入效果
+        /// </summary>
+        private void TriggerLevel45Effect()
+        {
+            // 获取玩家位置（x, 0, z）
+            Vector3 playerPosition = transform.position;
+            Vector3 effectPosition = new Vector3(playerPosition.x, 0f, playerPosition.z);
+            
+            // 播放VFX
+            if (level45VfxPrefab)
+            {
+                GameObject vfxInstance = Instantiate(level45VfxPrefab, effectPosition, Quaternion.identity);
+                // 10秒后自动销毁VFX
+                Destroy(vfxInstance, 10f);
+                Debug.Log($"[CharacterSizeController] 在位置 {effectPosition} 播放4.5级VFX效果");
+            }
+            
+            // 触发Feel效果
+            if (level45Feel)
+            {
+                level45Feel.transform.position = effectPosition;
+                level45Feel.PlayFeedbacks();
+                Debug.Log($"[CharacterSizeController] 在位置 {effectPosition} 触发4.5级Feel效果");
+            }
         }
         
         /// <summary>
@@ -784,8 +894,6 @@ namespace Xuwu.Character
                 float effectiveJumpMultiplier = _currentSizeMultiplier * levelJumpBonusMultiplier;
                 AdjustJumpHeight(effectiveJumpMultiplier);
             }
-            
-            Debug.Log($"[CharacterSizeController] 体型等级效果更新 - 体力消耗: {staminaConsumptionMultiplier:F1}x, 攻击伤害: {attackDamageMultiplier:F1}x");
         }
         
         /// <summary>
@@ -796,15 +904,14 @@ namespace Xuwu.Character
             if (!_motor) return;
             
             // 应用体力消耗倍率到Invector控制器
-            // 修改体力消耗相关的参数
             _motor.sprintStamina = _motor.sprintStamina * staminaConsumptionMultiplier;
             _motor.jumpStamina = _motor.jumpStamina * staminaConsumptionMultiplier;
+            _motor.rollStamina = _motor.rollStamina * staminaConsumptionMultiplier;
             
             // 查找MeleeManager并应用体力消耗倍率
             var meleeManager = GetComponent<Invector.vMelee.vMeleeManager>();
             if (meleeManager != null)
             {
-                // 应用体力消耗倍率到攻击体力消耗
                 meleeManager.defaultStaminaCost = meleeManager.defaultStaminaCost * staminaConsumptionMultiplier;
             }
             
@@ -845,11 +952,6 @@ namespace Xuwu.Character
             if (currentSizeLevel != CharacterSizeLevel.LimitBreaker)
             {
                 Debug.LogWarning("[CharacterSizeController] 只有4级限制器突破才能升级！");
-                return false;
-            }
-            if (IsOnSizeChangeCooldown())
-            {
-                Debug.LogWarning($"[CharacterSizeController] 限制器突破升级处于冷却中，剩余 {GetSizeChangeCooldownRemaining():F2}s");
                 return false;
             }
             
@@ -952,6 +1054,14 @@ namespace Xuwu.Character
             Debug.Log("[CharacterSizeController] 测试倍率应用...");
             ApplyStaminaMultiplier();
             ApplyDamageMultiplier();
+        }
+        
+        [Button("测试4.5级效果")]
+        public void TestLevel45Effect()
+        {
+            Debug.Log("[CharacterSizeController] 测试4.5级效果...");
+            _hasTriggeredLevel45Effect = false; // 重置标志
+            SetSizeLevel(CharacterSizeLevel.LimitBreaker, 5);
         }
         
         #endregion
