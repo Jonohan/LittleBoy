@@ -349,8 +349,8 @@ Transform:
   m_GameObject: {fileID: 64742382}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.014018681, z: -0, w: 0.9999017}
-  m_LocalPosition: {x: 0, y: 12.7, z: 20.8}
-  m_LocalScale: {x: 53.44783, y: 23.07211, z: 15.991644}
+  m_LocalPosition: {x: 0.1, y: 12.7, z: 18.4}
+  m_LocalScale: {x: 53.44783, y: 23.07211, z: 11.768251}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2095128439}
@@ -2724,8 +2724,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.01810218
-  far clip plane: 3620.4363
+  near clip plane: 0.10836418
+  far clip plane: 21672.836
   field of view: 60.000004
   orthographic: 0
   orthographic size: 5
@@ -10862,8 +10862,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 52, y: -87}
-  m_SizeDelta: {x: 91, y: 55.2137}
+  m_AnchoredPosition: {x: 54.1, y: -87}
+  m_SizeDelta: {x: 100, y: 55.2137}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1665477128
 MonoBehaviour:
@@ -10991,6 +10991,10 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  maxRedColor: {r: 1, g: 0, b: 0, a: 1}
+  redColorStartLevel: 4
+  maxRedLevel: 4.5
   showDebugLogs: 0
 --- !u!1 &1671554443
 GameObject:
@@ -11450,7 +11454,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 121.396095, y: -26}
+  m_AnchoredPosition: {x: 126.4, y: -26}
   m_SizeDelta: {x: 45.6154, y: 55.2137}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1804950455
@@ -12474,7 +12478,7 @@ MonoBehaviour:
   openCloseWindow: 0
   selectedToolbar: 0
   targetReceiver: {fileID: 2095128399}
-  damageMultiplier: 0.1
+  damageMultiplier: 5
   ragdoll: {fileID: 0}
   overrideReactionID: 0
   reactionID: 0
@@ -13295,7 +13299,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9076150663978166040, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 5
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 9076150663978166040, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
       propertyPath: m_LocalPosition.y
@@ -13303,7 +13307,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9076150663978166040, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 9076150663978166040, guid: 4630fcc706ab3da4c9e78c131d7ab1c4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -13534,7 +13538,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1073876455590800401, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: _maxHealth
-      value: 200
+      value: 300
       objectReference: {fileID: 0}
     - target: {fileID: 1121886232468040825, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: m_Name
@@ -13568,6 +13572,14 @@ PrefabInstance:
       propertyPath: wallRightSlots.Array.data[0]
       value: 
       objectReference: {fileID: 1654706625}
+    - target: {fileID: 5745450640572170942, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
+      propertyPath: mBehaviorSource.mTaskData.JSONSerialization
+      value: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(174.37233,-3.49856567)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(-0.3085537,116.6691)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Invector.vCharacterController.AI.IsBossDead","NodeData":{"Offset":"(-226.210068,112.975555)"},"ID":2,"Name":"Is
+        Boss Dead","Instant":true,"SharedFloathpPct":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":0}},{"Type":"Invector.vCharacterController.AI.IsBossDisabled","NodeData":{"Offset":"(-100.799957,109.477859)"},"ID":3,"Name":"Is
+        Boss Disabled","Instant":true,"SharedBooldisabledOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossFearful","NodeData":{"Offset":"(38.6024475,110.543335)"},"ID":4,"Name":"Is
+        Boss Fearful","Instant":true,"SharedBoolfearOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"Invector.vCharacterController.AI.IsBossAngry","NodeData":{"Offset":"(179.556946,105.218674)"},"ID":5,"Name":"Is
+        Boss Angry","Instant":true,"SharedBoolangerOn":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(536.04895,109.299286)"},"ID":6,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Wait","NodeData":{"Offset":"(-113.416138,130.899872)"},"ID":7,"Name":"Wait","Instant":true,"SharedFloatwaitTime":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":5},"SharedBoolrandomWait":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedFloatrandomWaitMin":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1},"SharedFloatrandomWaitMax":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":1}},{"Type":"BehaviorDesigner.Runtime.Tasks.Log","NodeData":{"Offset":"(76.23625,131.481934)"},"ID":8,"Name":"Log","Instant":true,"SharedStringtext":{"Type":"BehaviorDesigner.Runtime.SharedString","Name":null,"StringmValue":"Helllllo"},"SharedBoollogError":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false},"SharedBoollogTime":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":false}}]}]},"Variables":[{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeAngry","IsShared":true,"BooleanmValue":true},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeFear","IsShared":true,"BooleanmValue":true},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"isFirstTimeBattle","IsShared":true,"BooleanmValue":true}]}'
+      objectReference: {fileID: 0}
     - target: {fileID: 6482422768991068590, guid: ffd65508dec142c40bdd14a44ceeb84e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.5102825

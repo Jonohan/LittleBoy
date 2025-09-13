@@ -18,6 +18,12 @@ namespace Xuwu.UI
         [SerializeField] private float animationDuration = 0.5f;
         [SerializeField] private AnimationCurve easeOutCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
         
+        [Header("颜色设置")]
+        [SerializeField] private Color normalColor = Color.white;
+        [SerializeField] private Color maxRedColor = Color.red;
+        [SerializeField] private int redColorStartLevel = 4; // 开始变红的等级
+        [SerializeField] private float maxRedLevel = 4.5f; // 最大红色等级
+        
         [Header("调试")]
         [SerializeField] private bool showDebugLogs = false;
         
@@ -75,22 +81,46 @@ namespace Xuwu.UI
         /// </summary>
         private void UpdateSizeDisplay()
         {
-            // 根据玩家体型等级获取对应的缩放值
-            float currentSizeScale = _sizeController.GetCurrentSizeScale();
-            float initialSizeScale = 1f; // 初始体型缩放为1
-            float sizePercentage = (currentSizeScale / initialSizeScale) * 100f;
+            // 获取当前体型等级
+            CharacterSizeLevel currentLevel = _sizeController.GetCurrentSizeLevel();
+            int limitBreakerLevel = _sizeController.GetCurrentLimitBreakerLevel();
+            
+            // 计算总等级（4级时加上限制器突破等级的小数部分）
+            float totalLevel = (int)currentLevel;
+            if (currentLevel == CharacterSizeLevel.LimitBreaker)
+            {
+                totalLevel += limitBreakerLevel * 0.1f; // 4.1, 4.2, 4.3, 4.4, 4.5
+            }
+            
+            // 确定目标显示值
+            float targetDisplayValue;
+            if (totalLevel >= maxRedLevel)
+            {
+                // 4.5级时显示固定1000%
+                targetDisplayValue = 1000f;
+            }
+            else
+            {
+                // 其他等级显示实际体型百分比
+                float currentSizeScale = _sizeController.GetCurrentSizeScale();
+                float initialSizeScale = 1f; // 初始体型缩放为1
+                targetDisplayValue = (currentSizeScale / initialSizeScale) * 100f;
+            }
             
             if (showDebugLogs)
             {
-                Debug.Log($"[PlayerSizeDisplayUI] 当前体型等级: {_sizeController.GetCurrentSizeLevel()}, 体型缩放: {currentSizeScale}, 体型百分比: {sizePercentage}%");
+                Debug.Log($"[PlayerSizeDisplayUI] 当前体型等级: {currentLevel}, 限制器突破等级: {limitBreakerLevel}, 总等级: {totalLevel}, 目标显示值: {targetDisplayValue}%");
             }
             
             // 如果目标值发生变化，启动动画
-            if (!Mathf.Approximately(_targetValue, sizePercentage))
+            if (!Mathf.Approximately(_targetValue, targetDisplayValue))
             {
-                _targetValue = sizePercentage;
+                _targetValue = targetDisplayValue;
                 StartSizeAnimation();
             }
+            
+            // 更新字体颜色
+            UpdateTextColor(totalLevel);
         }
         
         /// <summary>
@@ -155,7 +185,44 @@ namespace Xuwu.UI
         {
             if (sizeText != null)
             {
+                // 直接使用当前显示值，因为动画系统已经处理了目标值的过渡
                 sizeText.text = string.Format(displayFormat, _currentDisplayValue);
+            }
+        }
+        
+        /// <summary>
+        /// 更新文本颜色
+        /// </summary>
+        /// <param name="totalLevel">总等级</param>
+        private void UpdateTextColor(float totalLevel)
+        {
+            if (sizeText == null) return;
+            
+            // 如果达到4.5级，使用最大红色
+            if (totalLevel >= maxRedLevel)
+            {
+                sizeText.color = maxRedColor;
+                return;
+            }
+            
+            // 如果等级小于开始变红的等级，使用正常颜色
+            if (totalLevel < redColorStartLevel)
+            {
+                sizeText.color = normalColor;
+                return;
+            }
+            
+            // 在4级到4.5级之间，计算红色渐变
+            float redProgress = (totalLevel - redColorStartLevel) / (maxRedLevel - redColorStartLevel);
+            redProgress = Mathf.Clamp01(redProgress);
+            
+            // 插值计算颜色
+            Color currentColor = Color.Lerp(normalColor, maxRedColor, redProgress);
+            sizeText.color = currentColor;
+            
+            if (showDebugLogs)
+            {
+                Debug.Log($"[PlayerSizeDisplayUI] 等级: {totalLevel:F1}, 红色进度: {redProgress:F2}, 颜色: {currentColor}");
             }
         }
         
@@ -187,6 +254,33 @@ namespace Xuwu.UI
         {
             _targetValue = 100f;
             StartSizeAnimation();
+        }
+        
+        /// <summary>
+        /// 测试颜色变化（用于测试）
+        /// </summary>
+        [ContextMenu("测试 - 模拟4.0级")]
+        public void TestSimulateLevel4()
+        {
+            UpdateTextColor(4.0f);
+        }
+        
+        /// <summary>
+        /// 测试颜色变化（用于测试）
+        /// </summary>
+        [ContextMenu("测试 - 模拟4.25级")]
+        public void TestSimulateLevel4_25()
+        {
+            UpdateTextColor(4.25f);
+        }
+        
+        /// <summary>
+        /// 测试颜色变化（用于测试）
+        /// </summary>
+        [ContextMenu("测试 - 模拟4.5级")]
+        public void TestSimulateLevel4_5()
+        {
+            UpdateTextColor(4.5f);
         }
         
         private void OnDestroy()
