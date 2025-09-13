@@ -1823,6 +1823,13 @@ namespace Invector.vCharacterController.AI
         
         protected override void ExecuteSkillEffect()
         {
+            // 检查是否处于恐惧阶段，如果是则跳过cast执行
+            if (_bossBlackboard && _bossBlackboard.fearOn.Value)
+            {
+                Debug.Log("[TentacleUpAttack] 恐惧阶段：跳过cast执行");
+                return;
+            }
+            
             // 调用CastManager执行上方触手攻击
             if (_bossBlackboard && _bossBlackboard.castManager)
             {

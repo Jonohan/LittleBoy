@@ -54,7 +54,7 @@ Material:
     - _Size: 1
     - _ViewSize: 1
     m_Colors:
-    - _FrameColor: {r: 0, g: 0.985899, b: 1, a: 1}
+    - _FrameColor: {r: 1, g: 0.76477265, b: 0, a: 1}
   m_BuildTextureStacks: []
 --- !u!114 &3807819451198897408
 MonoBehaviour:
