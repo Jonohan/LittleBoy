@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Xuwu.UI;
 
 namespace UI
 {
@@ -43,6 +44,10 @@ namespace UI
         [Tooltip("是否在Boss死亡时隐藏血条")]
         public bool hideOnDeath = true;
         
+        [Header("死亡效果")]
+        [Tooltip("Boss死亡文字UI GameObject")]
+        public GameObject bossDeathUIGameObject;
+        
         // 组件引用
         private Slider healthSlider;
         private Image healthFill;
@@ -62,6 +67,7 @@ namespace UI
         private bool lastAngerState = false;
         private bool lastFearState = false;
         private bool lastDisabledState = false;
+        private bool hasTriggeredDeathEffect = false;
         
         void Start()
         {
@@ -231,10 +237,48 @@ namespace UI
                 UpdateHealthBarColor();
                 
                 // 检查是否死亡
-                if (currentHealth <= 0 && hideOnDeath)
+                if (currentHealth <= 0)
                 {
-                    gameObject.SetActive(false);
+                    // 触发死亡效果（只触发一次）
+                    if (!hasTriggeredDeathEffect)
+                    {
+                        TriggerBossDeathEffect();
+                        hasTriggeredDeathEffect = true;
+                    }
+                    
+                    // 隐藏血条
+                    if (hideOnDeath)
+                    {
+                        gameObject.SetActive(false);
+                    }
                 }
+            }
+        }
+        
+        /// <summary>
+        /// 触发Boss死亡效果
+        /// </summary>
+        private void TriggerBossDeathEffect()
+        {
+            if (bossDeathUIGameObject != null)
+            {
+                // 激活GameObject
+                bossDeathUIGameObject.SetActive(true);
+                
+                // 获取BossDeathTextUI组件并调用显示方法
+                var bossDeathTextUI = bossDeathUIGameObject.GetComponent<BossDeathTextUI>();
+                if (bossDeathTextUI != null)
+                {
+                    bossDeathTextUI.ShowBossDeathText();
+                }
+                else
+                {
+                    Debug.LogError("[BossHealthBarController] BossDeathUIGameObject上没有找到BossDeathTextUI组件！");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[BossHealthBarController] BossDeathUIGameObject未设置！");
             }
         }
         
