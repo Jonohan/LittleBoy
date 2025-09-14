@@ -4829,7 +4829,7 @@ MonoBehaviour:
         RepeatUntilStopped: 0
         CameraShakeProperties:
           Duration: 4
-          Amplitude: 0.2
+          Amplitude: 0.05
           Frequency: 40
           AmplitudeX: 0
           AmplitudeY: 0
