@@ -12479,7 +12479,7 @@ MonoBehaviour:
   openCloseWindow: 0
   selectedToolbar: 0
   targetReceiver: {fileID: 2095128399}
-  damageMultiplier: 8
+  damageMultiplier: 5
   ragdoll: {fileID: 0}
   overrideReactionID: 0
   reactionID: 0
